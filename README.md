@@ -1,69 +1,87 @@
 # 🎵 Soundboard Pro
 
-Professional soundboard tool with automatic installation and Discord/Game audio routing.
-
-## 🚀 Quick Start
-
-```bash
-# 1. Setup (first time only)
-setup.bat
-
-# 2. Restart computer
-
-# 3. Run app
-run.bat
-```
-
-That's it! Everything is automated.
+Professional soundboard tool with TRUE standalone executable - no Python or dependencies needed!
 
 ## ✨ Features
 
-- ✅ **Auto-install Python** - Detects and installs Python 3.11.7 if needed
-- ✅ **Auto-install VB-Cable** - Downloads and installs virtual audio driver
-- ✅ **Beautiful UI** - Modern dark theme with custom buttons
-- ✅ **Audio Routing** - Route sounds to Discord/Games
-- ✅ **Easy to Use** - Add sounds and play with one click
-- ✅ **Volume Control** - Adjust volume in real-time
+- 🎨 **Beautiful Modern UI** - Dark theme with custom buttons
+- 🎵 **Easy Sound Management** - Add and play sounds with one click
+- 🔊 **Volume Control** - Adjust volume in real-time
+- 🎙️ **Audio Routing** - Route sounds to Discord/Games
+- 🚀 **TRUE Standalone** - No Python installation needed
+- 💾 **Single EXE File** - Everything bundled
+
+## 🚀 For Users
+
+### Download & Run
+1. Download `SoundboardPro.exe` from [Releases](https://github.com/yourusername/soundboard-pro/releases)
+2. Double-click to run
+3. First run: Optionally install VB-Cable for Discord/Game routing
+4. That's it! No setup needed!
+
+### Features
+- Add sounds (.wav, .mp3, .ogg, .flac)
+- Play sounds with one click
+- Adjust volume
+- Route audio to Discord/Games (with VB-Cable)
+- Stop all sounds
+
+## 🔧 For Developers
+
+### Build Standalone EXE
+
+```bash
+# Quick build
+build.bat
+
+# Or manual
+pip install pyinstaller pygame-ce pyaudio numpy
+python build_exe.py
+```
+
+**Output:** `dist/SoundboardPro.exe` (~40-50MB)
+
+### What Gets Bundled
+- ✅ Python runtime
+- ✅ pygame-ce (audio playback)
+- ✅ pyaudio (audio routing)
+- ✅ numpy (audio processing)
+- ✅ tkinter (GUI)
+- ✅ VB-Cable installer
+- ✅ All source code
+
+### Development Setup
+
+```bash
+# Clone repo
+git clone https://github.com/yourusername/soundboard-pro.git
+cd soundboard-pro
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run from source
+python src/main.py
+```
 
 ## 📁 Project Structure
 
 ```
-soundboard/
-├── setup.bat           # Run once to install everything
-├── run.bat             # Run daily to start app
-├── requirements.txt    # Python dependencies
+soundboard-pro/
+├── src/                    # Source code
+│   ├── main.py            # Entry point
+│   ├── main_standalone.py # Standalone entry point
+│   ├── ui.py              # GUI
+│   ├── soundboard.py      # Audio logic
+│   ├── audio_router.py    # Routing system
+│   └── config.py          # Configuration
 │
-├── src/                # Source code
-│   ├── main.py         # Entry point
-│   ├── ui.py           # GUI interface
-│   ├── soundboard.py   # Audio logic
-│   ├── audio_router.py # Routing system
-│   └── config.py       # Configuration
-│
-├── scripts/            # Installation scripts
-│   ├── setup.bat       # Main setup script
-│   ├── run.bat         # Run script
-│   ├── setup.py        # Python setup
-│   ├── installer.py    # VB-Cable installer
-│   ├── python_installer.py
-│   ├── install_python.bat
-│   └── check_python.bat
-│
-├── docs/               # Documentation
-│   ├── README.md       # Full documentation
-│   ├── QUICK_START.md  # Quick reference
-│   ├── INSTALL.md      # Installation guide
-│   └── SETUP_GUIDE.md  # Audio setup guide
-│
-└── sounds/             # Your audio files
+├── sounds/                 # Audio files
+├── scripts/                # Setup scripts (for development)
+├── build_exe.py           # Build script
+├── build.bat              # Build wrapper
+└── BUILD_STANDALONE.md    # Build documentation
 ```
-
-## 📖 Documentation
-
-- [Quick Start](docs/QUICK_START.md) - Get started in 3 minutes
-- [Installation Guide](docs/INSTALL.md) - Detailed installation instructions
-- [Setup Guide](docs/SETUP_GUIDE.md) - Audio routing configuration
-- [Full Documentation](docs/README.md) - Complete reference
 
 ## 🎮 Use Cases
 
@@ -73,33 +91,37 @@ soundboard/
 - Presentations
 - Podcasting
 
+## 📖 Documentation
+
+- [Build Guide](BUILD_STANDALONE.md) - How to build standalone EXE
+- [Changelog](CHANGELOG.md) - Version history
+- [Contributing](CONTRIBUTING.md) - How to contribute
+
 ## 🔧 Requirements
 
+### For Users:
 - Windows 10/11
-- Python 3.7+ (auto-installed)
-- Internet connection (for setup)
-- Admin rights (for driver installation)
+- Nothing else! (Everything bundled in EXE)
+
+### For Developers:
+- Python 3.7+
+- PyInstaller
+- pygame-ce, pyaudio, numpy
 
 ## 🆘 Troubleshooting
 
-### Python not found
-```bash
-scripts\install_python.bat
-```
+### EXE doesn't start
+- Run as Administrator
+- Check antivirus (may flag as false positive)
 
-### Setup fails
-```bash
-# Run as Administrator
-Right-click setup.bat → Run as Administrator
-```
-
-### Can't find CABLE device
-- Restart computer after setup
-- Check docs/SETUP_GUIDE.md
+### VB-Cable not installing
+- Run EXE as Administrator
+- Or download manually: https://vb-audio.com/Cable/
 
 ### Discord doesn't hear sounds
 - Check Input Device = "CABLE Output"
-- See docs/SETUP_GUIDE.md for details
+- Ensure VB-Cable is installed
+- Restart Discord
 
 ## 📝 License
 
@@ -107,11 +129,16 @@ MIT License - Free to use and modify
 
 ## 🤝 Contributing
 
-Contributions welcome! Feel free to:
-- Report bugs
-- Suggest features
-- Submit pull requests
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## 🌟 Credits
+
+- Python & PyInstaller
+- pygame community
+- VB-Audio Software
 
 ---
 
-Made with ❤️ | Happy Sound Boarding! 🎵
+**Made with ❤️ | Happy Sound Boarding! 🎵**
+
+**Download:** [Latest Release](https://github.com/yourusername/soundboard-pro/releases)
