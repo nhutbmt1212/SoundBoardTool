@@ -3,6 +3,12 @@ Modern Soundboard GUI with beautiful design
 """
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+import sys
+import os
+
+# Ensure imports work from src directory
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from soundboard import Soundboard
 from config import Config
 try:

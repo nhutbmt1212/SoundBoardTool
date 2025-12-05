@@ -1,37 +1,39 @@
 # ⚡ Quick Start Guide
 
 ## 🎯 Mục tiêu
-Cho phép mọi người trong Discord/Game nghe được soundboard của bạn trong 5 phút!
+Cho phép mọi người trong Discord/Game nghe được soundboard của bạn trong 3 phút!
 
 ## 📋 Checklist
 
-### ✅ Bước 1: Cài đặt cơ bản (2 phút)
+### ✅ Bước 1: Cài đặt tự động (1 phút)
 ```bash
-# Clone/tải project về
-# Cài dependencies
-pip install -r requirements.txt
+# Windows: Double-click hoặc chạy
+setup.bat
 
-# Chạy app
+# Hoặc
+python setup.py
+
+# Restart máy tính sau khi cài xong
+```
+
+### ✅ Bước 2: Chạy app (30 giây)
+```bash
 python main.py
 ```
 
-### ✅ Bước 2: Thêm sounds (1 phút)
+### ✅ Bước 3: Thêm sounds (30 giây)
 1. Click "➕ Add Sound"
 2. Chọn file âm thanh (.wav, .mp3, .ogg)
 3. Test bằng cách click vào button
 
-### ✅ Bước 3: Setup Virtual Audio (2 phút)
+### ✅ Bước 4: Setup Audio Routing (1 phút)
 
-**3.1. Cài VB-Cable**
-- Tải: https://vb-audio.com/Cable/
-- Cài đặt → Khởi động lại máy
-
-**3.2. Cấu hình Soundboard**
+**4.1. Cấu hình Soundboard**
 1. Click "⚙️ Audio Setup"
 2. Chọn "CABLE Input (VB-Audio Virtual Cable)"
 3. Click "▶️ Start Routing"
 
-**3.3. Cấu hình Discord**
+**4.2. Cấu hình Discord**
 1. Discord Settings → Voice & Video
 2. Input Device → Chọn "CABLE Output (VB-Audio Virtual Cable)"
 3. Test: Phát sound và xem thanh xanh
@@ -59,9 +61,10 @@ Giải pháp:
 
 | Vấn đề | Giải pháp |
 |--------|-----------|
+| Auto-install không chạy | Chạy `setup.bat` as Administrator |
 | Không cài được pygame | `pip install pygame-ce` |
 | Không cài được pyaudio | `pip install pipwin` → `pipwin install pyaudio` |
-| Không thấy CABLE trong list | Khởi động lại máy sau khi cài VB-Cable |
+| Không thấy CABLE trong list | Khởi động lại máy sau khi setup |
 | Discord không nhận âm thanh | Kiểm tra Input Device = "CABLE Output" |
 | Âm thanh bị lag | Giảm buffer size, đóng app khác |
 
@@ -72,6 +75,10 @@ Giải pháp:
 
 ---
 
-**Thời gian setup**: ~5 phút  
-**Độ khó**: ⭐⭐☆☆☆ (Dễ)  
+**Thời gian setup**: ~3 phút (với auto-install)  
+**Độ khó**: ⭐☆☆☆☆ (Rất dễ)  
 **Kết quả**: Troll bạn bè cực mạnh! 😎
+
+---
+
+💡 **Pro Tip**: Chạy `setup.bat` một lần là xong tất cả!

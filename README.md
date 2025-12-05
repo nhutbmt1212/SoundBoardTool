@@ -1,190 +1,116 @@
 # 🎵 Soundboard Pro
 
-Một công cụ soundboard chuyên nghiệp với giao diện hiện đại, hỗ trợ routing âm thanh đến Discord/Games.
+Professional soundboard tool with automatic installation and Discord/Game audio routing.
 
-## ✨ Tính năng
-
-### Cơ bản
-- 🎨 Giao diện đẹp mắt với theme tối hiện đại
-- 🎵 Phát các file âm thanh với một cú click
-- ➕ Thêm file âm thanh mới dễ dàng
-- 🔊 Điều chỉnh volume realtime
-- ⏹️ Dừng tất cả âm thanh đang phát
-- 🔄 Tự động refresh danh sách sounds
-
-### Nâng cao
-- 🎙️ **Audio Routing** - Route âm thanh đến Discord/Games
-- 🎮 Cho phép mọi người trong voice chat nghe được soundboard
-- 🔌 Hỗ trợ Virtual Audio Devices (VB-Cable, Voicemeeter)
-- 📊 Hiển thị danh sách audio devices
-- ⚙️ Cấu hình audio routing dễ dàng
-
-## 📦 Cài đặt
-
-### Bước 1: Clone hoặc tải project
-
-### Bước 2: Cài đặt Python dependencies
+## 🚀 Quick Start
 
 ```bash
-pip install -r requirements.txt
+# 1. Setup (first time only)
+setup.bat
+
+# 2. Restart computer
+
+# 3. Run app
+run.bat
 ```
 
-**Lưu ý cho Windows:** Nếu gặp lỗi với PyAudio:
-```bash
-pip install pipwin
-pipwin install pyaudio
-```
+That's it! Everything is automated.
 
-Hoặc tải wheel từ: https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio
+## ✨ Features
 
-### Bước 3 (Tùy chọn): Cài Virtual Audio Cable
+- ✅ **Auto-install Python** - Detects and installs Python 3.11.7 if needed
+- ✅ **Auto-install VB-Cable** - Downloads and installs virtual audio driver
+- ✅ **Beautiful UI** - Modern dark theme with custom buttons
+- ✅ **Audio Routing** - Route sounds to Discord/Games
+- ✅ **Easy to Use** - Add sounds and play with one click
+- ✅ **Volume Control** - Adjust volume in real-time
 
-Chỉ cần nếu bạn muốn dùng tính năng routing đến Discord/Games:
-
-**Option 1: VB-Audio Virtual Cable** (Miễn phí, Khuyến nghị)
-- Tải về: https://vb-audio.com/Cable/
-- Cài đặt và khởi động lại máy
-
-**Option 2: Voicemeeter** (Miễn phí, Nhiều tính năng)
-- Tải về: https://vb-audio.com/Voicemeeter/
-- Cài đặt Voicemeeter Banana hoặc Potato
-
-## 🚀 Sử dụng
-
-### Chạy ứng dụng
-
-```bash
-python main.py
-```
-
-### Sử dụng cơ bản
-
-1. **Thêm sounds**: Click "➕ Add Sound" và chọn file âm thanh (.wav, .mp3, .ogg, .flac)
-2. **Phát sound**: Click vào button của sound muốn phát
-3. **Điều chỉnh volume**: Kéo slider "🔊 Volume"
-4. **Dừng tất cả**: Click "⏹️ Stop All"
-
-### 🎙️ Setup Audio Routing (Discord/Games)
-
-Để mọi người trong Discord/Game nghe được soundboard:
-
-1. **Cài Virtual Audio Cable** (xem Bước 3 ở trên)
-
-2. **Mở Audio Setup**: Click "⚙️ Audio Setup" trong app
-
-3. **Chọn Virtual Device**: 
-   - Chọn "CABLE Input" (VB-Cable) hoặc "VoiceMeeter Input"
-   - Click "▶️ Start Routing"
-
-4. **Cấu hình Discord/Game**:
-   - Mở Settings → Voice & Video
-   - Chọn "CABLE Output" hoặc "VoiceMeeter Output" làm **Input Device**
-   - Test bằng cách phát sound
-
-5. **Done!** Mọi người giờ sẽ nghe được soundboard của bạn! 🎉
-
-📖 **Xem hướng dẫn chi tiết**: [SETUP_GUIDE.md](SETUP_GUIDE.md)
-
-## 📁 Cấu trúc dự án
+## 📁 Project Structure
 
 ```
 soundboard/
-├── main.py              # Entry point
-├── soundboard.py        # Core audio logic
-├── ui.py               # Modern GUI interface
-├── audio_router.py     # Audio routing system
-├── config.py           # Configuration
-├── sounds/             # Audio files folder
-├── requirements.txt    # Dependencies
-├── README.md          # Documentation
-└── SETUP_GUIDE.md     # Detailed setup guide
+├── setup.bat           # Run once to install everything
+├── run.bat             # Run daily to start app
+├── requirements.txt    # Python dependencies
+│
+├── src/                # Source code
+│   ├── main.py         # Entry point
+│   ├── ui.py           # GUI interface
+│   ├── soundboard.py   # Audio logic
+│   ├── audio_router.py # Routing system
+│   └── config.py       # Configuration
+│
+├── scripts/            # Installation scripts
+│   ├── setup.bat       # Main setup script
+│   ├── run.bat         # Run script
+│   ├── setup.py        # Python setup
+│   ├── installer.py    # VB-Cable installer
+│   ├── python_installer.py
+│   ├── install_python.bat
+│   └── check_python.bat
+│
+├── docs/               # Documentation
+│   ├── README.md       # Full documentation
+│   ├── QUICK_START.md  # Quick reference
+│   ├── INSTALL.md      # Installation guide
+│   └── SETUP_GUIDE.md  # Audio setup guide
+│
+└── sounds/             # Your audio files
 ```
+
+## 📖 Documentation
+
+- [Quick Start](docs/QUICK_START.md) - Get started in 3 minutes
+- [Installation Guide](docs/INSTALL.md) - Detailed installation instructions
+- [Setup Guide](docs/SETUP_GUIDE.md) - Audio routing configuration
+- [Full Documentation](docs/README.md) - Complete reference
 
 ## 🎮 Use Cases
 
-- **Gaming**: Phát sound effects trong game với bạn bè
-- **Streaming**: Thêm sound effects vào stream
-- **Discord**: Troll bạn bè với meme sounds
-- **Presentations**: Thêm sound effects vào thuyết trình
-- **Podcasting**: Sound effects cho podcast
+- Gaming with friends
+- Discord trolling with meme sounds
+- Streaming with sound effects
+- Presentations
+- Podcasting
 
-## 🛠️ Yêu cầu hệ thống
+## 🔧 Requirements
 
-- **OS**: Windows 10/11, macOS, Linux
-- **Python**: 3.7+
-- **RAM**: 100MB+
-- **Disk**: 50MB+ (không tính audio files)
+- Windows 10/11
+- Python 3.7+ (auto-installed)
+- Internet connection (for setup)
+- Admin rights (for driver installation)
 
-## 📚 Dependencies
+## 🆘 Troubleshooting
 
-- `pygame-ce` - Audio playback
-- `pyaudio` - Audio routing (optional)
-- `numpy` - Audio processing (optional)
-- `tkinter` - GUI (built-in với Python)
-
-## 🐛 Troubleshooting
-
-### Không cài được pygame
+### Python not found
 ```bash
-pip install pygame-ce
+scripts\install_python.bat
 ```
 
-### Không cài được pyaudio
+### Setup fails
 ```bash
-# Windows
-pip install pipwin
-pipwin install pyaudio
-
-# macOS
-brew install portaudio
-pip install pyaudio
-
-# Linux
-sudo apt-get install python3-pyaudio
+# Run as Administrator
+Right-click setup.bat → Run as Administrator
 ```
 
-### Không thấy Virtual Device
-- Đảm bảo đã cài VB-Cable hoặc Voicemeeter
-- Khởi động lại máy tính
-- Khởi động lại app
+### Can't find CABLE device
+- Restart computer after setup
+- Check docs/SETUP_GUIDE.md
 
-### Discord không nhận âm thanh
-- Kiểm tra Input Device trong Discord settings
-- Đảm bảo đã chọn đúng "CABLE Output" hoặc "VoiceMeeter Output"
-- Kiểm tra Input Volume không bị mute
+### Discord doesn't hear sounds
+- Check Input Device = "CABLE Output"
+- See docs/SETUP_GUIDE.md for details
 
-## 💡 Tips
-
-1. **Tổ chức sounds**: Đặt tên file rõ ràng để dễ tìm
-2. **Volume control**: Điều chỉnh volume phù hợp để không quá to
-3. **Hotkeys**: Có thể thêm hotkeys cho sounds hay dùng
-4. **Mix với mic**: Dùng Voicemeeter để mix soundboard + mic thật
-
-## 🔮 Tính năng sắp tới
-
-- [ ] Hotkeys support
-- [ ] Sound categories/folders
-- [ ] Favorites system
-- [ ] Search/filter sounds
-- [ ] Custom button colors
-- [ ] Sound preview
-- [ ] Export/import sound packs
-- [ ] Waveform visualization
-
-## 📄 License
+## 📝 License
 
 MIT License - Free to use and modify
 
 ## 🤝 Contributing
 
-Contributions are welcome! Feel free to:
+Contributions welcome! Feel free to:
 - Report bugs
 - Suggest features
 - Submit pull requests
-
-## 📞 Support
-
-Nếu gặp vấn đề, xem [SETUP_GUIDE.md](SETUP_GUIDE.md) hoặc tạo issue trên GitHub.
 
 ---
 

@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+*.lnk
+
+# Soundboard specific
+sounds/*.wav
+sounds/*.mp3
+sounds/*.ogg
+sounds/*.flac
+sounds/*.m4a
+!sounds/.gitkeep
+
+# Temp files
+*.tmp
+*.log
+temp/
+tmp/
+*.bak
+*.cache
+
+# Windows installer files
+*.exe
+*.msi
+*.zip
+prebuilt*/
