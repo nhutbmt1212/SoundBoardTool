@@ -1,5 +1,5 @@
 """
-Core Soundboard Logic - Hỗ trợ dual output (speakers + virtual cable)
+Core Soundboard Logic - Sử dụng sounddevice cho audio routing
 """
 try:
     import pygame
@@ -13,16 +13,24 @@ except ImportError:
         AUDIO_BACKEND = None
 
 import os
-import wave
 import threading
+import traceback
 from pathlib import Path
 
 try:
-    import pyaudio
+    import sounddevice as sd
     import numpy as np
-    PYAUDIO_AVAILABLE = True
+    from scipy.io import wavfile
+    SOUNDDEVICE_AVAILABLE = True
 except ImportError:
-    PYAUDIO_AVAILABLE = False
+    SOUNDDEVICE_AVAILABLE = False
+    sd = None
+    np = None
+
+
+def log_debug(msg):
+    """Debug logging"""
+    print(f"[DEBUG] {msg}")
 
 
 class Soundboard:
@@ -35,17 +43,39 @@ class Soundboard:
         self.load_sounds()
         
         # Virtual audio routing
-        self.virtual_output_device = None
+        self.virtual_device_id = None
         self.routing_enabled = False
-        self.pyaudio_instance = None
-        
-        # Track active streams để có thể stop
-        self._active_streams = []
-        self._streams_lock = threading.Lock()
         self._stop_flag = threading.Event()
+        self._is_playing_vb = False  # Track nếu đang play qua VB-Cable
         
-        if PYAUDIO_AVAILABLE:
-            self.pyaudio_instance = pyaudio.PyAudio()
+        # Auto-detect VB-Cable
+        if SOUNDDEVICE_AVAILABLE:
+            self._auto_detect_vb_cable()
+    
+    def _auto_detect_vb_cable(self):
+        """Tự động tìm và kết nối VB-Cable"""
+        try:
+            devices = sd.query_devices()
+            
+            # Tìm VB-Cable output device
+            for i, dev in enumerate(devices):
+                if dev['max_output_channels'] > 0:
+                    name = dev['name'].lower()
+                    if 'vb-audio virtual cable' in name:
+                        self.virtual_device_id = i
+                        self.routing_enabled = True
+                        print(f"✅ VB-Cable found: {dev['name']} (id={i})")
+                        return True
+            
+            print("⚠️ VB-Cable not found")
+            return False
+        except Exception as e:
+            print(f"Error detecting VB-Cable: {e}")
+            return False
+    
+    def is_vb_cable_connected(self):
+        """Kiểm tra VB-Cable đã kết nối chưa"""
+        return self.routing_enabled and self.virtual_device_id is not None
     
     def load_sounds(self):
         """Load all audio files from sounds directory"""
@@ -53,29 +83,21 @@ class Soundboard:
             self.sounds_dir.mkdir(parents=True)
             return
         
-        # Hỗ trợ nhiều định dạng
         extensions = ['*.wav', '*.mp3', '*.ogg', '*.flac']
         for ext in extensions:
             for file in self.sounds_dir.glob(ext):
                 name = file.stem
                 self.sounds[name] = str(file)
     
-    def set_virtual_output(self, device_index):
-        """Set virtual output device for routing to Discord/Games"""
-        self.virtual_output_device = device_index
-        self.routing_enabled = device_index is not None
-    
     def play_sound(self, sound_name):
-        """Play a sound - output to both speakers and virtual device"""
+        """Play sound - speakers + VB-Cable"""
         if sound_name not in self.sounds:
             return False
         
         sound_path = self.sounds[sound_name]
-        
-        # Clear stop flag
         self._stop_flag.clear()
         
-        # Play qua pygame (speakers)
+        # Play qua speakers (pygame)
         if pygame:
             try:
                 sound = pygame.mixer.Sound(sound_path)
@@ -84,229 +106,136 @@ class Soundboard:
             except Exception as e:
                 print(f"Pygame error: {e}")
         
-        # Đồng thời route qua virtual device nếu enabled
-        if self.routing_enabled and self.virtual_output_device is not None:
+        # Route qua VB-Cable
+        if self.routing_enabled and self.virtual_device_id is not None:
             threading.Thread(
-                target=self._play_to_virtual_device,
+                target=self._play_to_vb_cable,
                 args=(sound_path,),
                 daemon=True
             ).start()
         
         return True
     
-    def _play_to_virtual_device(self, sound_path):
-        """Play audio to virtual device (VB-Cable) in background thread"""
-        if not PYAUDIO_AVAILABLE or self.pyaudio_instance is None:
+    def _play_to_vb_cable(self, sound_path):
+        """Play audio to VB-Cable"""
+        log_debug("_play_to_vb_cable: START")
+        
+        if not SOUNDDEVICE_AVAILABLE:
+            log_debug("_play_to_vb_cable: sounddevice not available")
             return
         
+        self._is_playing_vb = True
+        log_debug("_play_to_vb_cable: set _is_playing_vb = True")
+        
         try:
-            # Đọc file WAV
-            if sound_path.lower().endswith('.wav'):
-                self._play_wav_to_device(sound_path)
-            else:
-                # Với các format khác, dùng pygame để convert
-                self._play_other_format_to_device(sound_path)
-        except Exception as e:
-            print(f"Virtual device error: {e}")
-    
-    def _play_wav_to_device(self, wav_path):
-        """Play WAV file directly to virtual device"""
-        try:
-            wf = wave.open(wav_path, 'rb')
-            
-            # Lấy sample rate của device (VB-Cable thường dùng 48000)
-            device_info = self.pyaudio_instance.get_device_info_by_index(self.virtual_output_device)
-            device_sample_rate = int(device_info['defaultSampleRate'])
-            file_sample_rate = wf.getframerate()
-            
-            print(f"Playing WAV to virtual device: {wav_path}")
-            print(f"  File rate: {file_sample_rate}, Device rate: {device_sample_rate}")
-            print(f"  Channels: {wf.getnchannels()}, Sample width: {wf.getsampwidth()}")
-            
-            # Dùng sample rate của device
-            stream = self.pyaudio_instance.open(
-                format=self.pyaudio_instance.get_format_from_width(wf.getsampwidth()),
-                channels=wf.getnchannels(),
-                rate=device_sample_rate,
-                output=True,
-                output_device_index=self.virtual_output_device
-            )
-            
-            # Đọc toàn bộ file để resample nếu cần
-            all_data = wf.readframes(wf.getnframes())
-            audio_array = np.frombuffer(all_data, dtype=np.int16)
-            
-            # Reshape theo channels
-            if wf.getnchannels() == 2:
-                audio_array = audio_array.reshape(-1, 2)
-            
-            # Resample nếu sample rate khác
-            if file_sample_rate != device_sample_rate:
-                audio_array = self._resample_audio(audio_array, file_sample_rate, device_sample_rate)
-            
-            # Track stream
-            with self._streams_lock:
-                self._active_streams.append(stream)
-            
-            try:
-                # Apply volume
-                audio_array = (audio_array * self.volume).astype(np.int16)
-                
-                # Play in chunks để có thể stop
-                chunk_size = 4096
-                audio_bytes = audio_array.tobytes()
-                
-                for i in range(0, len(audio_bytes), chunk_size):
-                    if self._stop_flag.is_set():
-                        break
-                    try:
-                        chunk = audio_bytes[i:i + chunk_size]
-                        stream.write(chunk)
-                    except Exception:
-                        break
-            finally:
-                try:
-                    stream.stop_stream()
-                    stream.close()
-                except Exception:
-                    pass
-                try:
-                    wf.close()
-                except Exception:
-                    pass
-                with self._streams_lock:
-                    if stream in self._active_streams:
-                        self._active_streams.remove(stream)
-        except Exception as e:
-            print(f"WAV playback error: {e}")
-    
-    def _play_other_format_to_device(self, sound_path):
-        """Play non-WAV formats by loading with pygame and streaming"""
-        try:
-            # Load sound với pygame để decode
+            log_debug("_play_to_vb_cable: loading sound with pygame")
+            # Load audio với pygame và convert
             sound = pygame.mixer.Sound(sound_path)
+            audio_array = pygame.sndarray.array(sound)
+            log_debug(f"_play_to_vb_cable: audio_array shape={audio_array.shape}, dtype={audio_array.dtype}")
             
-            # Lấy raw audio data từ pygame Sound
-            try:
-                raw_data = pygame.sndarray.array(sound)
-            except Exception:
-                print(f"Cannot convert {sound_path} to array, skipping virtual output")
+            # Get mixer settings
+            mixer_freq, _, _ = pygame.mixer.get_init()
+            log_debug(f"_play_to_vb_cable: mixer_freq={mixer_freq}")
+            
+            # Convert to float32 cho sounddevice
+            if audio_array.dtype == np.int16:
+                audio_float = audio_array.astype(np.float32) / 32768.0
+            elif audio_array.dtype == np.int32:
+                audio_float = audio_array.astype(np.float32) / 2147483648.0
+            else:
+                audio_float = audio_array.astype(np.float32)
+            
+            # Apply volume
+            audio_float = audio_float * self.volume
+            log_debug(f"_play_to_vb_cable: audio_float ready, shape={audio_float.shape}")
+            
+            # Kiểm tra stop flag trước khi play
+            if self._stop_flag.is_set():
+                log_debug("_play_to_vb_cable: stop flag set before play, returning")
+                self._is_playing_vb = False
                 return
             
-            # Lấy thông tin từ pygame mixer
-            mixer_freq, mixer_size, mixer_channels = pygame.mixer.get_init()
+            log_debug(f"_play_to_vb_cable: calling sd.play() device={self.virtual_device_id}")
+            # Play to VB-Cable
+            sd.play(audio_float, samplerate=mixer_freq, device=self.virtual_device_id)
+            log_debug("_play_to_vb_cable: sd.play() called, entering wait loop")
             
-            # Convert to int16 nếu cần
-            if raw_data.dtype != np.int16:
-                if raw_data.dtype == np.float32 or raw_data.dtype == np.float64:
-                    raw_data = (raw_data * 32767).astype(np.int16)
-                else:
-                    raw_data = raw_data.astype(np.int16)
-            
-            # Determine channels từ shape
-            if len(raw_data.shape) > 1:
-                channels = raw_data.shape[1]
-            else:
-                channels = 1
-                raw_data = raw_data.reshape(-1, 1)
-            
-            # Lấy sample rate của device
-            device_info = self.pyaudio_instance.get_device_info_by_index(self.virtual_output_device)
-            device_sample_rate = int(device_info['defaultSampleRate'])
-            
-            # Resample nếu sample rate khác nhau
-            if mixer_freq != device_sample_rate:
-                raw_data = self._resample_audio(raw_data, mixer_freq, device_sample_rate)
-            
-            stream = self.pyaudio_instance.open(
-                format=pyaudio.paInt16,
-                channels=channels,
-                rate=device_sample_rate,
-                output=True,
-                output_device_index=self.virtual_output_device
-            )
-            
-            # Track stream
-            with self._streams_lock:
-                self._active_streams.append(stream)
-            
-            try:
-                # Apply volume and play in chunks để có thể stop
-                audio_data = (raw_data * self.volume).astype(np.int16)
-                chunk_size = 4096
-                audio_bytes = audio_data.tobytes()
-                
-                for i in range(0, len(audio_bytes), chunk_size):
-                    if self._stop_flag.is_set():
-                        break
-                    try:
-                        chunk = audio_bytes[i:i + chunk_size]
-                        stream.write(chunk)
-                    except Exception:
-                        break
-            finally:
+            # Wait với check stop flag định kỳ thay vì block hoàn toàn
+            loop_count = 0
+            while True:
+                loop_count += 1
                 try:
-                    stream.stop_stream()
-                    stream.close()
-                except Exception:
-                    pass
-                with self._streams_lock:
-                    if stream in self._active_streams:
-                        self._active_streams.remove(stream)
+                    stream = sd.get_stream()
+                    if stream is None or not stream.active:
+                        log_debug(f"_play_to_vb_cable: stream ended (loop={loop_count})")
+                        break
+                    
+                    if self._stop_flag.is_set():
+                        log_debug(f"_play_to_vb_cable: stop flag detected (loop={loop_count})")
+                        try:
+                            sd.stop()
+                            log_debug("_play_to_vb_cable: sd.stop() called successfully")
+                        except Exception as stop_err:
+                            log_debug(f"_play_to_vb_cable: sd.stop() error: {stop_err}")
+                        break
+                    
+                    sd.sleep(50)  # Check mỗi 50ms
+                except Exception as loop_err:
+                    log_debug(f"_play_to_vb_cable: loop error: {loop_err}")
+                    break
+            
+            log_debug("_play_to_vb_cable: wait loop finished")
+            
         except Exception as e:
-            print(f"Format conversion error: {e}")
-    
-    def _resample_audio(self, audio_data, src_rate, dst_rate):
-        """Resample audio từ src_rate sang dst_rate"""
-        if src_rate == dst_rate:
-            return audio_data
-        
-        # Tính số samples mới
-        duration = len(audio_data) / src_rate
-        new_length = int(duration * dst_rate)
-        
-        # Resample bằng linear interpolation
-        if len(audio_data.shape) > 1:
-            # Stereo
-            resampled = np.zeros((new_length, audio_data.shape[1]), dtype=np.int16)
-            for ch in range(audio_data.shape[1]):
-                resampled[:, ch] = np.interp(
-                    np.linspace(0, len(audio_data), new_length),
-                    np.arange(len(audio_data)),
-                    audio_data[:, ch]
-                ).astype(np.int16)
-        else:
-            # Mono
-            resampled = np.interp(
-                np.linspace(0, len(audio_data), new_length),
-                np.arange(len(audio_data)),
-                audio_data
-            ).astype(np.int16)
-        
-        return resampled
+            log_debug(f"_play_to_vb_cable: EXCEPTION: {e}")
+            log_debug(traceback.format_exc())
+        finally:
+            self._is_playing_vb = False
+            log_debug("_play_to_vb_cable: END, _is_playing_vb = False")
     
     def stop_all(self):
-        """Stop all playing sounds - cả speakers và virtual device"""
-        # Stop pygame sounds
-        if pygame:
-            pygame.mixer.stop()
+        """Stop all sounds"""
+        log_debug("stop_all: START")
         
-        # Set flag để các thread tự dừng (không close stream ở đây)
+        # Set flag trước để thread tự dừng (thread sẽ gọi sd.stop())
+        log_debug("stop_all: setting stop flag")
         self._stop_flag.set()
+        
+        # Stop pygame
+        log_debug("stop_all: stopping                   ")
+        if pygame:
+            try:
+                pygame.mixer.stop()
+                log_debug("stop_all: pygame.mixer.stop() OK")
+            except Exception as e:
+                log_debug(f"stop_all: pygame.mixer.stop() error: {e}")
+        
+        # KHÔNG gọi sd.stop() ở đây - để thread tự xử lý khi thấy stop flag
+        # Tránh race condition khi cả 2 nơi cùng gọi sd.stop()
+        log_debug(f"stop_all: sounddevice will be stopped by thread (is_playing={self._is_playing_vb})")
+        
+        # Reset flag sau một chút để cho phép play tiếp
+        def reset_flag():
+            try:
+                log_debug("stop_all: resetting stop flag")
+                self._stop_flag.clear()
+            except Exception as e:
+                log_debug(f"stop_all: reset flag error: {e}")
+        
+        threading.Timer(0.3, reset_flag).start()
+        log_debug("stop_all: END")
     
     def set_volume(self, volume):
-        """Set global volume (0.0 to 1.0)"""
+        """Set volume (0.0 to 1.0)"""
         self.volume = max(0.0, min(1.0, volume))
-        if pygame:
-            # Không dùng music.set_volume vì ta dùng Sound objects
-            pass
     
     def get_sound_list(self):
         """Get list of available sounds"""
         return sorted(list(self.sounds.keys()))
     
     def add_sound(self, file_path, name=None):
-        """Add a new sound to the soundboard"""
+        """Add a new sound"""
         path = Path(file_path)
         if not path.exists():
             return False
@@ -323,5 +252,4 @@ class Soundboard:
     
     def cleanup(self):
         """Cleanup resources"""
-        if self.pyaudio_instance:
-            self.pyaudio_instance.terminate()
+        self.stop_all()
