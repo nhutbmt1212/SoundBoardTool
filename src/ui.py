@@ -119,10 +119,13 @@ class SoundboardUI:
         self.audio_router = AudioRouter() if AUDIO_ROUTING_AVAILABLE else None
         self.routing_enabled = tk.BooleanVar(value=False)
         
+        # Routing status label (sẽ được set trong setup_ui)
+        self.routing_status_label = None
+        
         self.setup_ui()
         
-        # Restore saved routing config
-        self._restore_routing_config()
+        # Tự động detect và kết nối VB-Cable
+        self._auto_connect_virtual_audio()
     
     def setup_ui(self):
         """Setup modern UI"""
@@ -140,14 +143,15 @@ class SoundboardUI:
         )
         title_label.pack(side=tk.LEFT, padx=30, pady=20)
         
-        subtitle = tk.Label(
+        # Routing status - hiển thị trạng thái kết nối
+        self.routing_status_label = tk.Label(
             header,
-            text="Your ultimate sound control center",
+            text="🔄 Đang kết nối...",
             font=("Segoe UI", 10),
             bg=self.bg_secondary,
             fg=self.text_secondary
         )
-        subtitle.pack(side=tk.LEFT, padx=0, pady=20)
+        self.routing_status_label.pack(side=tk.RIGHT, padx=30, pady=20)
         
         # Control panel
         control_frame = tk.Frame(self.root, bg=self.bg_primary)
@@ -404,13 +408,21 @@ class SoundboardUI:
         )
         device_listbox.pack(fill=tk.BOTH, padx=15, pady=(0, 15))
         
-        # Populate devices - hiển thị cả index để debug
+        # Lọc bỏ device trùng lặp - chỉ giữ 1 device cho mỗi tên
+        seen_names = set()
+        unique_virtual = []
+        for device in sorted(virtual_devices, key=lambda x: x['index']):
+            if device['name'] not in seen_names:
+                seen_names.add(device['name'])
+                unique_virtual.append(device)
+        
+        # Populate devices
         device_map = {}
-        if virtual_devices:
+        if unique_virtual:
             device_listbox.insert(tk.END, "=== VIRTUAL DEVICES (Recommended) ===")
-            for device in virtual_devices:
+            for device in unique_virtual:
                 idx = device_listbox.size()
-                device_listbox.insert(tk.END, f"  ✅ [{device['index']}] {device['name']}")
+                device_listbox.insert(tk.END, f"  ✅ {device['name']}")
                 device_map[idx] = device['index']
             device_listbox.insert(tk.END, "")
         else:
@@ -418,11 +430,14 @@ class SoundboardUI:
             device_listbox.insert(tk.END, "   Cài VB-Cable hoặc chọn device bên dưới")
             device_listbox.insert(tk.END, "")
         
+        # Lọc bỏ device trùng lặp cho all devices
+        seen_all = set()
         device_listbox.insert(tk.END, "=== TẤT CẢ OUTPUT DEVICES ===")
-        for device in all_devices:
-            if device['max_output_channels'] > 0:
+        for device in sorted(all_devices, key=lambda x: x['index']):
+            if device['max_output_channels'] > 0 and device['name'] not in seen_all:
+                seen_all.add(device['name'])
                 idx = device_listbox.size()
-                device_listbox.insert(tk.END, f"  [{device['index']}] {device['name']}")
+                device_listbox.insert(tk.END, f"  {device['name']}")
                 device_map[idx] = device['index']
         
         # Status label - hiển thị trạng thái hiện tại
@@ -458,13 +473,20 @@ class SoundboardUI:
                 return
             
             device_idx = device_map[selected_idx]
-            device_name = device_listbox.get(selected_idx).strip()
+            
+            # Lấy tên device thực từ audio_router (không có prefix [index])
+            all_devices = self.audio_router.list_audio_devices()
+            device_name = ""
+            for d in all_devices:
+                if d['index'] == device_idx:
+                    device_name = d['name']
+                    break
             
             # Set virtual output trực tiếp trong soundboard
             self.soundboard.set_virtual_output(device_idx)
             self.routing_enabled.set(True)
             
-            # Lưu config
+            # Lưu config với tên device thực
             self.config.set_routing(True, device_idx, device_name)
             
             status_label.config(text="Status: ✅ Routing Active", fg="#10b981")
@@ -509,29 +531,57 @@ class SoundboardUI:
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.root.mainloop()
     
-    def _restore_routing_config(self):
-        """Restore saved routing configuration on startup"""
+    def _auto_connect_virtual_audio(self):
+        """Tự động detect và kết nối VB-Cable"""
         if not AUDIO_ROUTING_AVAILABLE:
+            self._update_routing_status("❌ PyAudio không khả dụng", "#ef4444")
             return
         
-        if self.config.routing_enabled and self.config.routing_device_index is not None:
-            try:
-                # Verify device still exists
-                all_devices = self.audio_router.list_audio_devices()
-                device_exists = any(
-                    d['index'] == self.config.routing_device_index 
-                    for d in all_devices
-                )
+        try:
+            all_devices = self.audio_router.list_audio_devices()
+            
+            # Tìm VB-Cable - chỉ lấy 1 device, ưu tiên theo host API
+            # Host API index: 0=MME, 1=DirectSound, 2=WASAPI, 3=WDM-KS
+            # Ưu tiên: index thấp nhất trong các device có tên khớp (thường là MME - ổn định nhất)
+            
+            vb_cable_candidates = []
+            
+            for d in all_devices:
+                if d['max_output_channels'] > 0:
+                    name_lower = d['name'].lower()
+                    # Chỉ lấy "Speakers (VB-Audio Virtual Cable)"
+                    if 'vb-audio virtual cable' in name_lower and 'speakers' in name_lower:
+                        vb_cable_candidates.append(d)
+            
+            # Chọn device có index thấp nhất (thường là MME - ổn định)
+            vb_cable_device = None
+            if vb_cable_candidates:
+                vb_cable_device = min(vb_cable_candidates, key=lambda x: x['index'])
+            
+            if vb_cable_device:
+                # Tự động kết nối
+                self.soundboard.set_virtual_output(vb_cable_device['index'])
+                self.routing_enabled.set(True)
+                self.config.set_routing(True, vb_cable_device['index'], vb_cable_device['name'])
                 
-                if device_exists:
-                    self.soundboard.set_virtual_output(self.config.routing_device_index)
-                    self.routing_enabled.set(True)
-                    print(f"✅ Auto-restored routing to: {self.config.routing_device_name}")
-                else:
-                    print(f"⚠️ Saved device not found: {self.config.routing_device_name}")
-                    self.config.set_routing(False, None, "")
-            except Exception as e:
-                print(f"Error restoring routing: {e}")
+                self._update_routing_status(
+                    f"🎙️ Discord: Chọn 'CABLE Output' làm Input",
+                    "#10b981"
+                )
+                print(f"✅ Auto-connected to: {vb_cable_device['name']} (index {vb_cable_device['index']})")
+            else:
+                self._update_routing_status(
+                    "⚠️ VB-Cable chưa cài - Click 'Audio Setup' để tải",
+                    "#f59e0b"
+                )
+        except Exception as e:
+            print(f"Auto-connect error: {e}")
+            self._update_routing_status("❌ Lỗi kết nối audio", "#ef4444")
+    
+    def _update_routing_status(self, text, color):
+        """Cập nhật status label trên UI chính"""
+        if self.routing_status_label:
+            self.routing_status_label.config(text=text, fg=color)
     
     def on_closing(self):
         """Cleanup on window close"""

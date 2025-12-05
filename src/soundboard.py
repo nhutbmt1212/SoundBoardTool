@@ -159,12 +159,21 @@ class Soundboard:
                 for i in range(0, len(audio_bytes), chunk_size):
                     if self._stop_flag.is_set():
                         break
-                    chunk = audio_bytes[i:i + chunk_size]
-                    stream.write(chunk)
+                    try:
+                        chunk = audio_bytes[i:i + chunk_size]
+                        stream.write(chunk)
+                    except Exception:
+                        break
             finally:
-                stream.stop_stream()
-                stream.close()
-                wf.close()
+                try:
+                    stream.stop_stream()
+                    stream.close()
+                except Exception:
+                    pass
+                try:
+                    wf.close()
+                except Exception:
+                    pass
                 with self._streams_lock:
                     if stream in self._active_streams:
                         self._active_streams.remove(stream)
@@ -230,11 +239,17 @@ class Soundboard:
                 for i in range(0, len(audio_bytes), chunk_size):
                     if self._stop_flag.is_set():
                         break
-                    chunk = audio_bytes[i:i + chunk_size]
-                    stream.write(chunk)
+                    try:
+                        chunk = audio_bytes[i:i + chunk_size]
+                        stream.write(chunk)
+                    except Exception:
+                        break
             finally:
-                stream.stop_stream()
-                stream.close()
+                try:
+                    stream.stop_stream()
+                    stream.close()
+                except Exception:
+                    pass
                 with self._streams_lock:
                     if stream in self._active_streams:
                         self._active_streams.remove(stream)
@@ -276,17 +291,8 @@ class Soundboard:
         if pygame:
             pygame.mixer.stop()
         
-        # Stop virtual device streams
+        # Set flag để các thread tự dừng (không close stream ở đây)
         self._stop_flag.set()
-        
-        with self._streams_lock:
-            for stream in self._active_streams[:]:
-                try:
-                    stream.stop_stream()
-                    stream.close()
-                except:
-                    pass
-            self._active_streams.clear()
     
     def set_volume(self, volume):
         """Set global volume (0.0 to 1.0)"""
