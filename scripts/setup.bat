@@ -1,8 +1,18 @@
 @echo off
 cd /d "%~dp0"
+
+REM Check for admin rights and auto-elevate if needed
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    echo Requesting Administrator privileges...
+    powershell -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b
+)
+
 echo ========================================
 echo  Soundboard Pro - Auto Setup
 echo ========================================
+echo [OK] Running with Administrator privileges
 echo.
 
 REM Step 1: Check Python
@@ -58,7 +68,6 @@ python scripts\setup.py
 if %errorlevel% neq 0 (
     echo.
     echo [X] Installation failed!
-    echo [*] Try running as Administrator
     echo.
     pause
     exit /b 1

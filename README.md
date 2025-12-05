@@ -19,6 +19,19 @@ Professional soundboard tool with TRUE standalone executable - no Python or depe
 3. First run: Optionally install VB-Cable for Discord/Game routing
 4. That's it! No setup needed!
 
+### Auto Install (From Source)
+```bash
+setup.bat
+```
+**Tự động 100%:**
+- ✅ Tự động yêu cầu quyền Admin
+- ✅ Tự động cài Python (nếu chưa có)
+- ✅ Tự động cài thư viện
+- ✅ Tự động tải và cài VB-Cable
+- ✅ Thử 4 phương pháp cài đặt khác nhau
+
+**Xem chi tiết:** [AUTO_INSTALL.md](AUTO_INSTALL.md)
+
 ### Features
 - Add sounds (.wav, .mp3, .ogg, .flac)
 - Play sounds with one click

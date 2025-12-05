@@ -31,19 +31,37 @@ class AudioRouter:
         return devices
     
     def get_virtual_devices(self):
-        """Get list of virtual audio devices (VB-Cable, etc)"""
+        """Get list of virtual audio devices (VB-Cable, NVIDIA, etc)"""
         devices = self.list_audio_devices()
         virtual_devices = []
         
-        keywords = ['VB-Audio', 'CABLE', 'Virtual', 'Voicemeeter']
-        
         for device in devices:
-            name_upper = device['name'].upper()
-            if any(keyword.upper() in name_upper for keyword in keywords):
-                if device['max_output_channels'] > 0:
+            name_lower = device['name'].lower()
+            
+            # Chỉ lấy OUTPUT devices (max_output_channels > 0)
+            if device['max_output_channels'] > 0:
+                # VB-Cable: "Speakers (VB-Audio Virtual Cable)" hoặc "CABLE Input"
+                if 'vb-audio' in name_lower:
+                    virtual_devices.append(device)
+                # Voicemeeter
+                elif 'voicemeeter' in name_lower:
+                    virtual_devices.append(device)
+                # NVIDIA Virtual Audio
+                elif 'nvidia' in name_lower and 'virtual' in name_lower:
                     virtual_devices.append(device)
         
         return virtual_devices
+    
+    def get_all_output_devices(self):
+        """Get ALL output devices (để user có thể chọn bất kỳ device nào)"""
+        devices = self.list_audio_devices()
+        output_devices = []
+        
+        for device in devices:
+            if device['max_output_channels'] > 0:
+                output_devices.append(device)
+        
+        return output_devices
     
     def set_output_device(self, device_index):
         """Set the output device for routing"""

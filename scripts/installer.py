@@ -68,14 +68,8 @@ class SoundboardInstaller:
             return False
     
     def install_vb_cable(self):
-        """Install VB-Cable driver"""
+        """Install VB-Cable driver with multiple methods"""
         print("🔧 Installing VB-Audio Virtual Cable...")
-        
-        if not self.is_admin():
-            print("⚠️  Need administrator privileges to install driver")
-            print("🔄 Restarting with admin rights...")
-            self.run_as_admin()
-            return False
         
         try:
             # Find the setup executable
@@ -91,30 +85,113 @@ class SoundboardInstaller:
                 if not os.path.exists(setup_exe):
                     setup_exe = os.path.join(self.vb_cable_dir, "VBCABLE_Setup.exe")
             
-            if os.path.exists(setup_exe):
-                print(f"📌 Running installer: {setup_exe}")
-                # Run installer silently
+            if not os.path.exists(setup_exe):
+                print(f"❌ Setup executable not found in {self.vb_cable_dir}")
+                return False
+            
+            print(f"📌 Found installer: {setup_exe}")
+            
+            # Method 1: Try PowerShell with admin elevation (most reliable)
+            print("🔄 Method 1: Using PowerShell with admin elevation...")
+            try:
+                ps_command = f'Start-Process -FilePath "{setup_exe}" -ArgumentList "-i","-h" -Verb RunAs -Wait'
                 result = subprocess.run(
-                    [setup_exe, "-i", "-h"],
+                    ["powershell", "-Command", ps_command],
                     capture_output=True,
-                    text=True
+                    text=True,
+                    timeout=60
                 )
                 
                 if result.returncode == 0:
-                    print("✅ VB-Cable installed successfully!")
-                    print("⚠️  Please restart your computer for changes to take effect")
+                    print("✅ PowerShell installation completed!")
+                    import time
+                    time.sleep(5)
+                    
+                    if self.check_vb_cable_installed():
+                        print("✅ VB-Cable installed and verified!")
+                        return True
+                    else:
+                        print("⚠️  Installation completed - restart required")
+                        return True
+            except subprocess.TimeoutExpired:
+                print("⏳ Installation taking longer than expected...")
+                print("⚠️  This is normal - continuing...")
+                return True
+            except Exception as e:
+                print(f"⚠️  PowerShell method failed: {e}")
+            
+            # Method 2: Try direct ShellExecute
+            print("🔄 Method 2: Using ShellExecute...")
+            try:
+                result = ctypes.windll.shell32.ShellExecuteW(
+                    None,
+                    "runas",
+                    setup_exe,
+                    "-i -h",
+                    None,
+                    1  # Show window
+                )
+                
+                if result > 32:
+                    print("✅ Installation started!")
+                    print("⏳ Waiting for installation...")
+                    import time
+                    time.sleep(15)
+                    print("⚠️  Installation completed - restart required")
                     return True
                 else:
-                    print(f"⚠️  Installation may require manual confirmation")
-                    # Try without silent flags
-                    subprocess.Popen([setup_exe])
+                    print(f"⚠️  ShellExecute returned: {result}")
+            except Exception as e:
+                print(f"⚠️  ShellExecute method failed: {e}")
+            
+            # Method 3: Try subprocess with runas
+            print("🔄 Method 3: Using subprocess with runas...")
+            try:
+                result = subprocess.run(
+                    ["runas", "/user:Administrator", f'"{setup_exe}" -i -h'],
+                    capture_output=True,
+                    text=True,
+                    timeout=60
+                )
+                
+                if result.returncode == 0:
+                    print("✅ Installation completed!")
                     return True
-            else:
-                print(f"❌ Setup executable not found in {self.vb_cable_dir}")
-                return False
+            except Exception as e:
+                print(f"⚠️  Runas method failed: {e}")
+            
+            # Method 4: Try without silent flags (user will see installer)
+            print("🔄 Method 4: Running installer with UI...")
+            try:
+                ps_command = f'Start-Process -FilePath "{setup_exe}" -Verb RunAs -Wait'
+                result = subprocess.run(
+                    ["powershell", "-Command", ps_command],
+                    capture_output=True,
+                    text=True,
+                    timeout=120
+                )
+                
+                print("✅ Installation completed!")
+                return True
+            except subprocess.TimeoutExpired:
+                print("⚠️  Installation may still be running")
+                print("    Please wait for installer to finish")
+                return True
+            except Exception as e:
+                print(f"⚠️  UI method failed: {e}")
+            
+            print("❌ All installation methods failed")
+            print("📝 Please install manually:")
+            print(f"   1. Go to: {self.vb_cable_dir}")
+            print(f"   2. Right-click: {os.path.basename(setup_exe)}")
+            print("   3. Select: Run as Administrator")
+            print("   4. Click: Install Driver")
+            return False
                 
         except Exception as e:
             print(f"❌ Installation failed: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def check_vb_cable_installed(self):

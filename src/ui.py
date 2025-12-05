@@ -113,13 +113,16 @@ class SoundboardUI:
         self.text_primary = "#f1f5f9"
         self.text_secondary = "#94a3b8"
         
-        self.volume = tk.DoubleVar(value=0.7)
+        self.volume = tk.DoubleVar(value=self.config.default_volume * 100)
         
         # Audio routing
         self.audio_router = AudioRouter() if AUDIO_ROUTING_AVAILABLE else None
         self.routing_enabled = tk.BooleanVar(value=False)
         
         self.setup_ui()
+        
+        # Restore saved routing config
+        self._restore_routing_config()
     
     def setup_ui(self):
         """Setup modern UI"""
@@ -401,29 +404,41 @@ class SoundboardUI:
         )
         device_listbox.pack(fill=tk.BOTH, padx=15, pady=(0, 15))
         
-        # Populate devices
+        # Populate devices - hiển thị cả index để debug
         device_map = {}
         if virtual_devices:
             device_listbox.insert(tk.END, "=== VIRTUAL DEVICES (Recommended) ===")
             for device in virtual_devices:
                 idx = device_listbox.size()
-                device_listbox.insert(tk.END, f"  {device['name']}")
+                device_listbox.insert(tk.END, f"  ✅ [{device['index']}] {device['name']}")
                 device_map[idx] = device['index']
+            device_listbox.insert(tk.END, "")
+        else:
+            device_listbox.insert(tk.END, "⚠️ Không tìm thấy Virtual Device")
+            device_listbox.insert(tk.END, "   Cài VB-Cable hoặc chọn device bên dưới")
+            device_listbox.insert(tk.END, "")
         
-        device_listbox.insert(tk.END, "\n=== ALL OUTPUT DEVICES ===")
+        device_listbox.insert(tk.END, "=== TẤT CẢ OUTPUT DEVICES ===")
         for device in all_devices:
             if device['max_output_channels'] > 0:
                 idx = device_listbox.size()
-                device_listbox.insert(tk.END, f"  {device['name']}")
+                device_listbox.insert(tk.END, f"  [{device['index']}] {device['name']}")
                 device_map[idx] = device['index']
         
-        # Status label
+        # Status label - hiển thị trạng thái hiện tại
+        if self.routing_enabled.get():
+            status_text = f"Status: ✅ Routing Active ({self.config.routing_device_name})"
+            status_color = "#10b981"
+        else:
+            status_text = "Status: Not routing"
+            status_color = self.text_secondary
+        
         status_label = tk.Label(
             settings_win,
-            text="Status: Not routing",
+            text=status_text,
             font=("Segoe UI", 10),
             bg=self.bg_primary,
-            fg=self.text_secondary
+            fg=status_color
         )
         status_label.pack(pady=10)
         
@@ -443,22 +458,31 @@ class SoundboardUI:
                 return
             
             device_idx = device_map[selected_idx]
-            self.audio_router.set_output_device(device_idx)
+            device_name = device_listbox.get(selected_idx).strip()
             
-            if self.audio_router.start_routing():
-                self.routing_enabled.set(True)
-                status_label.config(text="Status: ✅ Routing Active", fg="#10b981")
-                messagebox.showinfo(
-                    "Success",
-                    "Audio routing started!\n\n"
-                    "Now set this device as your microphone in Discord/Game settings."
-                )
-            else:
-                messagebox.showerror("Error", "Failed to start routing")
+            # Set virtual output trực tiếp trong soundboard
+            self.soundboard.set_virtual_output(device_idx)
+            self.routing_enabled.set(True)
+            
+            # Lưu config
+            self.config.set_routing(True, device_idx, device_name)
+            
+            status_label.config(text="Status: ✅ Routing Active", fg="#10b981")
+            messagebox.showinfo(
+                "Success",
+                "Audio routing started!\n\n"
+                "Âm thanh sẽ được phát qua cả speakers VÀ virtual device.\n"
+                "Trong Discord, chọn 'CABLE Output' làm Input Device.\n\n"
+                "💾 Cấu hình đã được lưu - sẽ tự động kết nối lần sau."
+            )
         
         def stop_routing():
-            self.audio_router.stop_routing()
+            self.soundboard.set_virtual_output(None)
             self.routing_enabled.set(False)
+            
+            # Lưu config
+            self.config.set_routing(False, None, "")
+            
             status_label.config(text="Status: ⏹️ Routing Stopped", fg=self.text_secondary)
         
         def download_vb_cable():
@@ -485,8 +509,34 @@ class SoundboardUI:
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.root.mainloop()
     
+    def _restore_routing_config(self):
+        """Restore saved routing configuration on startup"""
+        if not AUDIO_ROUTING_AVAILABLE:
+            return
+        
+        if self.config.routing_enabled and self.config.routing_device_index is not None:
+            try:
+                # Verify device still exists
+                all_devices = self.audio_router.list_audio_devices()
+                device_exists = any(
+                    d['index'] == self.config.routing_device_index 
+                    for d in all_devices
+                )
+                
+                if device_exists:
+                    self.soundboard.set_virtual_output(self.config.routing_device_index)
+                    self.routing_enabled.set(True)
+                    print(f"✅ Auto-restored routing to: {self.config.routing_device_name}")
+                else:
+                    print(f"⚠️ Saved device not found: {self.config.routing_device_name}")
+                    self.config.set_routing(False, None, "")
+            except Exception as e:
+                print(f"Error restoring routing: {e}")
+    
     def on_closing(self):
         """Cleanup on window close"""
         if self.audio_router:
             self.audio_router.cleanup()
+        if hasattr(self.soundboard, 'cleanup'):
+            self.soundboard.cleanup()
         self.root.destroy()
