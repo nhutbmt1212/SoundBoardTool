@@ -5,17 +5,18 @@
   },
   "keybinds": {
     "snaptt.me-47352902": "Shift + 1",
-    "32553bac-104b-4cc2-9634-21f7b74f010c": "Shift + 2",
-    "snaptt.me-6811697": "Shift + 3"
+    "snaptt.me-6811697": "Shift + 3",
+    "LUNABALA": "Shift + 4"
   },
   "screamMode": {
-    "snaptt.me-6811697": true,
+    "snaptt.me-6811697": false,
     "snaptt.me-47352902": true,
     "32553bac-104b-4cc2-9634-21f7b74f010c": false,
-    "Yb Wasg'ood, Ariis - LUNA BALA (SLOWED)": false
+    "LUNABALA": true
   },
   "pitchMode": {
-    "snaptt.me-6811697": false
+    "snaptt.me-6811697": false,
+    "LUNABALA": false
   },
   "names": {
     "snaptt.me-47352902": "nhạc hay 1",

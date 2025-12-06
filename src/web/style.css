@@ -175,7 +175,51 @@ body {
 
 .sound-card.playing {
     border-color: #00ff88;
-    animation: pulse-glow 1s ease-in-out infinite;
+    animation: playing-glow 1.5s ease-in-out infinite;
+    position: relative;
+}
+
+.sound-card.playing::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    background: linear-gradient(45deg, #00ff88, #00d9ff, #ff00ff, #00ff88);
+    background-size: 400% 400%;
+    border-radius: 14px;
+    z-index: -1;
+    animation: gradient-rotate 2s linear infinite;
+    filter: blur(8px);
+    opacity: 0.7;
+}
+
+.sound-card.playing::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(145deg, #1a1a2e 0%, #0d1b2a 100%);
+    border-radius: 10px;
+    z-index: -1;
+}
+
+@keyframes playing-glow {
+    0%, 100% { 
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.5), 0 0 40px rgba(0, 255, 136, 0.3);
+    }
+    50% { 
+        box-shadow: 0 0 30px rgba(0, 255, 136, 0.8), 0 0 60px rgba(0, 255, 136, 0.5);
+    }
+}
+
+@keyframes gradient-rotate {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 @keyframes pulse-glow {
@@ -606,6 +650,29 @@ body {
     color: #ff4444;
 }
 
+/* Scream Mode Playing - Red/Orange fire glow */
+.sound-card.scream-mode.playing {
+    border-color: #ff4444;
+    animation: scream-playing-glow 0.8s ease-in-out infinite;
+}
+
+.sound-card.scream-mode.playing::before {
+    background: linear-gradient(45deg, #ff0000, #ff4444, #ff8800, #ffaa00, #ff4444, #ff0000);
+    background-size: 400% 400%;
+    animation: gradient-rotate 1s linear infinite;
+    filter: blur(10px);
+    opacity: 0.9;
+}
+
+@keyframes scream-playing-glow {
+    0%, 100% { 
+        box-shadow: 0 0 25px rgba(255, 68, 68, 0.7), 0 0 50px rgba(255, 136, 0, 0.5);
+    }
+    50% { 
+        box-shadow: 0 0 40px rgba(255, 68, 68, 1), 0 0 80px rgba(255, 136, 0, 0.8);
+    }
+}
+
 .scream-badge {
     position: absolute;
     top: 5px;
@@ -893,6 +960,128 @@ body {
     width: 14px;
     height: 14px;
     background: #00d9ff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+
+/* YouTube Streaming Section */
+.youtube-section {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 12px;
+    padding: 15px;
+    margin: 0 20px 15px;
+}
+
+.youtube-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.youtube-url-input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 15px;
+    color: white;
+    font-size: 13px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.youtube-url-input:focus {
+    border-color: #ff0000;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
+}
+
+.youtube-url-input::placeholder {
+    color: #666;
+}
+
+.btn-youtube-play, .btn-youtube-stop {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+}
+
+.btn-youtube-play {
+    background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+    color: white;
+}
+
+.btn-youtube-play:hover {
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    transform: scale(1.05);
+}
+
+.btn-youtube-play:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-youtube-stop {
+    background: #333;
+    color: #888;
+}
+
+.btn-youtube-stop:hover {
+    background: #444;
+    color: white;
+}
+
+.youtube-info {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 10px;
+    min-height: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.youtube-info.loading {
+    color: #ffaa00;
+}
+
+.youtube-info.playing {
+    color: #00ff88;
+}
+
+.youtube-info.error {
+    color: #ff6b6b;
+}
+
+.youtube-volume-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.youtube-volume-row span {
+    font-size: 14px;
+}
+
+.youtube-volume {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #333;
+    border-radius: 3px;
+    outline: none;
+}
+
+.youtube-volume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #ff0000;
     border-radius: 50%;
     cursor: pointer;
 }

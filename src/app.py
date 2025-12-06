@@ -125,6 +125,12 @@ def get_volume():
 
 
 @eel.expose
+def get_playing_sound():
+    """Get currently playing sound name"""
+    return audio._current_playing_sound
+
+
+@eel.expose
 def is_vb_cable_connected():
     return audio.is_vb_connected()
 
@@ -158,6 +164,37 @@ def toggle_mic_passthrough(enabled: bool):
 @eel.expose
 def is_mic_enabled():
     return audio.is_mic_enabled()
+
+
+# === YouTube Streaming ===
+
+@eel.expose
+def play_youtube(url: str):
+    """Play YouTube audio by URL"""
+    return audio.play_youtube(url)
+
+
+@eel.expose
+def stop_youtube():
+    """Stop YouTube streaming"""
+    audio.stop_youtube()
+    return True
+
+
+@eel.expose
+def is_youtube_playing():
+    return audio.is_youtube_playing()
+
+
+@eel.expose
+def get_youtube_info():
+    return audio.get_youtube_info()
+
+
+@eel.expose
+def set_youtube_volume(vol: float):
+    audio.set_youtube_volume(vol)
+    return True
 
 
 @eel.expose

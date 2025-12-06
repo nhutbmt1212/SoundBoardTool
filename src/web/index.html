@@ -27,6 +27,27 @@
                 <!-- Sound cards will be added here -->
             </div>
 
+            <!-- YouTube Streaming -->
+            <div class="youtube-section">
+                <div class="youtube-input-row">
+                    <input type="text" class="youtube-url-input" id="youtube-url" 
+                           placeholder="Paste YouTube URL here..." 
+                           onkeydown="if(event.key==='Enter')playYoutube()">
+                    <button class="btn-youtube-play" id="btn-youtube-play" onclick="playYoutube()" title="Play YouTube">
+                        ▶
+                    </button>
+                    <button class="btn-youtube-stop" id="btn-youtube-stop" onclick="stopYoutube()" title="Stop YouTube">
+                        ⏹
+                    </button>
+                </div>
+                <div class="youtube-info" id="youtube-info"></div>
+                <div class="youtube-volume-row">
+                    <span>🔊</span>
+                    <input type="range" class="youtube-volume" id="youtube-volume" min="0" max="200" value="100" 
+                           oninput="onYoutubeVolumeChange(this.value)" title="YouTube Volume">
+                </div>
+            </div>
+
             <!-- Bottom Controls -->
             <div class="bottom-controls">
                 <!-- Mic Passthrough -->
