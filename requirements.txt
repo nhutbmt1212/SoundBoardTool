@@ -1,4 +1,9 @@
 pygame-ce>=2.4.0
-pyaudio
 numpy
+sounddevice
+scipy
+eel
 pyinstaller>=5.0
+keyboard
+pywin32
+psutil

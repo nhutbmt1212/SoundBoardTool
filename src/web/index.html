@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soundboard Pro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header with gradient -->
+            <div class="header-gradient"></div>
+            
+            <!-- Title -->
+            <div class="title-section">
+                <h1><span class="title-icon" id="title-icon"></span> Soundboard Pro</h1>
+                <div class="title-actions">
+                    <button class="btn-icon" onclick="addSound()" title="Add Sound" id="btn-add"></button>
+                    <button class="btn-icon" onclick="refreshSounds()" title="Refresh" id="btn-refresh"></button>
+                </div>
+            </div>
+
+            <!-- Sound Grid -->
+            <div class="sounds-grid" id="sounds-grid">
+                <!-- Sound cards will be added here -->
+            </div>
+
+            <!-- Bottom Controls -->
+            <div class="bottom-controls">
+                <!-- Mic Passthrough -->
+                <div class="mic-control">
+                    <button class="btn-mic" id="btn-mic" onclick="toggleMic()" title="Mic Passthrough">
+                        <span class="mic-icon" id="mic-icon">🎤</span>
+                        <span class="mic-text" id="mic-text">Mic OFF</span>
+                    </button>
+                    <input type="range" class="mic-volume" id="mic-volume" min="0" max="200" value="100" 
+                           oninput="onMicVolumeChange(this.value)" title="Mic Volume">
+                </div>
+                
+                <button class="btn-stop-all" onclick="stopAll()" title="Stop All" id="btn-stop-all">
+                    <span class="stop-icon" id="stop-icon"></span>
+                    <span class="stop-text">Stop All</span>
+                </button>
+                <div class="stop-keybind" id="stop-keybind" onclick="startStopKeybindRecord()" title="Click to set keybind">
+                    <span id="stop-keybind-text">Add keybind</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel" id="right-panel">
+            <div class="panel-placeholder">
+                <span id="placeholder-icon"></span>
+                <p>Click a sound to edit</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="/eel.js"></script>
+    <script src="icons.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

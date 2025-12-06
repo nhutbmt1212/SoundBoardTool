@@ -65,3 +65,9 @@ tmp/
 *.msi
 *.zip
 prebuilt*/
+
+# VB-Cable installer (downloaded during build)
+vbcable/
+
+# Lock file
+.soundboard.lock
