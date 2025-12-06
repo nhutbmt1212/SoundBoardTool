@@ -4,3 +4,5 @@ sounddevice
 scipy
 eel
 pyinstaller>=5.0
+keyboard
+pywin32

@@ -46,8 +46,14 @@ def build():
         '--hidden-import=bottle',
         '--hidden-import=gevent',
         '--hidden-import=geventwebsocket',
+        '--hidden-import=keyboard',
+        '--hidden-import=win32event',
+        '--hidden-import=win32api',
+        '--hidden-import=win32gui',
+        '--hidden-import=win32con',
         # Collect all for eel
         '--collect-all=eel',
+        '--collect-all=keyboard',
         # Exclude unnecessary
         '--exclude-module=tkinter.test',
         '--exclude-module=unittest',

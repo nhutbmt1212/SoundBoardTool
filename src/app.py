@@ -14,9 +14,31 @@ else:
 # Setup path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Single instance check
+from core.single_instance import acquire_lock, release_lock, show_existing_window
+
+if not acquire_lock():
+    print("Another instance is already running!")
+    show_existing_window()
+    sys.exit(0)
+
 import eel
-from core import AudioEngine, Config
+from core.audio import AudioEngine
+from core.config import Config
 from core.config import load_sound_settings, save_sound_settings
+
+# Lazy import hotkey manager to avoid blocking
+hotkey_manager = None
+
+def get_hotkey_manager():
+    global hotkey_manager
+    if hotkey_manager is None:
+        try:
+            from core.hotkey import hotkey_manager as hm
+            hotkey_manager = hm
+        except Exception:
+            pass
+    return hotkey_manager
 
 # Initialize with correct sounds path
 sounds_dir = os.path.join(BASE_DIR, 'sounds')
@@ -26,8 +48,39 @@ config = Config()
 audio = AudioEngine(sounds_dir)
 audio.set_volume(config.default_volume)
 
+# Sound volumes cache for global hotkeys
+sound_volumes = {}
+
 # Init eel
 eel.init(WEB_DIR)
+
+
+def play_sound_global(name: str):
+    """Play sound from global hotkey"""
+    vol = sound_volumes.get(name, 100) / 100
+    audio.set_volume(vol)
+    audio.play(name)
+
+
+def stop_all_global():
+    """Stop all from global hotkey"""
+    audio.stop()
+
+
+def update_global_hotkeys():
+    """Update global hotkeys from settings"""
+    settings = load_sound_settings()
+    keybinds = settings.get('keybinds', {})
+    stop_keybind = settings.get('stopAllKeybind', '')
+    
+    # Update volumes cache
+    global sound_volumes
+    sound_volumes = settings.get('volumes', {})
+    
+    # Register hotkeys
+    hm = get_hotkey_manager()
+    if hm:
+        hm.update_all(keybinds, play_sound_global, stop_all_global, stop_keybind)
 
 
 # === API Functions ===
@@ -97,10 +150,16 @@ def get_settings():
 @eel.expose
 def save_settings(settings: dict):
     save_sound_settings(settings)
+    # Update global hotkeys when settings change
+    update_global_hotkeys()
     return True
 
 
 def on_close(page, sockets):
+    hm = get_hotkey_manager()
+    if hm:
+        hm.unregister_all()
+    release_lock()
     audio.cleanup()
     os._exit(0)
 
@@ -136,6 +195,13 @@ def main():
     print("🎵 Soundboard Pro")
     print(f"   Sounds: {sounds_dir}")
     
+    # Load and register global hotkeys (in try block to not block app)
+    try:
+        update_global_hotkeys()
+        print("   Hotkeys: loaded")
+    except Exception as e:
+        print(f"   Hotkeys: failed ({e})")
+    
     # Find browser
     browser_mode, browser_path = find_browser()
     
@@ -147,26 +213,22 @@ def main():
     
     if browser_mode:
         eel_options['mode'] = browser_mode
-        if browser_path:
-            eel_options['cmdline_args'] = [
-                '--disable-gpu',
-                '--disable-software-rasterizer',
-            ]
         print(f"   Browser: {browser_mode}")
     else:
-        # Fallback to default browser
         eel_options['mode'] = 'default'
         print("   Browser: default")
+    
+    print("   Starting...")
     
     try:
         eel.start('index.html', **eel_options)
     except Exception as e:
-        print(f"Error starting app: {e}")
-        # Try with default browser as last resort
+        print(f"Error: {e}")
         try:
             eel.start('index.html', size=(1100, 750), mode='default', close_callback=on_close)
         except Exception as e2:
-            print(f"Failed to start: {e2}")
+            print(f"Failed: {e2}")
+            release_lock()
             input("Press Enter to exit...")
             sys.exit(1)
 
