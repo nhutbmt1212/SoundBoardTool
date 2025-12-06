@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 Soundboard Pro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>🎵 Soundboard Pro</h1>
+            <span id="status" class="status">🔄 Đang kết nối...</span>
+        </header>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-left">
+                <button class="btn-control" onclick="addSound()">➕ Add Sound</button>
+                <button class="btn-control btn-stop" onclick="stopAll()">⏹️ Stop All</button>
+                <button class="btn-control" onclick="refreshSounds()">🔄 Refresh</button>
+            </div>
+            <div class="controls-right">
+                <span class="volume-label">🔊 Volume:</span>
+                <input type="range" id="volume" min="0" max="100" value="70" oninput="onVolumeChange(this.value)">
+                <span id="volume-value">70%</span>
+            </div>
+        </div>
+
+        <!-- Sound Grid -->
+        <div class="sounds-container">
+            <div id="sounds-grid" class="sounds-grid">
+                <!-- Sound buttons will be added here -->
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            Made with ❤️ | Press buttons to play sounds
+        </footer>
+    </div>
+
+    <script type="text/javascript" src="/eel.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
