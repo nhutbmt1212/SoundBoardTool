@@ -1,16 +1,28 @@
 // Soundboard Pro - Frontend Logic
 
 let selectedSound = null;
-let soundVolumes = {}; // Store individual sound volumes
-let soundKeybinds = {}; // Store keybinds
+let soundVolumes = {};
+let soundKeybinds = {};
 let isRecordingKeybind = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+    initIcons();
     await loadSettings();
     await refreshSounds();
     setupKeyboardListener();
 });
+
+// Initialize icons
+function initIcons() {
+    document.getElementById('title-icon').innerHTML = Icons.music;
+    document.getElementById('btn-add').innerHTML = Icons.add;
+    document.getElementById('btn-refresh').innerHTML = Icons.refresh;
+    document.getElementById('btn-stop-all').innerHTML = Icons.mic;
+    
+    const placeholder = document.getElementById('placeholder-icon');
+    if (placeholder) placeholder.innerHTML = Icons.waveform;
+}
 
 // Load saved settings
 async function loadSettings() {
@@ -44,8 +56,9 @@ async function refreshSounds() {
         if (sounds.length === 0) {
             grid.innerHTML = `
                 <div class="empty-state">
-                    <h2>📂 No sounds found</h2>
-                    <p>Click ➕ to add sounds</p>
+                    <span class="empty-icon">${Icons.folder}</span>
+                    <h2>No sounds found</h2>
+                    <p>Click ${icon('add', 16)} to add sounds</p>
                 </div>
             `;
             return;
@@ -56,7 +69,7 @@ async function refreshSounds() {
             return `
                 <div class="sound-card" data-name="${escapeAttr(name)}" onclick="selectSound('${escapeAttr(name)}')" ondblclick="playSound('${escapeAttr(name)}')">
                     <div class="sound-thumbnail">
-                        <div class="sound-wave"></div>
+                        <span class="thumb-icon">${Icons.waveform}</span>
                     </div>
                     <div class="sound-name" title="${escapeAttr(name)}">${escapeHtml(name)}</div>
                     <div class="sound-keybind ${keybind ? 'has-bind' : ''}" onclick="event.stopPropagation(); startKeybindRecord('${escapeAttr(name)}')">
@@ -72,7 +85,6 @@ async function refreshSounds() {
 
 // Select sound and show panel
 function selectSound(name) {
-    // Update selection UI
     document.querySelectorAll('.sound-card').forEach(card => {
         card.classList.remove('selected');
         if (card.dataset.name === name) {
@@ -111,7 +123,7 @@ function showSoundPanel(name) {
         </div>
         
         <div class="panel-section">
-            <div class="panel-section-title">⌨️ Keybind</div>
+            <div class="panel-section-title">${icon('keyboard', 16)} Keybind</div>
             <input type="text" class="keybind-input" id="keybind-input" 
                    value="${keybind}" 
                    placeholder="Click to set keybind"
@@ -120,7 +132,7 @@ function showSoundPanel(name) {
         </div>
         
         <div class="panel-section">
-            <div class="panel-section-title">🔊 Volume</div>
+            <div class="panel-section-title">${icon('volume', 16)} Volume</div>
             <div class="volume-control">
                 <input type="range" class="volume-slider" id="sound-volume" 
                        min="0" max="100" value="${volume}"
@@ -130,12 +142,12 @@ function showSoundPanel(name) {
         </div>
         
         <div class="panel-actions">
-            <button class="btn-panel btn-play" onclick="playSound('${escapeAttr(name)}')">▶ Play</button>
-            <button class="btn-panel btn-stop" onclick="stopAll()">⏹ Stop</button>
+            <button class="btn-panel btn-play" onclick="playSound('${escapeAttr(name)}')">${icon('play', 14)} Play</button>
+            <button class="btn-panel btn-stop" onclick="stopAll()">${icon('stop', 14)} Stop</button>
         </div>
         
         <div class="panel-actions">
-            <button class="btn-panel btn-delete" onclick="deleteSound('${escapeAttr(name)}')">🗑 Delete</button>
+            <button class="btn-panel btn-delete" onclick="deleteSound('${escapeAttr(name)}')">${icon('trash', 14)} Delete</button>
         </div>
     `;
 }
@@ -143,7 +155,6 @@ function showSoundPanel(name) {
 // Play sound
 async function playSound(name) {
     try {
-        // Visual feedback
         document.querySelectorAll('.sound-card').forEach(card => {
             card.classList.remove('playing');
             if (card.dataset.name === name) {
@@ -154,7 +165,6 @@ async function playSound(name) {
         const volume = (soundVolumes[name] !== undefined ? soundVolumes[name] : 100) / 100;
         await eel.play_sound(name, volume)();
         
-        // Remove playing class after a delay
         setTimeout(() => {
             document.querySelectorAll('.sound-card').forEach(card => {
                 card.classList.remove('playing');
@@ -180,7 +190,6 @@ async function stopAll() {
 // Sound volume change
 function onSoundVolumeChange(value) {
     if (!selectedSound) return;
-    
     document.getElementById('volume-value').textContent = value;
     soundVolumes[selectedSound] = parseInt(value);
     saveSettings();
@@ -195,7 +204,6 @@ function startKeybindRecord(name) {
 
 function startKeybindRecordPanel() {
     if (!selectedSound) return;
-    
     const input = document.getElementById('keybind-input');
     if (!input) return;
     
@@ -205,94 +213,55 @@ function startKeybindRecordPanel() {
     input.focus();
 }
 
-// Get key name from event.code (physical key)
+// Get key name from event.code
 function getKeyFromCode(code) {
-    // Number keys
     if (code.startsWith('Digit')) return code.replace('Digit', '');
     if (code.startsWith('Numpad')) return 'Num' + code.replace('Numpad', '');
-    
-    // Letter keys
     if (code.startsWith('Key')) return code.replace('Key', '');
-    
-    // Function keys
     if (code.startsWith('F') && !isNaN(code.slice(1))) return code;
     
-    // Special keys
     const specialKeys = {
-        'Space': 'Space',
-        'Enter': 'Enter',
-        'Escape': 'Esc',
-        'Backspace': 'Backspace',
-        'Tab': 'Tab',
-        'ArrowUp': 'Up',
-        'ArrowDown': 'Down',
-        'ArrowLeft': 'Left',
-        'ArrowRight': 'Right',
-        'Delete': 'Delete',
-        'Insert': 'Insert',
-        'Home': 'Home',
-        'End': 'End',
-        'PageUp': 'PageUp',
-        'PageDown': 'PageDown',
-        'Minus': '-',
-        'Equal': '=',
-        'BracketLeft': '[',
-        'BracketRight': ']',
-        'Backslash': '\\',
-        'Semicolon': ';',
-        'Quote': "'",
-        'Comma': ',',
-        'Period': '.',
-        'Slash': '/',
-        'Backquote': '`'
+        'Space': 'Space', 'Enter': 'Enter', 'Escape': 'Esc',
+        'Backspace': 'Backspace', 'Tab': 'Tab',
+        'ArrowUp': 'Up', 'ArrowDown': 'Down', 'ArrowLeft': 'Left', 'ArrowRight': 'Right',
+        'Delete': 'Delete', 'Insert': 'Insert', 'Home': 'Home', 'End': 'End',
+        'PageUp': 'PageUp', 'PageDown': 'PageDown',
+        'Minus': '-', 'Equal': '=', 'BracketLeft': '[', 'BracketRight': ']',
+        'Backslash': '\\', 'Semicolon': ';', 'Quote': "'",
+        'Comma': ',', 'Period': '.', 'Slash': '/', 'Backquote': '`'
     };
-    
     return specialKeys[code] || code;
 }
 
 // Keyboard listener
 function setupKeyboardListener() {
     document.addEventListener('keydown', (e) => {
-        // Ignore modifier-only keys
         const modifierCodes = ['ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight'];
         
-        // Recording keybind
         if (isRecordingKeybind && selectedSound) {
-            // Skip if only modifier key pressed
-            if (modifierCodes.includes(e.code)) {
-                return;
-            }
-            
+            if (modifierCodes.includes(e.code)) return;
             e.preventDefault();
             
             let keybind = '';
             if (e.ctrlKey) keybind += 'Ctrl + ';
             if (e.shiftKey) keybind += 'Shift + ';
             if (e.altKey) keybind += 'Alt + ';
+            keybind += getKeyFromCode(e.code);
             
-            // Get key from code (physical key)
-            const key = getKeyFromCode(e.code);
-            keybind += key;
-            
-            // Save keybind
             soundKeybinds[selectedSound] = keybind;
             saveSettings();
             
-            // Update UI
             const input = document.getElementById('keybind-input');
             if (input) {
                 input.value = keybind;
                 input.classList.remove('recording');
             }
             
-            // Update card
             refreshSounds().then(() => selectSound(selectedSound));
-            
             isRecordingKeybind = false;
             return;
         }
         
-        // Play sound by keybind (skip if only modifier)
         if (modifierCodes.includes(e.code)) return;
         
         for (const [name, bind] of Object.entries(soundKeybinds)) {
@@ -319,18 +288,14 @@ function matchKeybind(event, keybind) {
     if (needCtrl !== event.ctrlKey) return false;
     if (needAlt !== event.altKey) return false;
     
-    // Use code-based key matching
-    const eventKey = getKeyFromCode(event.code);
-    return eventKey === key;
+    return getKeyFromCode(event.code) === key;
 }
 
 // Add sound
 async function addSound() {
     try {
         const result = await eel.add_sound_dialog()();
-        if (result) {
-            await refreshSounds();
-        }
+        if (result) await refreshSounds();
     } catch (error) {
         console.error('Error adding sound:', error);
     }
@@ -349,6 +314,7 @@ async function deleteSound(name) {
         selectedSound = null;
         document.getElementById('right-panel').innerHTML = `
             <div class="panel-placeholder">
+                <span class="placeholder-icon">${Icons.waveform}</span>
                 <p>Click a sound to edit</p>
             </div>
         `;

@@ -1,7 +1,6 @@
 pygame-ce>=2.4.0
-pyaudio
 numpy
-pyinstaller>=5.0
 sounddevice
 scipy
 eel
+pyinstaller>=5.0

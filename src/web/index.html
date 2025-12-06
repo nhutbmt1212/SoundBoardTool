@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎵 Soundboard Pro</title>
+    <title>Soundboard Pro</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,10 +15,10 @@
             
             <!-- Title -->
             <div class="title-section">
-                <h1>My Soundboard</h1>
+                <h1><span class="title-icon" id="title-icon"></span> Soundboard Pro</h1>
                 <div class="title-actions">
-                    <button class="btn-icon" onclick="addSound()" title="Add Sound">➕</button>
-                    <button class="btn-icon" onclick="refreshSounds()" title="Refresh">🔄</button>
+                    <button class="btn-icon" onclick="addSound()" title="Add Sound" id="btn-add"></button>
+                    <button class="btn-icon" onclick="refreshSounds()" title="Refresh" id="btn-refresh"></button>
                 </div>
             </div>
 
@@ -29,21 +29,21 @@
 
             <!-- Bottom Controls -->
             <div class="bottom-controls">
-                <button class="btn-mic" onclick="stopAll()" title="Stop All">
-                    <span class="mic-icon">🎤</span>
-                </button>
+                <button class="btn-mic" onclick="stopAll()" title="Stop All" id="btn-stop-all"></button>
             </div>
         </div>
 
         <!-- Right Panel -->
         <div class="right-panel" id="right-panel">
             <div class="panel-placeholder">
+                <span id="placeholder-icon"></span>
                 <p>Click a sound to edit</p>
             </div>
         </div>
     </div>
 
     <script type="text/javascript" src="/eel.js"></script>
+    <script src="icons.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

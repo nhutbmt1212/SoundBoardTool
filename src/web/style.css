@@ -12,6 +12,64 @@ body {
     overflow: hidden;
 }
 
+/* SVG Icons */
+.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.title-icon {
+    display: inline-flex;
+    width: 28px;
+    height: 28px;
+    color: #00d9ff;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+.title-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.thumb-icon {
+    color: #00d9ff;
+    opacity: 0.6;
+}
+
+.thumb-icon svg {
+    width: 40px;
+    height: 40px;
+}
+
+.empty-icon {
+    display: block;
+    margin-bottom: 15px;
+    color: #444;
+}
+
+.empty-icon svg {
+    width: 48px;
+    height: 48px;
+}
+
+.placeholder-icon {
+    display: block;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.placeholder-icon svg {
+    width: 40px;
+    height: 40px;
+}
+
 .app {
     display: flex;
     height: 100vh;
@@ -62,15 +120,23 @@ body {
     background: rgba(255,255,255,0.1);
     border: none;
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 10px;
     color: white;
     cursor: pointer;
-    font-size: 14px;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon svg {
+    width: 18px;
+    height: 18px;
 }
 
 .btn-icon:hover {
     background: rgba(255,255,255,0.2);
+    color: #00d9ff;
 }
 
 /* Sound Grid */
@@ -192,9 +258,14 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
     transition: all 0.2s;
     box-shadow: 0 0 30px rgba(0, 217, 255, 0.4);
+    color: white;
+}
+
+.btn-mic svg {
+    width: 28px;
+    height: 28px;
 }
 
 .btn-mic:hover {
@@ -220,10 +291,18 @@ body {
 .panel-placeholder {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     color: #555;
     font-size: 14px;
+}
+
+.panel-placeholder svg {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 10px;
+    color: #333;
 }
 
 /* Panel Header */
@@ -299,7 +378,12 @@ body {
     margin-bottom: 10px;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
+}
+
+.panel-section-title .icon svg {
+    width: 14px;
+    height: 14px;
 }
 
 .keybind-input {
@@ -340,6 +424,7 @@ body {
 .volume-slider {
     flex: 1;
     -webkit-appearance: none;
+    appearance: none;
     height: 6px;
     background: #333;
     border-radius: 3px;
@@ -377,6 +462,15 @@ body {
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.btn-panel svg {
+    width: 14px;
+    height: 14px;
 }
 
 .btn-play {
