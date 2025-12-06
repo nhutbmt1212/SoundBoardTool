@@ -445,7 +445,7 @@ class AudioEngine:
             vb_info = sd.query_devices(self._vb_device_id)
             samplerate = int(vb_info['default_samplerate'])
             channels = min(2, vb_info['max_output_channels'])
-            blocksize = 4096
+            blocksize = 8192  # Larger buffer for stability
             bytes_per_sample = 2 * channels  # 16-bit stereo
             
             print(f"VB-Cable requires: rate={samplerate}Hz, ch={channels}")
@@ -482,36 +482,36 @@ class AudioEngine:
             
             print(f"Opening streams: VB-Cable device={self._vb_device_id}, rate={samplerate}, ch={channels}")
             
-            # Open VB-Cable stream
+            # Open VB-Cable stream with larger buffer to prevent underruns
             vb_stream = sd.OutputStream(
                 device=self._vb_device_id,
                 samplerate=samplerate,
                 channels=channels,
                 dtype='float32',
                 blocksize=blocksize,
+                latency='high',  # Use high latency for stability
                 clip_off=True
             )
             vb_stream.start()
             print(f"✓ VB-Cable stream opened")
             
-            # Also play to default speaker so user can hear
+            # Also play to default speaker - use same sample rate to avoid distortion
             speaker_stream = None
             try:
                 default_output = sd.default.device[1]
                 if default_output is not None and default_output != self._vb_device_id:
-                    speaker_info = sd.query_devices(default_output)
-                    speaker_rate = int(speaker_info['default_samplerate'])
-                    print(f"Speaker: device={default_output}, rate={speaker_rate}")
+                    # Use VB-Cable's sample rate for speaker too
                     speaker_stream = sd.OutputStream(
                         device=default_output,
-                        samplerate=speaker_rate,
+                        samplerate=samplerate,  # Same rate as VB-Cable
                         channels=channels,
                         dtype='float32',
                         blocksize=blocksize,
+                        latency='high',
                         clip_off=True
                     )
                     speaker_stream.start()
-                    print("✓ Speaker stream opened")
+                    print(f"✓ Speaker stream opened (rate={samplerate}Hz)")
             except Exception as e:
                 print(f"Speaker output not available: {e}")
             
