@@ -156,19 +156,34 @@ def save_settings(settings: dict):
 
 
 def on_close(page, sockets):
+    cleanup_and_exit()
+
+
+def cleanup_and_exit():
+    """Clean up all resources and exit"""
+    from core.single_instance import kill_browser
+    
+    # Kill browser first
+    kill_browser()
+    
     hm = get_hotkey_manager()
     if hm:
-        hm.unregister_all()
+        try:
+            hm.unregister_all()
+        except Exception:
+            pass
+    
+    try:
+        audio.cleanup()
+    except Exception:
+        pass
+    
     release_lock()
-    audio.cleanup()
     os._exit(0)
 
 
 def find_browser():
     """Find available browser"""
-    import subprocess
-    import winreg
-    
     # Check Chrome
     chrome_paths = [
         os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
@@ -191,9 +206,69 @@ def find_browser():
     return None, None
 
 
+def track_browser_process():
+    """Find and track browser process spawned by eel"""
+    import time
+    from core.single_instance import set_browser_pid
+    
+    time.sleep(0.5)  # Wait for browser to spawn
+    
+    try:
+        import psutil
+        current_pid = os.getpid()
+        
+        # Find browser child process
+        for proc in psutil.process_iter(['pid', 'name', 'ppid']):
+            try:
+                name = proc.info['name'].lower()
+                if 'chrome' in name or 'msedge' in name:
+                    # Check if it's our child or recently spawned
+                    if proc.info['ppid'] == current_pid:
+                        set_browser_pid(proc.info['pid'])
+                        return
+            except Exception:
+                continue
+        
+        # Fallback: find by command line
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                name = proc.info['name'].lower()
+                cmdline = proc.info.get('cmdline', [])
+                if ('chrome' in name or 'msedge' in name) and cmdline:
+                    cmd_str = ' '.join(cmdline).lower()
+                    if '--app=' in cmd_str:
+                        set_browser_pid(proc.info['pid'])
+                        return
+            except Exception:
+                continue
+    except ImportError:
+        # psutil not available, use tasklist fallback
+        pass
+
+
 def main():
+    import signal
+    
+    # Handle Ctrl+C and terminal close
+    def signal_handler(sig, frame):
+        print("\n   Shutting down...")
+        cleanup_and_exit()
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
     print("🎵 Soundboard Pro")
     print(f"   Sounds: {sounds_dir}")
+    
+    # Check and install VB-Cable if needed
+    try:
+        from core.vbcable import ensure_vbcable
+        if not audio.is_vb_connected():
+            if ensure_vbcable():
+                # Re-detect after install
+                audio._detect_vb_cable()
+    except Exception as e:
+        print(f"   VB-Cable check: {e}")
     
     # Load and register global hotkeys (in try block to not block app)
     try:
@@ -221,16 +296,30 @@ def main():
     print("   Starting...")
     
     try:
-        eel.start('index.html', **eel_options)
+        # Start eel - it spawns browser as subprocess
+        eel.start('index.html', **eel_options, block=False)
+        
+        # Track browser PID after eel starts
+        track_browser_process()
+        
+        # Keep main thread alive
+        while True:
+            eel.sleep(1.0)
+    except SystemExit:
+        pass
+    except KeyboardInterrupt:
+        print("\n   Interrupted")
     except Exception as e:
         print(f"Error: {e}")
         try:
-            eel.start('index.html', size=(1100, 750), mode='default', close_callback=on_close)
+            eel.start('index.html', size=(1100, 750), mode='default', close_callback=on_close, block=False)
+            track_browser_process()
+            while True:
+                eel.sleep(1.0)
         except Exception as e2:
             print(f"Failed: {e2}")
-            release_lock()
-            input("Press Enter to exit...")
-            sys.exit(1)
+    finally:
+        cleanup_and_exit()
 
 
 if __name__ == "__main__":

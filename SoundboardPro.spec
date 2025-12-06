@@ -1,10 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('D:\\Workspace\\SoundBoardTool\\src\\web', 'web')]
+datas = [('D:\\Workspace\\SoundBoardTool\\src\\web', 'web'), ('D:\\Workspace\\SoundBoardTool\\vbcable', 'vbcable')]
 binaries = []
-hiddenimports = ['pygame', 'pygame.mixer', 'pygame.sndarray', 'sounddevice', 'scipy', 'scipy.io', 'scipy.io.wavfile', 'numpy', 'eel', 'bottle', 'gevent', 'geventwebsocket']
+hiddenimports = ['eel', 'bottle', 'gevent', 'geventwebsocket', 'gevent.ssl', 'gevent._ssl3', 'pygame', 'pygame.mixer', 'pygame.sndarray', 'pygame.base', 'sounddevice', 'scipy', 'scipy.io', 'scipy.io.wavfile', 'numpy', 'keyboard', 'psutil', 'tkinter', 'tkinter.filedialog']
 tmp_ret = collect_all('eel')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('pygame')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('sounddevice')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
@@ -17,7 +21,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter.test', 'unittest', 'pytest'],
+    excludes=['matplotlib', 'PIL', 'cv2', 'tkinter.test', 'unittest', 'pytest'],
     noarchive=False,
     optimize=0,
 )
