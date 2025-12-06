@@ -1,54 +1,52 @@
 # 🎵 Soundboard Pro
 
-A modern soundboard application with VB-Cable support for Discord/streaming.
+Soundboard application với VB-Cable support cho Discord/streaming.
+
+## Download & Run
+
+1. Download `SoundboardPro.exe` từ [Releases](../../releases)
+2. Chạy file exe
+3. Done! App tự động mở trong browser
 
 ## Features
 
-- 🎹 Customizable keybinds per sound
-- 🔊 Individual volume control
-- 🎙️ VB-Cable routing for Discord/OBS
-- 🌐 Modern web-based UI
+- 🎹 Keybind cho từng sound (Shift+1, Ctrl+F1, etc.)
+- 🔊 Volume riêng cho từng sound
+- 🎙️ VB-Cable routing cho Discord/OBS
+- 🌐 Modern web UI
 
-## Quick Start
+## VB-Cable (Optional)
+
+Để stream sound qua Discord:
+1. Tải [VB-Cable](https://vb-audio.com/Cable/)
+2. Cài đặt và restart
+3. Discord → Settings → Voice → Input Device → "CABLE Output"
+
+## Build từ source
 
 ```bash
-# Install dependencies
 pip install -r requirements.txt
-
-# Run
-python src/app.py
-```
-
-## Build Executable
-
-```bash
 python build_exe.py
 ```
 
 Output: `dist/SoundboardPro.exe`
 
-## VB-Cable Setup
+## Dev
 
-1. Download from [vb-audio.com/Cable](https://vb-audio.com/Cable/)
-2. Install and restart
-3. In Discord: Settings → Voice → Input Device → "CABLE Output"
+```bash
+pip install -r requirements.txt
+python src/app.py
+```
 
-## Project Structure
+## Structure
 
 ```
 ├── src/
-│   ├── app.py          # Main application
+│   ├── app.py          # Entry point
 │   ├── core/
 │   │   ├── audio.py    # Audio engine
-│   │   └── config.py   # Configuration
-│   └── web/            # Frontend (HTML/CSS/JS)
+│   │   └── config.py   # Config
+│   └── web/            # Frontend
 ├── sounds/             # Sound files
-├── requirements.txt
-└── build_exe.py
+└── build_exe.py        # Build script
 ```
-
-## Requirements
-
-- Python 3.10+
-- Chrome or Edge browser
-- VB-Cable (optional, for Discord)

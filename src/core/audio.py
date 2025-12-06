@@ -1,5 +1,6 @@
 """Audio Engine - Handles sound playback and VB-Cable routing"""
 import threading
+import os
 from pathlib import Path
 
 try:
@@ -37,10 +38,20 @@ class AudioEngine:
         self._is_playing = False
         
         # Init
-        if pygame:
-            pygame.mixer.init()
+        self._init_pygame()
         self._detect_vb_cable()
         self.load_sounds()
+    
+    def _init_pygame(self):
+        """Initialize pygame mixer"""
+        if pygame:
+            try:
+                pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+            except Exception:
+                try:
+                    pygame.mixer.init()
+                except Exception:
+                    pass
     
     def _detect_vb_cable(self):
         """Auto-detect VB-Cable device"""
@@ -52,9 +63,8 @@ class AudioEngine:
                     if 'vb-audio virtual cable' in dev['name'].lower():
                         self._vb_device_id = i
                         self._vb_enabled = True
-                        print(f"✅ VB-Cable: {dev['name']}")
+                        print(f"✓ VB-Cable: {dev['name']}")
                         return
-            print("⚠️ VB-Cable not found")
         except Exception:
             pass
     
@@ -65,7 +75,7 @@ class AudioEngine:
         """Load sounds from directory"""
         self.sounds.clear()
         if not self.sounds_dir.exists():
-            self.sounds_dir.mkdir(parents=True)
+            self.sounds_dir.mkdir(parents=True, exist_ok=True)
             return
         
         for ext in ('*.wav', '*.mp3', '*.ogg', '*.flac'):
@@ -87,17 +97,18 @@ class AudioEngine:
         self._stop_flag.clear()
         
         # Stop previous & play via pygame
-        if pygame:
+        if pygame and pygame.mixer.get_init():
             try:
                 pygame.mixer.stop()
                 snd = pygame.mixer.Sound(path)
                 snd.set_volume(self.volume)
                 snd.play()
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Audio error: {e}")
+                return False
         
         # Route to VB-Cable
-        if self._vb_enabled:
+        if self._vb_enabled and SD_AVAILABLE:
             self._thread_id += 1
             threading.Thread(
                 target=self._play_vb,
@@ -109,7 +120,7 @@ class AudioEngine:
     
     def _play_vb(self, path: str, tid: int):
         """Play to VB-Cable in background thread"""
-        if not SD_AVAILABLE or not pygame:
+        if not SD_AVAILABLE or not pygame or not pygame.mixer.get_init():
             return
         
         with self._vb_lock:
@@ -169,7 +180,7 @@ class AudioEngine:
         self._stop_flag.set()
         self._thread_id += 1
         
-        if pygame:
+        if pygame and pygame.mixer.get_init():
             try:
                 pygame.mixer.stop()
             except Exception:
@@ -187,11 +198,13 @@ class AudioEngine:
         dest_name = name or src.stem
         dest = self.sounds_dir / f"{dest_name}{src.suffix}"
         
-        if src != dest:
-            shutil.copy(src, dest)
-        
-        self.sounds[dest_name] = str(dest)
-        return True
+        try:
+            if src != dest:
+                shutil.copy(src, dest)
+            self.sounds[dest_name] = str(dest)
+            return True
+        except Exception:
+            return False
     
     def delete_sound(self, name: str) -> bool:
         """Delete sound from library"""
@@ -206,3 +219,8 @@ class AudioEngine:
     
     def cleanup(self):
         self.stop()
+        if pygame and pygame.mixer.get_init():
+            try:
+                pygame.mixer.quit()
+            except Exception:
+                pass

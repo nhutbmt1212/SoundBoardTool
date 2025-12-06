@@ -3,13 +3,16 @@
 let selectedSound = null;
 let soundVolumes = {};
 let soundKeybinds = {};
+let stopAllKeybind = '';
 let isRecordingKeybind = false;
+let isRecordingStopKeybind = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     initIcons();
     await loadSettings();
     await refreshSounds();
+    updateStopKeybindUI();
     setupKeyboardListener();
 });
 
@@ -18,7 +21,7 @@ function initIcons() {
     document.getElementById('title-icon').innerHTML = Icons.music;
     document.getElementById('btn-add').innerHTML = Icons.add;
     document.getElementById('btn-refresh').innerHTML = Icons.refresh;
-    document.getElementById('btn-stop-all').innerHTML = Icons.mic;
+    document.getElementById('stop-icon').innerHTML = Icons.stop;
     
     const placeholder = document.getElementById('placeholder-icon');
     if (placeholder) placeholder.innerHTML = Icons.waveform;
@@ -30,6 +33,7 @@ async function loadSettings() {
         const settings = await eel.get_settings()();
         soundVolumes = settings.volumes || {};
         soundKeybinds = settings.keybinds || {};
+        stopAllKeybind = settings.stopAllKeybind || '';
     } catch (e) {
         console.log('No saved settings');
     }
@@ -40,10 +44,39 @@ async function saveSettings() {
     try {
         await eel.save_settings({
             volumes: soundVolumes,
-            keybinds: soundKeybinds
+            keybinds: soundKeybinds,
+            stopAllKeybind: stopAllKeybind
         })();
     } catch (e) {
         console.error('Error saving settings:', e);
+    }
+}
+
+// Update Stop All keybind UI
+function updateStopKeybindUI() {
+    const el = document.getElementById('stop-keybind');
+    const textEl = document.getElementById('stop-keybind-text');
+    if (el && textEl) {
+        if (stopAllKeybind) {
+            el.classList.add('has-bind');
+            textEl.textContent = stopAllKeybind;
+        } else {
+            el.classList.remove('has-bind');
+            textEl.textContent = 'Add keybind';
+        }
+    }
+}
+
+// Start recording Stop All keybind
+function startStopKeybindRecord() {
+    isRecordingStopKeybind = true;
+    isRecordingKeybind = false;
+    
+    const el = document.getElementById('stop-keybind');
+    const textEl = document.getElementById('stop-keybind-text');
+    if (el && textEl) {
+        el.classList.add('recording');
+        textEl.textContent = 'Press a key...';
     }
 }
 
@@ -195,7 +228,7 @@ function onSoundVolumeChange(value) {
     saveSettings();
 }
 
-// Keybind recording
+// Keybind recording for sounds
 function startKeybindRecord(name) {
     selectedSound = name;
     selectSound(name);
@@ -208,6 +241,7 @@ function startKeybindRecordPanel() {
     if (!input) return;
     
     isRecordingKeybind = true;
+    isRecordingStopKeybind = false;
     input.classList.add('recording');
     input.value = 'Press a key...';
     input.focus();
@@ -233,21 +267,51 @@ function getKeyFromCode(code) {
     return specialKeys[code] || code;
 }
 
+// Build keybind string from event
+function buildKeybindString(e) {
+    const modifierCodes = ['ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight'];
+    const isModifierOnly = modifierCodes.includes(e.code);
+    
+    // If it's a modifier key alone, just return that modifier
+    if (isModifierOnly) {
+        if (e.code.startsWith('Shift')) return 'Shift';
+        if (e.code.startsWith('Control')) return 'Ctrl';
+        if (e.code.startsWith('Alt')) return 'Alt';
+        return e.code;
+    }
+    
+    // Otherwise build combo
+    let keybind = '';
+    if (e.ctrlKey) keybind += 'Ctrl + ';
+    if (e.shiftKey) keybind += 'Shift + ';
+    if (e.altKey) keybind += 'Alt + ';
+    keybind += getKeyFromCode(e.code);
+    return keybind;
+}
+
 // Keyboard listener
 function setupKeyboardListener() {
     document.addEventListener('keydown', (e) => {
-        const modifierCodes = ['ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight'];
-        
-        if (isRecordingKeybind && selectedSound) {
-            if (modifierCodes.includes(e.code)) return;
+        // Recording Stop All keybind - accept ANY key including modifiers
+        if (isRecordingStopKeybind) {
             e.preventDefault();
             
-            let keybind = '';
-            if (e.ctrlKey) keybind += 'Ctrl + ';
-            if (e.shiftKey) keybind += 'Shift + ';
-            if (e.altKey) keybind += 'Alt + ';
-            keybind += getKeyFromCode(e.code);
+            stopAllKeybind = buildKeybindString(e);
+            saveSettings();
             
+            const el = document.getElementById('stop-keybind');
+            if (el) el.classList.remove('recording');
+            updateStopKeybindUI();
+            
+            isRecordingStopKeybind = false;
+            return;
+        }
+        
+        // Recording sound keybind - accept ANY key including modifiers
+        if (isRecordingKeybind && selectedSound) {
+            e.preventDefault();
+            
+            const keybind = buildKeybindString(e);
             soundKeybinds[selectedSound] = keybind;
             saveSettings();
             
@@ -262,8 +326,14 @@ function setupKeyboardListener() {
             return;
         }
         
-        if (modifierCodes.includes(e.code)) return;
+        // Check Stop All keybind
+        if (stopAllKeybind && matchKeybind(e, stopAllKeybind)) {
+            e.preventDefault();
+            stopAll();
+            return;
+        }
         
+        // Check sound keybinds
         for (const [name, bind] of Object.entries(soundKeybinds)) {
             if (matchKeybind(e, bind)) {
                 e.preventDefault();
@@ -278,6 +348,18 @@ function setupKeyboardListener() {
 function matchKeybind(event, keybind) {
     if (!keybind) return false;
     
+    // Single modifier key (Alt, Shift, Ctrl alone)
+    if (keybind === 'Alt') {
+        return event.code.startsWith('Alt') && !event.ctrlKey && !event.shiftKey;
+    }
+    if (keybind === 'Shift') {
+        return event.code.startsWith('Shift') && !event.ctrlKey && !event.altKey;
+    }
+    if (keybind === 'Ctrl') {
+        return event.code.startsWith('Control') && !event.shiftKey && !event.altKey;
+    }
+    
+    // Combo keybind
     const parts = keybind.split(' + ');
     const key = parts[parts.length - 1];
     const needShift = parts.includes('Shift');

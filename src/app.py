@@ -2,6 +2,15 @@
 import sys
 import os
 
+# Handle PyInstaller frozen app
+if getattr(sys, 'frozen', False):
+    BASE_DIR = os.path.dirname(sys.executable)
+    # For PyInstaller, web folder is in _MEIPASS
+    WEB_DIR = os.path.join(sys._MEIPASS, 'web')
+else:
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    WEB_DIR = os.path.join(os.path.dirname(__file__), 'web')
+
 # Setup path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -9,13 +18,15 @@ import eel
 from core import AudioEngine, Config
 from core.config import load_sound_settings, save_sound_settings
 
-# Initialize
+# Initialize with correct sounds path
+sounds_dir = os.path.join(BASE_DIR, 'sounds')
+os.makedirs(sounds_dir, exist_ok=True)
+
 config = Config()
-audio = AudioEngine(config.sounds_dir)
+audio = AudioEngine(sounds_dir)
 audio.set_volume(config.default_volume)
 
-# Web folder
-WEB_DIR = os.path.join(os.path.dirname(__file__), 'web')
+# Init eel
 eel.init(WEB_DIR)
 
 
@@ -91,19 +102,73 @@ def save_settings(settings: dict):
 
 def on_close(page, sockets):
     audio.cleanup()
-    sys.exit()
+    os._exit(0)
+
+
+def find_browser():
+    """Find available browser"""
+    import subprocess
+    import winreg
+    
+    # Check Chrome
+    chrome_paths = [
+        os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
+    ]
+    for path in chrome_paths:
+        if os.path.exists(path):
+            return 'chrome', path
+    
+    # Check Edge (always available on Windows 10/11)
+    edge_paths = [
+        os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
+        os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
+    ]
+    for path in edge_paths:
+        if os.path.exists(path):
+            return 'edge', path
+    
+    return None, None
 
 
 def main():
     print("🎵 Soundboard Pro")
+    print(f"   Sounds: {sounds_dir}")
+    
+    # Find browser
+    browser_mode, browser_path = find_browser()
+    
+    eel_options = {
+        'size': (1100, 750),
+        'close_callback': on_close,
+        'port': 0,  # Auto port
+    }
+    
+    if browser_mode:
+        eel_options['mode'] = browser_mode
+        if browser_path:
+            eel_options['cmdline_args'] = [
+                '--disable-gpu',
+                '--disable-software-rasterizer',
+            ]
+        print(f"   Browser: {browser_mode}")
+    else:
+        # Fallback to default browser
+        eel_options['mode'] = 'default'
+        print("   Browser: default")
     
     try:
-        eel.start('index.html', size=(1100, 750), close_callback=on_close, mode='chrome')
-    except EnvironmentError:
+        eel.start('index.html', **eel_options)
+    except Exception as e:
+        print(f"Error starting app: {e}")
+        # Try with default browser as last resort
         try:
-            eel.start('index.html', size=(1100, 750), close_callback=on_close, mode='edge')
-        except EnvironmentError:
-            eel.start('index.html', size=(1100, 750), close_callback=on_close, mode='default')
+            eel.start('index.html', size=(1100, 750), mode='default', close_callback=on_close)
+        except Exception as e2:
+            print(f"Failed to start: {e2}")
+            input("Press Enter to exit...")
+            sys.exit(1)
 
 
 if __name__ == "__main__":

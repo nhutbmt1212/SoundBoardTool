@@ -6,5 +6,6 @@
     "snaptt.me-47352902": "Shift + 1",
     "32553bac-104b-4cc2-9634-21f7b74f010c": "Shift + 2",
     "snaptt.me-6811697": "Shift + 3"
-  }
+  },
+  "stopAllKeybind": "CapsLock"
 }

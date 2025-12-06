@@ -244,37 +244,71 @@ body {
     z-index: 1;
     padding: 20px;
     display: flex;
-    justify-content: center;
-    gap: 15px;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
 }
 
-.btn-mic {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #00d9ff 0%, #00b4d8 100%);
+.btn-stop-all {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
     border: none;
+    border-radius: 12px;
+    padding: 12px 30px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 10px;
     transition: all 0.2s;
-    box-shadow: 0 0 30px rgba(0, 217, 255, 0.4);
+    box-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
     color: white;
 }
 
-.btn-mic svg {
-    width: 28px;
-    height: 28px;
+.btn-stop-all .stop-icon svg {
+    width: 20px;
+    height: 20px;
 }
 
-.btn-mic:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 40px rgba(0, 217, 255, 0.6);
+.btn-stop-all .stop-text {
+    font-size: 14px;
+    font-weight: 600;
 }
 
-.btn-mic:active {
-    transform: scale(0.95);
+.btn-stop-all:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(255, 107, 107, 0.4);
+}
+
+.btn-stop-all:active {
+    transform: translateY(0);
+}
+
+.stop-keybind {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 11px;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.stop-keybind:hover {
+    border-color: #ff6b6b;
+    color: #ff6b6b;
+}
+
+.stop-keybind.has-bind {
+    border-color: #ff6b6b;
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+}
+
+.stop-keybind.recording {
+    border-color: #00d9ff;
+    color: #00d9ff;
+    animation: blink 0.5s infinite;
 }
 
 

@@ -29,7 +29,13 @@
 
             <!-- Bottom Controls -->
             <div class="bottom-controls">
-                <button class="btn-mic" onclick="stopAll()" title="Stop All" id="btn-stop-all"></button>
+                <button class="btn-stop-all" onclick="stopAll()" title="Stop All" id="btn-stop-all">
+                    <span class="stop-icon" id="stop-icon"></span>
+                    <span class="stop-text">Stop All</span>
+                </button>
+                <div class="stop-keybind" id="stop-keybind" onclick="startStopKeybindRecord()" title="Click to set keybind">
+                    <span id="stop-keybind-text">Add keybind</span>
+                </div>
             </div>
         </div>
 
