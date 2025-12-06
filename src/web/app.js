@@ -9,6 +9,7 @@ let soundNames = {};       // Custom display names
 let stopAllKeybind = '';
 let isRecordingKeybind = false;
 let isRecordingStopKeybind = false;
+let micEnabled = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -18,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateStopKeybindUI();
     setupKeyboardListener();
     setupDragDrop();
+    await initMicStatus();
 });
 
 // Initialize icons
@@ -585,4 +587,49 @@ function readFileAsBase64(file) {
         reader.onerror = reject;
         reader.readAsDataURL(file);
     });
+}
+
+
+// Mic Passthrough
+async function initMicStatus() {
+    try {
+        micEnabled = await eel.is_mic_enabled()();
+        updateMicUI();
+    } catch (e) {
+        console.log('Mic status check failed');
+    }
+}
+
+function updateMicUI() {
+    const btn = document.getElementById('btn-mic');
+    const text = document.getElementById('mic-text');
+    if (btn && text) {
+        if (micEnabled) {
+            btn.classList.add('active');
+            text.textContent = 'Mic ON';
+        } else {
+            btn.classList.remove('active');
+            text.textContent = 'Mic OFF';
+        }
+    }
+}
+
+async function toggleMic() {
+    try {
+        micEnabled = !micEnabled;
+        await eel.toggle_mic_passthrough(micEnabled)();
+        updateMicUI();
+    } catch (error) {
+        console.error('Error toggling mic:', error);
+        micEnabled = !micEnabled;  // Revert
+    }
+}
+
+async function onMicVolumeChange(value) {
+    try {
+        const vol = parseInt(value) / 100;  // 0-2.0
+        await eel.set_mic_volume(vol)();
+    } catch (error) {
+        console.error('Error setting mic volume:', error);
+    }
 }

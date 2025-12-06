@@ -130,6 +130,37 @@ def is_vb_cable_connected():
 
 
 @eel.expose
+def get_mic_devices():
+    return audio.get_mic_devices()
+
+
+@eel.expose
+def set_mic_device(device_id: int):
+    audio.set_mic_device(device_id)
+    return True
+
+
+@eel.expose
+def set_mic_volume(vol: float):
+    audio.set_mic_volume(vol)
+    return True
+
+
+@eel.expose
+def toggle_mic_passthrough(enabled: bool):
+    if enabled:
+        return audio.start_mic_passthrough()
+    else:
+        audio.stop_mic_passthrough()
+        return True
+
+
+@eel.expose
+def is_mic_enabled():
+    return audio.is_mic_enabled()
+
+
+@eel.expose
 def add_sound_dialog():
     import tkinter as tk
     from tkinter import filedialog

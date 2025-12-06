@@ -29,6 +29,16 @@
 
             <!-- Bottom Controls -->
             <div class="bottom-controls">
+                <!-- Mic Passthrough -->
+                <div class="mic-control">
+                    <button class="btn-mic" id="btn-mic" onclick="toggleMic()" title="Mic Passthrough">
+                        <span class="mic-icon" id="mic-icon">🎤</span>
+                        <span class="mic-text" id="mic-text">Mic OFF</span>
+                    </button>
+                    <input type="range" class="mic-volume" id="mic-volume" min="0" max="200" value="100" 
+                           oninput="onMicVolumeChange(this.value)" title="Mic Volume">
+                </div>
+                
                 <button class="btn-stop-all" onclick="stopAll()" title="Stop All" id="btn-stop-all">
                     <span class="stop-icon" id="stop-icon"></span>
                     <span class="stop-text">Stop All</span>

@@ -32,6 +32,14 @@ class AudioEngine:
         self._vb_device_id = None
         self._vb_enabled = False
         
+        # Mic passthrough
+        self._mic_device_id = None
+        self._mic_input_stream = None
+        self._mic_output_stream = None
+        self._mic_enabled = False
+        self._mic_volume = 1.0
+        self._mic_buffer = None
+        
         # Thread control
         self._stop_flag = threading.Event()
         self._thread_id = 0
@@ -41,6 +49,7 @@ class AudioEngine:
         # Init
         self._init_pygame()
         self._detect_vb_cable()
+        self._detect_mic()
         self.load_sounds()
     
     def _init_pygame(self):
@@ -68,6 +77,154 @@ class AudioEngine:
                         return
         except Exception:
             pass
+    
+    def _detect_mic(self):
+        """Auto-detect default microphone"""
+        if not SD_AVAILABLE:
+            return
+        try:
+            # Get default input device
+            default_input = sd.default.device[0]
+            if default_input is not None and default_input >= 0:
+                dev = sd.query_devices(default_input)
+                if dev['max_input_channels'] > 0:
+                    self._mic_device_id = default_input
+                    print(f"✓ Mic: {dev['name']}")
+        except Exception:
+            pass
+    
+    def get_mic_devices(self) -> list:
+        """Get list of available microphones"""
+        if not SD_AVAILABLE:
+            return []
+        devices = []
+        try:
+            for i, dev in enumerate(sd.query_devices()):
+                if dev['max_input_channels'] > 0:
+                    devices.append({'id': i, 'name': dev['name']})
+        except Exception:
+            pass
+        return devices
+    
+    def set_mic_device(self, device_id: int):
+        """Set microphone device"""
+        was_enabled = self._mic_enabled
+        if was_enabled:
+            self.stop_mic_passthrough()
+        self._mic_device_id = device_id
+        if was_enabled:
+            self.start_mic_passthrough()
+    
+    def get_current_mic_id(self) -> int:
+        return self._mic_device_id
+    
+    def set_mic_volume(self, vol: float):
+        """Set mic passthrough volume"""
+        self._mic_volume = max(0.0, min(2.0, vol))
+    
+    def start_mic_passthrough(self):
+        """Start routing mic to VB-Cable using separate streams"""
+        if not SD_AVAILABLE or self._mic_device_id is None or self._vb_device_id is None:
+            print(f"Cannot start mic: SD={SD_AVAILABLE}, mic={self._mic_device_id}, vb={self._vb_device_id}")
+            return False
+        
+        if self._mic_input_stream is not None:
+            return True  # Already running
+        
+        try:
+            import queue
+            
+            # Shared buffer between input and output
+            self._mic_buffer = queue.Queue(maxsize=20)
+            engine = self
+            
+            # Get sample rates
+            mic_info = sd.query_devices(self._mic_device_id)
+            samplerate = int(mic_info['default_samplerate'])
+            blocksize = 512
+            
+            def input_callback(indata, frames, time, status):
+                """Capture mic input"""
+                if status:
+                    print(f"Input: {status}")
+                try:
+                    # Apply volume and put in buffer
+                    data = indata.copy() * engine._mic_volume
+                    engine._mic_buffer.put_nowait(data)
+                except queue.Full:
+                    pass  # Drop frame if buffer full
+            
+            def output_callback(outdata, frames, time, status):
+                """Output to VB-Cable"""
+                if status:
+                    print(f"Output: {status}")
+                try:
+                    data = engine._mic_buffer.get_nowait()
+                    outdata[:len(data)] = data
+                    if len(data) < len(outdata):
+                        outdata[len(data):] = 0
+                except queue.Empty:
+                    outdata[:] = 0  # Silence if no data
+            
+            # Create input stream (from mic)
+            self._mic_input_stream = sd.InputStream(
+                device=self._mic_device_id,
+                samplerate=samplerate,
+                channels=1,
+                dtype='float32',
+                callback=input_callback,
+                blocksize=blocksize,
+                latency='low'
+            )
+            
+            # Create output stream (to VB-Cable)
+            self._mic_output_stream = sd.OutputStream(
+                device=self._vb_device_id,
+                samplerate=samplerate,
+                channels=1,
+                dtype='float32',
+                callback=output_callback,
+                blocksize=blocksize,
+                latency='low'
+            )
+            
+            # Start both streams
+            self._mic_input_stream.start()
+            self._mic_output_stream.start()
+            self._mic_enabled = True
+            print(f"✓ Mic passthrough started (rate={samplerate})")
+            return True
+            
+        except Exception as e:
+            print(f"Mic passthrough error: {e}")
+            import traceback
+            traceback.print_exc()
+            self.stop_mic_passthrough()
+            return False
+    
+    def stop_mic_passthrough(self):
+        """Stop mic passthrough"""
+        if self._mic_input_stream is not None:
+            try:
+                self._mic_input_stream.stop()
+                self._mic_input_stream.close()
+            except Exception:
+                pass
+            self._mic_input_stream = None
+        
+        if self._mic_output_stream is not None:
+            try:
+                self._mic_output_stream.stop()
+                self._mic_output_stream.close()
+            except Exception:
+                pass
+            self._mic_output_stream = None
+        
+        self._mic_buffer = None
+        self._mic_enabled = False
+    
+    def is_mic_enabled(self) -> bool:
+        return self._mic_enabled
     
     def is_vb_connected(self) -> bool:
         return self._vb_enabled and self._vb_device_id is not None
@@ -229,6 +386,7 @@ class AudioEngine:
     
     def cleanup(self):
         self.stop()
+        self.stop_mic_passthrough()
         if pygame and pygame.mixer.get_init():
             try:
                 pygame.mixer.quit()

@@ -834,3 +834,65 @@ body {
     z-index: 1000;
     pointer-events: none;
 }
+
+
+/* Mic Passthrough Control */
+.mic-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.btn-mic {
+    background: linear-gradient(135deg, #333 0%, #222 100%);
+    border: 2px solid #444;
+    border-radius: 12px;
+    padding: 10px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    color: #888;
+}
+
+.btn-mic:hover {
+    border-color: #00d9ff;
+    color: #00d9ff;
+}
+
+.btn-mic.active {
+    background: linear-gradient(135deg, #00d9ff 0%, #0099cc 100%);
+    border-color: #00d9ff;
+    color: white;
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.4);
+}
+
+.btn-mic .mic-icon {
+    font-size: 18px;
+}
+
+.btn-mic .mic-text {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.mic-volume {
+    width: 80px;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #333;
+    border-radius: 3px;
+    outline: none;
+}
+
+.mic-volume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #00d9ff;
+    border-radius: 50%;
+    cursor: pointer;
+}
