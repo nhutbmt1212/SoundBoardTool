@@ -70,6 +70,7 @@ class AudioEngine:
         # VB-Cable
         self._vb_device_id = None
         self._vb_enabled = False
+        self._vb_samplerate = None  # Cache sample rate
         
         # Mic passthrough
         self._mic_device_id = None
@@ -114,19 +115,43 @@ class AudioEngine:
                     pass
     
     def _detect_vb_cable(self):
-        """Auto-detect VB-Cable device"""
+        """Auto-detect VB-Cable device - prefer 2-channel MME/DirectSound for compatibility"""
         if not SD_AVAILABLE:
             return
         try:
+            vb_devices = []
             for i, dev in enumerate(sd.query_devices()):
                 if dev['max_output_channels'] > 0:
-                    if 'vb-audio virtual cable' in dev['name'].lower():
-                        self._vb_device_id = i
-                        self._vb_enabled = True
-                        print(f"✓ VB-Cable: {dev['name']}")
-                        return
-        except Exception:
-            pass
+                    name_lower = dev['name'].lower()
+                    if 'vb-audio virtual cable' in name_lower and 'speakers' in name_lower:
+                        vb_devices.append((i, dev))
+            
+            if not vb_devices:
+                return
+            
+            # Prefer device with exactly 2 channels (MME/DirectSound) - more stable
+            for i, dev in vb_devices:
+                if dev['max_output_channels'] == 2:
+                    self._vb_device_id = i
+                    self._vb_enabled = True
+                    print(f"✓ VB-Cable: [{i}] {dev['name']} ({dev['max_output_channels']} ch)")
+                    return
+            
+            # Fallback to first device
+            i, dev = vb_devices[0]
+            self._vb_device_id = i
+            self._vb_enabled = True
+            print(f"✓ VB-Cable: [{i}] {dev['name']} ({dev['max_output_channels']} ch)")
+            
+            # Cache sample rate
+            if self._vb_device_id is not None:
+                try:
+                    vb_info = sd.query_devices(self._vb_device_id)
+                    self._vb_samplerate = int(vb_info['default_samplerate'])
+                except Exception:
+                    self._vb_samplerate = 48000  # Default
+        except Exception as e:
+            print(f"VB-Cable detection error: {e}")
     
     def _detect_mic(self):
         """Auto-detect default microphone"""
@@ -189,48 +214,69 @@ class AudioEngine:
             engine = self
             
             # Get sample rates
+            vb_info = sd.query_devices(self._vb_device_id)
+            vb_samplerate = int(vb_info['default_samplerate'])
+            
             mic_info = sd.query_devices(self._mic_device_id)
-            samplerate = int(mic_info['default_samplerate'])
+            mic_samplerate = int(mic_info['default_samplerate'])
+            
+            # Use common sample rate (prefer VB-Cable's rate)
+            samplerate = vb_samplerate
             blocksize = 512
             
+            print(f"Mic passthrough: mic={mic_samplerate}Hz, vb={vb_samplerate}Hz, using={samplerate}Hz")
+            
+            # Store for resampling
+            self._mic_resample_ratio = mic_samplerate / vb_samplerate if mic_samplerate != vb_samplerate else None
+            
             def input_callback(indata, frames, time, status):
-                """Capture mic input"""
+                """Capture mic input and resample if needed"""
                 if status:
-                    print(f"Input: {status}")
+                    print(f"Mic input: {status}")
                 try:
-                    # Apply volume and put in buffer
                     data = indata.copy() * engine._mic_volume
+                    
+                    # Resample if needed
+                    if engine._mic_resample_ratio and engine._mic_resample_ratio != 1.0:
+                        from scipy import signal
+                        target_length = int(len(data) / engine._mic_resample_ratio)
+                        data = signal.resample(data, target_length)
+                    
                     engine._mic_buffer.put_nowait(data)
                 except queue.Full:
-                    pass  # Drop frame if buffer full
+                    pass
+                except Exception as e:
+                    print(f"Mic resample error: {e}")
             
             def output_callback(outdata, frames, time, status):
                 """Output to VB-Cable"""
                 if status:
-                    print(f"Output: {status}")
+                    print(f"VB output: {status}")
                 try:
                     data = engine._mic_buffer.get_nowait()
-                    outdata[:len(data)] = data
-                    if len(data) < len(outdata):
+                    # Handle size mismatch
+                    if len(data) >= len(outdata):
+                        outdata[:] = data[:len(outdata)]
+                    else:
+                        outdata[:len(data)] = data
                         outdata[len(data):] = 0
                 except queue.Empty:
-                    outdata[:] = 0  # Silence if no data
+                    outdata[:] = 0
             
-            # Create input stream (from mic)
+            # Create input stream (from mic) - use mic's native rate
             self._mic_input_stream = sd.InputStream(
                 device=self._mic_device_id,
-                samplerate=samplerate,
+                samplerate=mic_samplerate,
                 channels=1,
                 dtype='float32',
                 callback=input_callback,
                 blocksize=blocksize,
-                latency='low'
             )
             
-            # Create output stream (to VB-Cable)
+            # Create output stream (to VB-Cable) - use VB-Cable's rate
             self._mic_output_stream = sd.OutputStream(
                 device=self._vb_device_id,
-                samplerate=samplerate,
+                samplerate=vb_samplerate,
                 channels=1,
                 dtype='float32',
                 callback=output_callback,
@@ -242,7 +288,12 @@ class AudioEngine:
             self._mic_input_stream.start()
             self._mic_output_stream.start()
             self._mic_enabled = True
-            print(f"✓ Mic passthrough started (rate={samplerate})")
+            
+            if mic_samplerate != vb_samplerate:
+                print(f"✓ Mic passthrough started with resampling ({mic_samplerate}Hz → {vb_samplerate}Hz)")
+            else:
+                print(f"✓ Mic passthrough started ({samplerate}Hz)")
+            
             return True
             
         except Exception as e:
@@ -388,12 +439,48 @@ class AudioEngine:
                 print(f"FFmpeg error: {stderr[:500]}")
                 return
             
-            print("FFmpeg started, streaming...")
+            print("FFmpeg started, detecting VB-Cable sample rate...")
             
-            samplerate = 44100
-            channels = 2
+            # Get VB-Cable device's supported sample rate
+            vb_info = sd.query_devices(self._vb_device_id)
+            samplerate = int(vb_info['default_samplerate'])
+            channels = min(2, vb_info['max_output_channels'])
             blocksize = 4096
             bytes_per_sample = 2 * channels  # 16-bit stereo
+            
+            print(f"VB-Cable requires: rate={samplerate}Hz, ch={channels}")
+            
+            # Need to restart ffmpeg with correct sample rate
+            print("Restarting ffmpeg with correct sample rate...")
+            self._yt_process.terminate()
+            self._yt_process.wait(timeout=2)
+            
+            ffmpeg_cmd = [
+                ffmpeg_exe,
+                '-reconnect', '1',
+                '-reconnect_streamed', '1',
+                '-reconnect_delay_max', '5',
+                '-i', audio_url,
+                '-f', 's16le',
+                '-acodec', 'pcm_s16le',
+                '-ar', str(samplerate),
+                '-ac', str(channels),
+                '-'
+            ]
+            
+            self._yt_process = subprocess.Popen(
+                ffmpeg_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                bufsize=8192,
+                startupinfo=startupinfo
+            )
+            
+            import time
+            time.sleep(0.3)
+            print(f"FFmpeg restarted with rate={samplerate}Hz")
+            
+            print(f"Opening streams: VB-Cable device={self._vb_device_id}, rate={samplerate}, ch={channels}")
             
             # Open VB-Cable stream
             vb_stream = sd.OutputStream(
@@ -402,25 +489,29 @@ class AudioEngine:
                 channels=channels,
                 dtype='float32',
                 blocksize=blocksize,
-                latency='low'
+                clip_off=True
             )
             vb_stream.start()
+            print(f"✓ VB-Cable stream opened")
             
             # Also play to default speaker so user can hear
             speaker_stream = None
             try:
                 default_output = sd.default.device[1]
                 if default_output is not None and default_output != self._vb_device_id:
+                    speaker_info = sd.query_devices(default_output)
+                    speaker_rate = int(speaker_info['default_samplerate'])
+                    print(f"Speaker: device={default_output}, rate={speaker_rate}")
                     speaker_stream = sd.OutputStream(
                         device=default_output,
-                        samplerate=samplerate,
+                        samplerate=speaker_rate,
                         channels=channels,
                         dtype='float32',
                         blocksize=blocksize,
-                        latency='low'
+                        clip_off=True
                     )
                     speaker_stream.start()
-                    print("Also playing to speaker for monitoring")
+                    print("✓ Speaker stream opened")
             except Exception as e:
                 print(f"Speaker output not available: {e}")
             
@@ -457,7 +548,8 @@ class AudioEngine:
                     
                     frame_count += 1
                     if frame_count == 10:
-                        print("YouTube audio streaming...")
+                        level = np.abs(audio).max()
+                        print(f"YouTube streaming... (audio level: {level:.4f})")
             finally:
                 vb_stream.stop()
                 vb_stream.close()
@@ -588,11 +680,10 @@ class AudioEngine:
                 arr = pygame.sndarray.array(snd)
                 freq = pygame.mixer.get_init()[0]
                 
-                # Apply pitch by changing sample rate
-                # Higher pitch = higher sample rate playback
-                play_freq = int(freq * self.pitch)
+                # Use cached sample rate
+                vb_samplerate = self._vb_samplerate or 48000
                 
-                # Convert to float32
+                # Convert to float32 first
                 if arr.dtype == np.int16:
                     audio = arr.astype(np.float32) / 32768.0
                 elif arr.dtype == np.int32:
@@ -600,33 +691,62 @@ class AudioEngine:
                 else:
                     audio = arr.astype(np.float32)
                 
+                # Fast resample using numpy (linear interpolation)
+                need_resample = (self.pitch != 1.0) or (freq != vb_samplerate)
+                
+                if need_resample:
+                    # Calculate final length
+                    pitch_factor = 1.0 / self.pitch if self.pitch != 1.0 else 1.0
+                    rate_factor = vb_samplerate / freq if freq != vb_samplerate else 1.0
+                    final_length = int(len(audio) * pitch_factor * rate_factor)
+                    
+                    # Fast linear interpolation
+                    if audio.ndim == 1:
+                        indices = np.linspace(0, len(audio) - 1, final_length)
+                        audio = np.interp(indices, np.arange(len(audio)), audio).astype(np.float32)
+                    else:
+                        indices = np.linspace(0, len(audio) - 1, final_length)
+                        resampled = []
+                        for ch in range(audio.shape[1]):
+                            resampled.append(np.interp(indices, np.arange(len(audio)), audio[:, ch]))
+                        audio = np.column_stack(resampled).astype(np.float32)
+                
                 audio *= self.volume
                 
                 if self._stop_flag.is_set() or tid != self._thread_id:
                     return
                 
-                # Stop existing & play
+                # Use OutputStream instead of sd.play() to avoid device conflicts
                 try:
-                    sd.stop()
-                except Exception:
-                    pass
-                
-                sd.play(audio, samplerate=play_freq, device=self._vb_device_id)
-                
-                # Wait loop
-                while True:
-                    if tid != self._thread_id or self._stop_flag.is_set():
-                        try:
-                            sd.stop()
-                        except Exception:
-                            pass
-                        break
-                    
-                    stream = sd.get_stream()
-                    if not stream or not stream.active:
-                        break
-                    
-                    sd.sleep(50)
+                    with sd.OutputStream(
+                        device=self._vb_device_id,
+                        samplerate=vb_samplerate,
+                        channels=audio.shape[1] if audio.ndim > 1 else 1,
+                        dtype='float32',
+                        blocksize=2048,
+                    ) as stream:
+                        print(f"✓ Sound stream opened")
+                        
+                        # Write audio in chunks
+                        chunk_size = 2048
+                        for i in range(0, len(audio), chunk_size):
+                            if tid != self._thread_id or self._stop_flag.is_set():
+                                break
+                            
+                            chunk = audio[i:i+chunk_size]
+                            
+                            # Ensure chunk is 2D
+                            if chunk.ndim == 1:
+                                chunk = chunk.reshape(-1, 1)
+                            
+                            stream.write(chunk)
+                        
+                        print(f"✓ Sound playback complete")
+                        
+                except Exception as e:
+                    print(f"✗ Error playing to VB-Cable: {e}")
+                    import traceback
+                    traceback.print_exc()
             except Exception:
                 pass
             finally:
