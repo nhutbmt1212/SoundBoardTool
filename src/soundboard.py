@@ -47,6 +47,8 @@ class Soundboard:
         self.routing_enabled = False
         self._stop_flag = threading.Event()
         self._is_playing_vb = False  # Track nếu đang play qua VB-Cable
+        self._vb_lock = threading.Lock()  # Lock để tránh race condition
+        self._current_thread_id = 0  # ID của thread hiện tại
         
         # Auto-detect VB-Cable
         if SOUNDDEVICE_AVAILABLE:
@@ -97,6 +99,13 @@ class Soundboard:
         sound_path = self.sounds[sound_name]
         self._stop_flag.clear()
         
+        # Stop sound cũ trước khi play mới
+        if pygame:
+            try:
+                pygame.mixer.stop()
+            except Exception:
+                pass
+        
         # Play qua speakers (pygame)
         if pygame:
             try:
@@ -108,123 +117,120 @@ class Soundboard:
         
         # Route qua VB-Cable
         if self.routing_enabled and self.virtual_device_id is not None:
+            # Tăng thread ID để cancel thread cũ
+            self._current_thread_id += 1
+            thread_id = self._current_thread_id
+            
             threading.Thread(
                 target=self._play_to_vb_cable,
-                args=(sound_path,),
+                args=(sound_path, thread_id),
                 daemon=True
             ).start()
         
         return True
     
-    def _play_to_vb_cable(self, sound_path):
+    def _play_to_vb_cable(self, sound_path, thread_id):
         """Play audio to VB-Cable"""
-        log_debug("_play_to_vb_cable: START")
-        
         if not SOUNDDEVICE_AVAILABLE:
-            log_debug("_play_to_vb_cable: sounddevice not available")
             return
         
-        self._is_playing_vb = True
-        log_debug("_play_to_vb_cable: set _is_playing_vb = True")
-        
-        try:
-            log_debug("_play_to_vb_cable: loading sound with pygame")
-            # Load audio với pygame và convert
-            sound = pygame.mixer.Sound(sound_path)
-            audio_array = pygame.sndarray.array(sound)
-            log_debug(f"_play_to_vb_cable: audio_array shape={audio_array.shape}, dtype={audio_array.dtype}")
-            
-            # Get mixer settings
-            mixer_freq, _, _ = pygame.mixer.get_init()
-            log_debug(f"_play_to_vb_cable: mixer_freq={mixer_freq}")
-            
-            # Convert to float32 cho sounddevice
-            if audio_array.dtype == np.int16:
-                audio_float = audio_array.astype(np.float32) / 32768.0
-            elif audio_array.dtype == np.int32:
-                audio_float = audio_array.astype(np.float32) / 2147483648.0
-            else:
-                audio_float = audio_array.astype(np.float32)
-            
-            # Apply volume
-            audio_float = audio_float * self.volume
-            log_debug(f"_play_to_vb_cable: audio_float ready, shape={audio_float.shape}")
-            
-            # Kiểm tra stop flag trước khi play
-            if self._stop_flag.is_set():
-                log_debug("_play_to_vb_cable: stop flag set before play, returning")
-                self._is_playing_vb = False
+        # Acquire lock để chỉ 1 thread play tại một thời điểm
+        with self._vb_lock:
+            # Kiểm tra xem thread này còn là thread mới nhất không
+            if thread_id != self._current_thread_id:
                 return
             
-            log_debug(f"_play_to_vb_cable: calling sd.play() device={self.virtual_device_id}")
-            # Play to VB-Cable
-            sd.play(audio_float, samplerate=mixer_freq, device=self.virtual_device_id)
-            log_debug("_play_to_vb_cable: sd.play() called, entering wait loop")
+            self._is_playing_vb = True
             
-            # Wait với check stop flag định kỳ thay vì block hoàn toàn
-            loop_count = 0
-            while True:
-                loop_count += 1
+            try:
+                # Load audio với pygame và convert
+                sound = pygame.mixer.Sound(sound_path)
+                audio_array = pygame.sndarray.array(sound)
+                
+                # Get mixer settings
+                mixer_freq, _, _ = pygame.mixer.get_init()
+                
+                # Convert to float32 cho sounddevice
+                if audio_array.dtype == np.int16:
+                    audio_float = audio_array.astype(np.float32) / 32768.0
+                elif audio_array.dtype == np.int32:
+                    audio_float = audio_array.astype(np.float32) / 2147483648.0
+                else:
+                    audio_float = audio_array.astype(np.float32)
+                
+                # Apply volume
+                audio_float = audio_float * self.volume
+                
+                # Kiểm tra stop flag và thread ID trước khi play
+                if self._stop_flag.is_set() or thread_id != self._current_thread_id:
+                    self._is_playing_vb = False
+                    return
+                
+                # Stop any existing stream trước khi play mới
                 try:
-                    stream = sd.get_stream()
-                    if stream is None or not stream.active:
-                        log_debug(f"_play_to_vb_cable: stream ended (loop={loop_count})")
+                    sd.stop()
+                except Exception:
+                    pass
+                
+                # Play to VB-Cable
+                sd.play(audio_float, samplerate=mixer_freq, device=self.virtual_device_id)
+                
+                # Wait với check stop flag định kỳ
+                while True:
+                    try:
+                        # Kiểm tra thread ID - nếu có thread mới hơn thì dừng
+                        if thread_id != self._current_thread_id:
+                            try:
+                                sd.stop()
+                            except Exception:
+                                pass
+                            break
+                        
+                        stream = sd.get_stream()
+                        if stream is None or not stream.active:
+                            break
+                        
+                        if self._stop_flag.is_set():
+                            try:
+                                sd.stop()
+                            except Exception:
+                                pass
+                            break
+                        
+                        sd.sleep(50)
+                    except Exception:
                         break
-                    
-                    if self._stop_flag.is_set():
-                        log_debug(f"_play_to_vb_cable: stop flag detected (loop={loop_count})")
-                        try:
-                            sd.stop()
-                            log_debug("_play_to_vb_cable: sd.stop() called successfully")
-                        except Exception as stop_err:
-                            log_debug(f"_play_to_vb_cable: sd.stop() error: {stop_err}")
-                        break
-                    
-                    sd.sleep(50)  # Check mỗi 50ms
-                except Exception as loop_err:
-                    log_debug(f"_play_to_vb_cable: loop error: {loop_err}")
-                    break
-            
-            log_debug("_play_to_vb_cable: wait loop finished")
-            
-        except Exception as e:
-            log_debug(f"_play_to_vb_cable: EXCEPTION: {e}")
-            log_debug(traceback.format_exc())
-        finally:
-            self._is_playing_vb = False
-            log_debug("_play_to_vb_cable: END, _is_playing_vb = False")
+                
+            except Exception:
+                pass
+            finally:
+                # Chỉ reset flag nếu đây là thread cuối cùng
+                if thread_id == self._current_thread_id:
+                    self._is_playing_vb = False
     
     def stop_all(self):
         """Stop all sounds"""
-        log_debug("stop_all: START")
-        
-        # Set flag trước để thread tự dừng (thread sẽ gọi sd.stop())
-        log_debug("stop_all: setting stop flag")
+        # Set flag để thread dừng
         self._stop_flag.set()
         
+        # Tăng thread ID để invalidate tất cả thread đang chạy
+        self._current_thread_id += 1
+        
         # Stop pygame
-        log_debug("stop_all: stopping                   ")
         if pygame:
             try:
                 pygame.mixer.stop()
-                log_debug("stop_all: pygame.mixer.stop() OK")
-            except Exception as e:
-                log_debug(f"stop_all: pygame.mixer.stop() error: {e}")
-        
-        # KHÔNG gọi sd.stop() ở đây - để thread tự xử lý khi thấy stop flag
-        # Tránh race condition khi cả 2 nơi cùng gọi sd.stop()
-        log_debug(f"stop_all: sounddevice will be stopped by thread (is_playing={self._is_playing_vb})")
+            except Exception:
+                pass
         
         # Reset flag sau một chút để cho phép play tiếp
         def reset_flag():
             try:
-                log_debug("stop_all: resetting stop flag")
                 self._stop_flag.clear()
-            except Exception as e:
-                log_debug(f"stop_all: reset flag error: {e}")
+            except Exception:
+                pass
         
-        threading.Timer(0.3, reset_flag).start()
-        log_debug("stop_all: END")
+        threading.Timer(0.2, reset_flag).start()
     
     def set_volume(self, volume):
         """Set volume (0.0 to 1.0)"""
