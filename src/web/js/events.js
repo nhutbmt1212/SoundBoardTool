@@ -10,6 +10,9 @@ const EventHandlers = {
 
     // Play sound
     async playSound(name) {
+        // Track current playing sound
+        AppState.currentPlayingSound = name;
+        
         // Immediately add playing class
         document.querySelectorAll('.sound-card').forEach(card => {
             if (card.dataset.name === name) {
@@ -31,6 +34,7 @@ const EventHandlers = {
     async stopAll() {
         // Set flag to force stop - keep it longer
         AppState.forceStopped = true;
+        AppState.currentPlayingSound = null;
         
         await API.stopAll();
         UI.clearPlayingStates();
@@ -206,7 +210,21 @@ const EventHandlers = {
         for (const [name, bind] of Object.entries(AppState.soundKeybinds)) {
             if (Utils.matchKeybind(e, bind)) {
                 e.preventDefault();
-                this.playSound(name);
+                
+                // Prevent rapid toggle - if we just stopped this sound, don't play it again
+                const now = Date.now();
+                if (AppState.lastStoppedSound === name && (now - AppState.lastStoppedTime) < 500) {
+                    return;
+                }
+                
+                // Toggle: if this sound is playing, stop it; otherwise play it
+                if (AppState.currentPlayingSound === name) {
+                    AppState.lastStoppedSound = name;
+                    AppState.lastStoppedTime = now;
+                    this.stopAll();
+                } else {
+                    this.playSound(name);
+                }
                 return;
             }
         }
@@ -365,6 +383,12 @@ const EventHandlers = {
             if (AppState.forceStopped) {
                 return;
             }
+            
+            // Update current playing sound state
+            if (!playingSound) {
+                AppState.currentPlayingSound = null;
+            }
+            
             UI.updatePlayingState(playingSound);
         }, 100);
     }

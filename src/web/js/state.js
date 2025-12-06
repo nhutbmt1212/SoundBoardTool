@@ -14,6 +14,9 @@ const AppState = {
     youtubePlayingInterval: null,
     playingCheckInterval: null,
     forceStopped: false,
+    currentPlayingSound: null,
+    lastStoppedSound: null,
+    lastStoppedTime: 0,
 
     // Getters
     getVolume(name) {
