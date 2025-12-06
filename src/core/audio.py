@@ -26,6 +26,7 @@ class AudioEngine:
         self.sounds_dir = Path(sounds_dir)
         self.sounds: dict[str, str] = {}
         self.volume = 0.7
+        self.pitch = 1.0  # 1.0 = normal, 1.5 = chipmunk, 2.0 = super high
         
         # VB-Cable
         self._vb_device_id = None
@@ -89,6 +90,10 @@ class AudioEngine:
         # Allow up to 5.0 for scream mode (500% boost)
         self.volume = max(0.0, min(5.0, vol))
     
+    def set_pitch(self, pitch: float):
+        # 1.0 = normal, 1.5 = chipmunk, 2.0 = super high
+        self.pitch = max(0.5, min(2.0, pitch))
+    
     def play(self, name: str) -> bool:
         """Play sound by name"""
         if name not in self.sounds:
@@ -102,14 +107,13 @@ class AudioEngine:
             try:
                 pygame.mixer.stop()
                 snd = pygame.mixer.Sound(path)
-                # pygame volume max is 1.0, clamp it
                 snd.set_volume(min(self.volume, 1.0))
                 snd.play()
             except Exception as e:
                 print(f"Audio error: {e}")
                 return False
         
-        # Route to VB-Cable
+        # Route to VB-Cable (with pitch support)
         if self._vb_enabled and SD_AVAILABLE:
             self._thread_id += 1
             threading.Thread(
@@ -136,6 +140,10 @@ class AudioEngine:
                 arr = pygame.sndarray.array(snd)
                 freq = pygame.mixer.get_init()[0]
                 
+                # Apply pitch by changing sample rate
+                # Higher pitch = higher sample rate playback
+                play_freq = int(freq * self.pitch)
+                
                 # Convert to float32
                 if arr.dtype == np.int16:
                     audio = arr.astype(np.float32) / 32768.0
@@ -155,7 +163,7 @@ class AudioEngine:
                 except Exception:
                     pass
                 
-                sd.play(audio, samplerate=freq, device=self._vb_device_id)
+                sd.play(audio, samplerate=play_freq, device=self._vb_device_id)
                 
                 # Wait loop
                 while True:

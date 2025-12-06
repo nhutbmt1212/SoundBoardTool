@@ -4,6 +4,7 @@ let selectedSound = null;
 let soundVolumes = {};
 let soundKeybinds = {};
 let soundScreamMode = {};  // Scream mode per sound
+let soundPitchMode = {};   // Pitch mode per sound (1.0 = normal, 1.5 = chipmunk)
 let stopAllKeybind = '';
 let isRecordingKeybind = false;
 let isRecordingStopKeybind = false;
@@ -35,6 +36,7 @@ async function loadSettings() {
         soundVolumes = settings.volumes || {};
         soundKeybinds = settings.keybinds || {};
         soundScreamMode = settings.screamMode || {};
+        soundPitchMode = settings.pitchMode || {};
         stopAllKeybind = settings.stopAllKeybind || '';
     } catch (e) {
         console.log('No saved settings');
@@ -48,6 +50,7 @@ async function saveSettings() {
             volumes: soundVolumes,
             keybinds: soundKeybinds,
             screamMode: soundScreamMode,
+            pitchMode: soundPitchMode,
             stopAllKeybind: stopAllKeybind
         })();
     } catch (e) {
@@ -103,11 +106,15 @@ async function refreshSounds() {
         grid.innerHTML = sounds.map(name => {
             const keybind = soundKeybinds[name] || '';
             const isScream = soundScreamMode[name] || false;
+            const isPitch = soundPitchMode[name] || false;
+            const badges = [];
+            if (isScream) badges.push('😈');
+            if (isPitch) badges.push('🐿️');
             return `
-                <div class="sound-card ${isScream ? 'scream-mode' : ''}" data-name="${escapeAttr(name)}" onclick="selectSound('${escapeAttr(name)}')" ondblclick="playSound('${escapeAttr(name)}')">
+                <div class="sound-card ${isScream ? 'scream-mode' : ''} ${isPitch ? 'pitch-mode' : ''}" data-name="${escapeAttr(name)}" onclick="selectSound('${escapeAttr(name)}')" ondblclick="playSound('${escapeAttr(name)}')">
                     <div class="sound-thumbnail">
                         <span class="thumb-icon">${Icons.waveform}</span>
-                        ${isScream ? '<span class="scream-badge">😈</span>' : ''}
+                        ${badges.length ? `<span class="mode-badges">${badges.join('')}</span>` : ''}
                     </div>
                     <div class="sound-name" title="${escapeAttr(name)}">${escapeHtml(name)}</div>
                     <div class="sound-keybind ${keybind ? 'has-bind' : ''}" onclick="event.stopPropagation(); startKeybindRecord('${escapeAttr(name)}')">
@@ -190,6 +197,16 @@ function showSoundPanel(name) {
             <div class="scream-hint">Boost volume to max for trolling</div>
         </div>
         
+        <div class="panel-section">
+            <div class="panel-section-title">🐿️ Chipmunk Mode</div>
+            <label class="pitch-toggle">
+                <input type="checkbox" id="pitch-checkbox" ${soundPitchMode[name] ? 'checked' : ''} onchange="togglePitchMode()">
+                <span class="pitch-slider"></span>
+                <span class="pitch-label">${soundPitchMode[name] ? 'ON - HIGH PITCH!' : 'OFF'}</span>
+            </label>
+            <div class="pitch-hint">Speed up audio for chipmunk voice</div>
+        </div>
+        
         <div class="panel-actions">
             <button class="btn-panel btn-play" onclick="playSound('${escapeAttr(name)}')">${icon('play', 14)} Play</button>
             <button class="btn-panel btn-stop" onclick="stopAll()">${icon('stop', 14)} Stop</button>
@@ -224,6 +241,22 @@ function toggleScreamMode() {
     refreshSounds().then(() => selectSound(selectedSound));
 }
 
+// Toggle pitch/chipmunk mode
+function togglePitchMode() {
+    if (!selectedSound) return;
+    const checkbox = document.getElementById('pitch-checkbox');
+    const isPitch = checkbox.checked;
+    soundPitchMode[selectedSound] = isPitch;
+    saveSettings();
+    
+    // Update label
+    const label = document.querySelector('.pitch-label');
+    if (label) label.textContent = isPitch ? 'ON - HIGH PITCH!' : 'OFF';
+    
+    // Update card indicator
+    refreshSounds().then(() => selectSound(selectedSound));
+}
+
 // Play sound
 async function playSound(name) {
     try {
@@ -236,9 +269,11 @@ async function playSound(name) {
         
         let volume = (soundVolumes[name] !== undefined ? soundVolumes[name] : 100) / 100;
         const isScream = soundScreamMode[name] || false;
+        const isPitch = soundPitchMode[name] || false;
         if (isScream) volume = Math.min(volume * 5.0, 5.0);  // 500% boost
+        const pitch = isPitch ? 1.5 : 1.0;  // Chipmunk = 1.5x speed
         
-        await eel.play_sound(name, volume)();
+        await eel.play_sound(name, volume, pitch)();
         
         setTimeout(() => {
             document.querySelectorAll('.sound-card').forEach(card => {

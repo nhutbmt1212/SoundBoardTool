@@ -51,6 +51,7 @@ audio.set_volume(config.default_volume)
 # Sound settings cache for global hotkeys
 sound_volumes = {}
 sound_scream_mode = {}
+sound_pitch_mode = {}
 
 # Init eel
 eel.init(WEB_DIR)
@@ -62,7 +63,10 @@ def play_sound_global(name: str):
     # Apply scream mode (500% boost)
     if sound_scream_mode.get(name, False):
         vol = min(vol * 5.0, 5.0)
+    # Apply pitch mode (chipmunk)
+    pitch = 1.5 if sound_pitch_mode.get(name, False) else 1.0
     audio.set_volume(vol)
+    audio.set_pitch(pitch)
     audio.play(name)
 
 
@@ -78,9 +82,10 @@ def update_global_hotkeys():
     stop_keybind = settings.get('stopAllKeybind', '')
     
     # Update caches
-    global sound_volumes, sound_scream_mode
+    global sound_volumes, sound_scream_mode, sound_pitch_mode
     sound_volumes = settings.get('volumes', {})
     sound_scream_mode = settings.get('screamMode', {})
+    sound_pitch_mode = settings.get('pitchMode', {})
     
     # Register hotkeys
     hm = get_hotkey_manager()
@@ -96,8 +101,9 @@ def get_sounds():
 
 
 @eel.expose
-def play_sound(name: str, volume: float = 1.0):
+def play_sound(name: str, volume: float = 1.0, pitch: float = 1.0):
     audio.set_volume(volume)
+    audio.set_pitch(pitch)
     return audio.play(name)
 
 
