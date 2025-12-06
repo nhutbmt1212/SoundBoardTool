@@ -86,7 +86,8 @@ class AudioEngine:
         return sorted(self.sounds.keys())
     
     def set_volume(self, vol: float):
-        self.volume = max(0.0, min(1.0, vol))
+        # Allow up to 5.0 for scream mode (500% boost)
+        self.volume = max(0.0, min(5.0, vol))
     
     def play(self, name: str) -> bool:
         """Play sound by name"""
@@ -101,7 +102,8 @@ class AudioEngine:
             try:
                 pygame.mixer.stop()
                 snd = pygame.mixer.Sound(path)
-                snd.set_volume(self.volume)
+                # pygame volume max is 1.0, clamp it
+                snd.set_volume(min(self.volume, 1.0))
                 snd.play()
             except Exception as e:
                 print(f"Audio error: {e}")

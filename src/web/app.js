@@ -3,6 +3,7 @@
 let selectedSound = null;
 let soundVolumes = {};
 let soundKeybinds = {};
+let soundScreamMode = {};  // Scream mode per sound
 let stopAllKeybind = '';
 let isRecordingKeybind = false;
 let isRecordingStopKeybind = false;
@@ -33,6 +34,7 @@ async function loadSettings() {
         const settings = await eel.get_settings()();
         soundVolumes = settings.volumes || {};
         soundKeybinds = settings.keybinds || {};
+        soundScreamMode = settings.screamMode || {};
         stopAllKeybind = settings.stopAllKeybind || '';
     } catch (e) {
         console.log('No saved settings');
@@ -45,6 +47,7 @@ async function saveSettings() {
         await eel.save_settings({
             volumes: soundVolumes,
             keybinds: soundKeybinds,
+            screamMode: soundScreamMode,
             stopAllKeybind: stopAllKeybind
         })();
     } catch (e) {
@@ -99,10 +102,12 @@ async function refreshSounds() {
         
         grid.innerHTML = sounds.map(name => {
             const keybind = soundKeybinds[name] || '';
+            const isScream = soundScreamMode[name] || false;
             return `
-                <div class="sound-card" data-name="${escapeAttr(name)}" onclick="selectSound('${escapeAttr(name)}')" ondblclick="playSound('${escapeAttr(name)}')">
+                <div class="sound-card ${isScream ? 'scream-mode' : ''}" data-name="${escapeAttr(name)}" onclick="selectSound('${escapeAttr(name)}')" ondblclick="playSound('${escapeAttr(name)}')">
                     <div class="sound-thumbnail">
                         <span class="thumb-icon">${Icons.waveform}</span>
+                        ${isScream ? '<span class="scream-badge">😈</span>' : ''}
                     </div>
                     <div class="sound-name" title="${escapeAttr(name)}">${escapeHtml(name)}</div>
                     <div class="sound-keybind ${keybind ? 'has-bind' : ''}" onclick="event.stopPropagation(); startKeybindRecord('${escapeAttr(name)}')">
@@ -134,6 +139,7 @@ function showSoundPanel(name) {
     const panel = document.getElementById('right-panel');
     const volume = soundVolumes[name] !== undefined ? soundVolumes[name] : 100;
     const keybind = soundKeybinds[name] || '';
+    const isScream = soundScreamMode[name] || false;
     
     panel.innerHTML = `
         <div class="panel-header">
@@ -142,7 +148,7 @@ function showSoundPanel(name) {
         </div>
         
         <div class="panel-preview">
-            <div class="preview-wave">
+            <div class="preview-wave ${isScream ? 'scream-active' : ''}">
                 <div class="wave-animation">
                     <div class="wave-bar"></div>
                     <div class="wave-bar"></div>
@@ -174,6 +180,16 @@ function showSoundPanel(name) {
             </div>
         </div>
         
+        <div class="panel-section">
+            <div class="panel-section-title">😈 Scream Mode</div>
+            <label class="scream-toggle">
+                <input type="checkbox" id="scream-checkbox" ${isScream ? 'checked' : ''} onchange="toggleScreamMode()">
+                <span class="scream-slider"></span>
+                <span class="scream-label">${isScream ? 'ON - 500% BOOST!' : 'OFF'}</span>
+            </label>
+            <div class="scream-hint">Boost volume to max for trolling</div>
+        </div>
+        
         <div class="panel-actions">
             <button class="btn-panel btn-play" onclick="playSound('${escapeAttr(name)}')">${icon('play', 14)} Play</button>
             <button class="btn-panel btn-stop" onclick="stopAll()">${icon('stop', 14)} Stop</button>
@@ -183,6 +199,29 @@ function showSoundPanel(name) {
             <button class="btn-panel btn-delete" onclick="deleteSound('${escapeAttr(name)}')">${icon('trash', 14)} Delete</button>
         </div>
     `;
+}
+
+// Toggle scream mode
+function toggleScreamMode() {
+    if (!selectedSound) return;
+    const checkbox = document.getElementById('scream-checkbox');
+    const isScream = checkbox.checked;
+    soundScreamMode[selectedSound] = isScream;
+    saveSettings();
+    
+    // Update label
+    const label = document.querySelector('.scream-label');
+    if (label) label.textContent = isScream ? 'ON - 500% BOOST!' : 'OFF';
+    
+    // Update wave animation
+    const wave = document.querySelector('.preview-wave');
+    if (wave) {
+        if (isScream) wave.classList.add('scream-active');
+        else wave.classList.remove('scream-active');
+    }
+    
+    // Update card indicator
+    refreshSounds().then(() => selectSound(selectedSound));
 }
 
 // Play sound
@@ -195,7 +234,10 @@ async function playSound(name) {
             }
         });
         
-        const volume = (soundVolumes[name] !== undefined ? soundVolumes[name] : 100) / 100;
+        let volume = (soundVolumes[name] !== undefined ? soundVolumes[name] : 100) / 100;
+        const isScream = soundScreamMode[name] || false;
+        if (isScream) volume = Math.min(volume * 5.0, 5.0);  // 500% boost
+        
         await eel.play_sound(name, volume)();
         
         setTimeout(() => {

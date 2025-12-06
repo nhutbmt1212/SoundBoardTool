@@ -590,3 +590,110 @@ body {
 .status-dot.connected {
     background: #00ff88;
 }
+
+
+/* Scream Mode */
+.sound-card.scream-mode {
+    border-color: #ff4444;
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.3);
+}
+
+.sound-card.scream-mode .sound-thumbnail {
+    background: linear-gradient(135deg, #5f1a1a 0%, #370d0d 100%);
+}
+
+.sound-card.scream-mode .thumb-icon {
+    color: #ff4444;
+}
+
+.scream-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 16px;
+    animation: shake 0.5s infinite;
+}
+
+.sound-thumbnail {
+    position: relative;
+}
+
+@keyframes shake {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+}
+
+/* Scream Toggle */
+.scream-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.scream-toggle input {
+    display: none;
+}
+
+.scream-slider {
+    width: 44px;
+    height: 24px;
+    background: #333;
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.scream-slider::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #666;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: all 0.3s;
+}
+
+.scream-toggle input:checked + .scream-slider {
+    background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+}
+
+.scream-toggle input:checked + .scream-slider::after {
+    left: 23px;
+    background: white;
+}
+
+.scream-label {
+    font-size: 12px;
+    color: #888;
+    transition: all 0.3s;
+}
+
+.scream-toggle input:checked ~ .scream-label {
+    color: #ff4444;
+    font-weight: bold;
+}
+
+.scream-hint {
+    font-size: 10px;
+    color: #555;
+    margin-top: 8px;
+}
+
+/* Scream wave animation */
+.preview-wave.scream-active {
+    background: linear-gradient(135deg, #3a1a1a 0%, #2a0d0d 100%);
+}
+
+.preview-wave.scream-active .wave-bar {
+    background: linear-gradient(to top, #ff4444, #ff8800);
+    animation: wave-scream 0.3s ease-in-out infinite;
+}
+
+@keyframes wave-scream {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(1.5); }
+}

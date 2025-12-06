@@ -48,8 +48,9 @@ config = Config()
 audio = AudioEngine(sounds_dir)
 audio.set_volume(config.default_volume)
 
-# Sound volumes cache for global hotkeys
+# Sound settings cache for global hotkeys
 sound_volumes = {}
+sound_scream_mode = {}
 
 # Init eel
 eel.init(WEB_DIR)
@@ -58,6 +59,9 @@ eel.init(WEB_DIR)
 def play_sound_global(name: str):
     """Play sound from global hotkey"""
     vol = sound_volumes.get(name, 100) / 100
+    # Apply scream mode (500% boost)
+    if sound_scream_mode.get(name, False):
+        vol = min(vol * 5.0, 5.0)
     audio.set_volume(vol)
     audio.play(name)
 
@@ -73,9 +77,10 @@ def update_global_hotkeys():
     keybinds = settings.get('keybinds', {})
     stop_keybind = settings.get('stopAllKeybind', '')
     
-    # Update volumes cache
-    global sound_volumes
+    # Update caches
+    global sound_volumes, sound_scream_mode
     sound_volumes = settings.get('volumes', {})
+    sound_scream_mode = settings.get('screamMode', {})
     
     # Register hotkeys
     hm = get_hotkey_manager()
