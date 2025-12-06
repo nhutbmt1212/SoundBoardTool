@@ -35,22 +35,43 @@
 
             <!-- YouTube Streaming -->
             <div class="youtube-section">
-                <div class="youtube-input-row">
-                    <input type="text" class="youtube-url-input" id="youtube-url" 
-                           placeholder="Paste YouTube URL here..." 
-                           onkeydown="if(event.key==='Enter')playYoutube()">
-                    <button class="btn-youtube-play" id="btn-youtube-play" onclick="playYoutube()" title="Play YouTube">
-                        ▶
-                    </button>
-                    <button class="btn-youtube-stop" id="btn-youtube-stop" onclick="stopYoutube()" title="Stop YouTube">
-                        ⏹
-                    </button>
+                <div class="youtube-header">
+                    <span class="youtube-icon">📺</span>
+                    <span class="youtube-title">YouTube Stream</span>
+                    <span class="youtube-cache-badge" id="youtube-cache-badge" style="display: none;">⚡ CACHED</span>
                 </div>
-                <div class="youtube-info" id="youtube-info"></div>
-                <div class="youtube-volume-row">
-                    <span>🔊</span>
+                
+                <div class="youtube-input-container">
+                    <input type="text" class="youtube-url-input" id="youtube-url" 
+                           placeholder="🔗 Paste YouTube URL and press Enter..." 
+                           onkeydown="if(event.key==='Enter')playYoutube()">
+                    <div class="youtube-controls">
+                        <button class="btn-youtube-play" id="btn-youtube-play" onclick="playYoutube()">
+                            <span class="btn-icon">▶</span>
+                            <span class="btn-text">Play</span>
+                        </button>
+                        <button class="btn-youtube-stop" id="btn-youtube-stop" onclick="stopYoutube()">
+                            <span class="btn-icon">⏹</span>
+                            <span class="btn-text">Stop</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="youtube-status" id="youtube-status">
+                    <div class="youtube-info" id="youtube-info">Ready to stream</div>
+                    <div class="youtube-progress" id="youtube-progress" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="youtube-progress-fill"></div>
+                        </div>
+                        <span class="progress-text" id="youtube-progress-text">Loading...</span>
+                    </div>
+                </div>
+                
+                <div class="youtube-volume-container">
+                    <span class="volume-icon">🔊</span>
                     <input type="range" class="youtube-volume" id="youtube-volume" min="0" max="200" value="100" 
-                           oninput="onYoutubeVolumeChange(this.value)" title="YouTube Volume">
+                           oninput="onYoutubeVolumeChange(this.value)">
+                    <span class="volume-value" id="youtube-volume-value">100%</span>
                 </div>
             </div>
 

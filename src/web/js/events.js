@@ -349,6 +349,11 @@ const EventHandlers = {
     // YouTube volume change
     async onYoutubeVolumeChange(value) {
         await API.setYoutubeVolume(parseInt(value) / 100);
+        // Update volume display
+        const volumeValue = document.getElementById('youtube-volume-value');
+        if (volumeValue) {
+            volumeValue.textContent = `${value}%`;
+        }
     },
 
     // Start YouTube status check
