@@ -1,0 +1,109 @@
+/* Animation Styles */
+
+@keyframes wave {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.5); }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes shake {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+}
+
+@keyframes playing-glow {
+    0%, 100% { 
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.5), 0 0 40px rgba(0, 255, 136, 0.3);
+    }
+    50% { 
+        box-shadow: 0 0 30px rgba(0, 255, 136, 0.8), 0 0 60px rgba(0, 255, 136, 0.5);
+    }
+}
+
+@keyframes gradient-rotate {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 136, 0.3); }
+    50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+}
+
+@keyframes scream-playing-glow {
+    0%, 100% { 
+        box-shadow: 0 0 25px rgba(255, 68, 68, 0.7), 0 0 50px rgba(255, 136, 0, 0.5);
+    }
+    50% { 
+        box-shadow: 0 0 40px rgba(255, 68, 68, 1), 0 0 80px rgba(255, 136, 0, 0.8);
+    }
+}
+
+@keyframes wave-scream {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(1.5); }
+}
+
+/* Playing State */
+.sound-card.playing {
+    border-color: #00ff88;
+    animation: playing-glow 1.5s ease-in-out infinite;
+    position: relative;
+}
+
+.sound-card.playing::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    background: linear-gradient(45deg, #00ff88, #00d9ff, #ff00ff, #00ff88);
+    background-size: 400% 400%;
+    border-radius: 14px;
+    z-index: -1;
+    animation: gradient-rotate 2s linear infinite;
+    filter: blur(8px);
+    opacity: 0.7;
+}
+
+.sound-card.playing::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(145deg, #1a1a2e 0%, #0d1b2a 100%);
+    border-radius: 10px;
+    z-index: -1;
+}
+
+/* Scream Mode Playing */
+.sound-card.scream-mode.playing {
+    border-color: #ff4444;
+    animation: scream-playing-glow 0.8s ease-in-out infinite;
+}
+
+.sound-card.scream-mode.playing::before {
+    background: linear-gradient(45deg, #ff0000, #ff4444, #ff8800, #ffaa00, #ff4444, #ff0000);
+    background-size: 400% 400%;
+    animation: gradient-rotate 1s linear infinite;
+    filter: blur(10px);
+    opacity: 0.9;
+}
+
+/* Scream wave animation */
+.preview-wave.scream-active {
+    background: linear-gradient(135deg, #3a1a1a 0%, #2a0d0d 100%);
+}
+
+.preview-wave.scream-active .wave-bar {
+    background: linear-gradient(to top, #ff4444, #ff8800);
+    animation: wave-scream 0.3s ease-in-out infinite;
+}

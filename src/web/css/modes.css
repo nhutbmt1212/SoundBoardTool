@@ -1,0 +1,154 @@
+/* Scream & Pitch Mode Styles */
+
+/* Scream Mode Card */
+.sound-card.scream-mode {
+    border-color: #ff4444;
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.3);
+}
+
+.sound-card.scream-mode .sound-thumbnail {
+    background: linear-gradient(135deg, #5f1a1a 0%, #370d0d 100%);
+}
+
+.sound-card.scream-mode .thumb-icon {
+    color: #ff4444;
+}
+
+/* Pitch Mode Card */
+.sound-card.pitch-mode .sound-thumbnail {
+    background: linear-gradient(135deg, #1a3a5f 0%, #0d2137 100%);
+}
+
+/* Mode Badges */
+.mode-badges {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 14px;
+    display: flex;
+    gap: 2px;
+}
+
+.mode-badges span {
+    animation: shake 0.5s infinite;
+}
+
+/* Scream Toggle */
+.scream-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.scream-toggle input {
+    display: none;
+}
+
+.scream-slider {
+    width: 44px;
+    height: 24px;
+    background: #333;
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.scream-slider::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #666;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: all 0.3s;
+}
+
+.scream-toggle input:checked + .scream-slider {
+    background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+}
+
+.scream-toggle input:checked + .scream-slider::after {
+    left: 23px;
+    background: white;
+}
+
+.scream-label {
+    font-size: 12px;
+    color: #888;
+    transition: all 0.3s;
+}
+
+.scream-toggle input:checked ~ .scream-label {
+    color: #ff4444;
+    font-weight: bold;
+}
+
+.scream-hint {
+    font-size: 10px;
+    color: #555;
+    margin-top: 8px;
+}
+
+/* Pitch Toggle */
+.pitch-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.pitch-toggle input {
+    display: none;
+}
+
+.pitch-slider {
+    width: 44px;
+    height: 24px;
+    background: #333;
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.pitch-slider::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #666;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: all 0.3s;
+}
+
+.pitch-toggle input:checked + .pitch-slider {
+    background: linear-gradient(135deg, #00d9ff 0%, #0099cc 100%);
+}
+
+.pitch-toggle input:checked + .pitch-slider::after {
+    left: 23px;
+    background: white;
+}
+
+.pitch-label {
+    font-size: 12px;
+    color: #888;
+    transition: all 0.3s;
+}
+
+.pitch-toggle input:checked ~ .pitch-label {
+    color: #00d9ff;
+    font-weight: bold;
+}
+
+.pitch-hint {
+    font-size: 10px;
+    color: #555;
+    margin-top: 8px;
+}

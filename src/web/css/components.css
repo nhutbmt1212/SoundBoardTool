@@ -1,0 +1,361 @@
+/* Component Styles */
+
+/* Icons */
+.thumb-icon {
+    color: #00d9ff;
+    opacity: 0.6;
+}
+
+.thumb-icon svg {
+    width: 40px;
+    height: 40px;
+}
+
+.empty-icon {
+    display: block;
+    margin-bottom: 15px;
+    color: #444;
+}
+
+.empty-icon svg {
+    width: 48px;
+    height: 48px;
+}
+
+.placeholder-icon {
+    display: block;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.placeholder-icon svg {
+    width: 40px;
+    height: 40px;
+}
+
+/* Buttons */
+.btn-icon {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.btn-icon:hover {
+    background: rgba(255,255,255,0.2);
+    color: #00d9ff;
+}
+
+.btn-panel {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.btn-panel svg {
+    width: 14px;
+    height: 14px;
+}
+
+.btn-play {
+    background: linear-gradient(135deg, #00d9ff 0%, #00b4d8 100%);
+    color: white;
+}
+
+.btn-play:hover {
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.4);
+}
+
+.btn-stop {
+    background: #333;
+    color: white;
+}
+
+.btn-stop:hover {
+    background: #ff6b6b;
+}
+
+.btn-delete {
+    background: transparent;
+    border: 1px solid #ff6b6b;
+    color: #ff6b6b;
+}
+
+.btn-delete:hover {
+    background: #ff6b6b;
+    color: white;
+}
+
+.btn-stop-all {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 12px 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
+    color: white;
+}
+
+.btn-stop-all .stop-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.btn-stop-all .stop-text {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.btn-stop-all:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(255, 107, 107, 0.4);
+}
+
+.btn-stop-all:active {
+    transform: translateY(0);
+}
+
+/* Sound Card */
+.sound-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #0d1b2a 100%);
+    border-radius: 12px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.sound-card:hover {
+    transform: translateY(-3px);
+    border-color: #00d9ff;
+    box-shadow: 0 5px 20px rgba(0, 217, 255, 0.2);
+}
+
+.sound-card.selected {
+    border-color: #00d9ff;
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.3);
+}
+
+.sound-thumbnail {
+    width: 100%;
+    aspect-ratio: 1;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.sound-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sound-name {
+    font-size: 11px;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 5px;
+}
+
+.sound-keybind {
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 10px;
+    text-align: center;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sound-keybind:hover {
+    background: rgba(0, 217, 255, 0.2);
+    color: #00d9ff;
+}
+
+.sound-keybind.has-bind {
+    background: rgba(0, 217, 255, 0.15);
+    color: #00d9ff;
+}
+
+/* Stop Keybind */
+.stop-keybind {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 11px;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.stop-keybind:hover {
+    border-color: #ff6b6b;
+    color: #ff6b6b;
+}
+
+.stop-keybind.has-bind {
+    border-color: #ff6b6b;
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+}
+
+.stop-keybind.recording {
+    border-color: #00d9ff;
+    color: #00d9ff;
+    animation: blink 0.5s infinite;
+}
+
+/* Keybind Input */
+.keybind-input {
+    background: #1a1a2e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 15px;
+    color: white;
+    font-size: 14px;
+    width: 100%;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.keybind-input:hover, .keybind-input:focus {
+    border-color: #00d9ff;
+    outline: none;
+}
+
+.keybind-input.recording {
+    border-color: #ff6b6b;
+    animation: blink 0.5s infinite;
+}
+
+/* Volume Control */
+.volume-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.volume-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: #333;
+    border-radius: 3px;
+    outline: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #00d9ff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.volume-value {
+    min-width: 40px;
+    text-align: right;
+    font-size: 13px;
+    color: #888;
+}
+
+/* Preview Wave */
+.preview-wave {
+    width: 100%;
+    height: 80px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #0d1b2a 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wave-animation {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    height: 40px;
+}
+
+.wave-bar {
+    width: 4px;
+    background: linear-gradient(to top, #00d9ff, #00ff88);
+    border-radius: 2px;
+    animation: wave 1s ease-in-out infinite;
+}
+
+.wave-bar:nth-child(1) { height: 20px; animation-delay: 0s; }
+.wave-bar:nth-child(2) { height: 35px; animation-delay: 0.1s; }
+.wave-bar:nth-child(3) { height: 25px; animation-delay: 0.2s; }
+.wave-bar:nth-child(4) { height: 40px; animation-delay: 0.3s; }
+.wave-bar:nth-child(5) { height: 30px; animation-delay: 0.4s; }
+.wave-bar:nth-child(6) { height: 35px; animation-delay: 0.5s; }
+.wave-bar:nth-child(7) { height: 20px; animation-delay: 0.6s; }
+
+/* Editable Sound Name */
+.panel-sound-name.editable {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    width: 100%;
+    transition: all 0.2s;
+}
+
+.panel-sound-name.editable:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #333;
+}
+
+.panel-sound-name.editable:focus {
+    background: rgba(0, 217, 255, 0.1);
+    border-color: #00d9ff;
+    outline: none;
+}
+
+.panel-sound-info {
+    font-size: 10px;
+    color: #555;
+    margin-top: 2px;
+    padding-left: 9px;
+}
