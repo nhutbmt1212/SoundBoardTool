@@ -87,8 +87,8 @@ class AudioEngine:
         return sorted(self.sounds.keys())
     
     def set_volume(self, vol: float):
-        # Allow up to 5.0 for scream mode (500% boost)
-        self.volume = max(0.0, min(5.0, vol))
+        # Allow up to 50.0 for scream mode (5000% boost)
+        self.volume = max(0.0, min(50.0, vol))
     
     def set_pitch(self, pitch: float):
         # 1.0 = normal, 1.5 = chipmunk, 2.0 = super high

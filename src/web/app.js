@@ -5,6 +5,7 @@ let soundVolumes = {};
 let soundKeybinds = {};
 let soundScreamMode = {};  // Scream mode per sound
 let soundPitchMode = {};   // Pitch mode per sound (1.0 = normal, 1.5 = chipmunk)
+let soundNames = {};       // Custom display names
 let stopAllKeybind = '';
 let isRecordingKeybind = false;
 let isRecordingStopKeybind = false;
@@ -16,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await refreshSounds();
     updateStopKeybindUI();
     setupKeyboardListener();
+    setupDragDrop();
 });
 
 // Initialize icons
@@ -37,6 +39,7 @@ async function loadSettings() {
         soundKeybinds = settings.keybinds || {};
         soundScreamMode = settings.screamMode || {};
         soundPitchMode = settings.pitchMode || {};
+        soundNames = settings.names || {};
         stopAllKeybind = settings.stopAllKeybind || '';
     } catch (e) {
         console.log('No saved settings');
@@ -51,6 +54,7 @@ async function saveSettings() {
             keybinds: soundKeybinds,
             screamMode: soundScreamMode,
             pitchMode: soundPitchMode,
+            names: soundNames,
             stopAllKeybind: stopAllKeybind
         })();
     } catch (e) {
@@ -107,6 +111,7 @@ async function refreshSounds() {
             const keybind = soundKeybinds[name] || '';
             const isScream = soundScreamMode[name] || false;
             const isPitch = soundPitchMode[name] || false;
+            const displayName = soundNames[name] || name;
             const badges = [];
             if (isScream) badges.push('😈');
             if (isPitch) badges.push('🐿️');
@@ -116,7 +121,7 @@ async function refreshSounds() {
                         <span class="thumb-icon">${Icons.waveform}</span>
                         ${badges.length ? `<span class="mode-badges">${badges.join('')}</span>` : ''}
                     </div>
-                    <div class="sound-name" title="${escapeAttr(name)}">${escapeHtml(name)}</div>
+                    <div class="sound-name" title="${escapeAttr(displayName)}">${escapeHtml(displayName)}</div>
                     <div class="sound-keybind ${keybind ? 'has-bind' : ''}" onclick="event.stopPropagation(); startKeybindRecord('${escapeAttr(name)}')">
                         ${keybind || 'Add keybind'}
                     </div>
@@ -147,11 +152,16 @@ function showSoundPanel(name) {
     const volume = soundVolumes[name] !== undefined ? soundVolumes[name] : 100;
     const keybind = soundKeybinds[name] || '';
     const isScream = soundScreamMode[name] || false;
+    const displayName = soundNames[name] || name;
     
     panel.innerHTML = `
         <div class="panel-header">
-            <div class="panel-sound-name">${escapeHtml(name)}</div>
-            <div class="panel-sound-info">Audio file</div>
+            <input type="text" class="panel-sound-name editable" id="sound-name-input" 
+                   value="${escapeAttr(displayName)}" 
+                   placeholder="${escapeAttr(name)}"
+                   onchange="onSoundNameChange(this.value)"
+                   onkeydown="if(event.key==='Enter')this.blur()">
+            <div class="panel-sound-info">${escapeHtml(name)}</div>
         </div>
         
         <div class="panel-preview">
@@ -192,7 +202,7 @@ function showSoundPanel(name) {
             <label class="scream-toggle">
                 <input type="checkbox" id="scream-checkbox" ${isScream ? 'checked' : ''} onchange="toggleScreamMode()">
                 <span class="scream-slider"></span>
-                <span class="scream-label">${isScream ? 'ON - 500% BOOST!' : 'OFF'}</span>
+                <span class="scream-label">${isScream ? 'ON - 5000% BOOST! 💀' : 'OFF'}</span>
             </label>
             <div class="scream-hint">Boost volume to max for trolling</div>
         </div>
@@ -228,7 +238,7 @@ function toggleScreamMode() {
     
     // Update label
     const label = document.querySelector('.scream-label');
-    if (label) label.textContent = isScream ? 'ON - 500% BOOST!' : 'OFF';
+    if (label) label.textContent = isScream ? 'ON - 5000% BOOST! 💀' : 'OFF';
     
     // Update wave animation
     const wave = document.querySelector('.preview-wave');
@@ -270,7 +280,7 @@ async function playSound(name) {
         let volume = (soundVolumes[name] !== undefined ? soundVolumes[name] : 100) / 100;
         const isScream = soundScreamMode[name] || false;
         const isPitch = soundPitchMode[name] || false;
-        if (isScream) volume = Math.min(volume * 5.0, 5.0);  // 500% boost
+        if (isScream) volume = Math.min(volume * 50.0, 50.0);  // 5000% boost 💀
         const pitch = isPitch ? 1.5 : 1.0;  // Chipmunk = 1.5x speed
         
         await eel.play_sound(name, volume, pitch)();
@@ -303,6 +313,19 @@ function onSoundVolumeChange(value) {
     document.getElementById('volume-value').textContent = value;
     soundVolumes[selectedSound] = parseInt(value);
     saveSettings();
+}
+
+// Sound name change
+function onSoundNameChange(value) {
+    if (!selectedSound) return;
+    const newName = value.trim();
+    if (newName && newName !== selectedSound) {
+        soundNames[selectedSound] = newName;
+    } else {
+        delete soundNames[selectedSound];
+    }
+    saveSettings();
+    refreshSounds().then(() => selectSound(selectedSound));
 }
 
 // Keybind recording for sounds
@@ -493,4 +516,73 @@ function escapeHtml(text) {
 
 function escapeAttr(text) {
     return text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+
+// Drag & Drop support
+function setupDragDrop() {
+    const app = document.querySelector('.app');
+    
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
+        app.addEventListener(event, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    });
+    
+    // Highlight on drag
+    ['dragenter', 'dragover'].forEach(event => {
+        app.addEventListener(event, () => {
+            app.classList.add('drag-over');
+        });
+    });
+    
+    ['dragleave', 'drop'].forEach(event => {
+        app.addEventListener(event, () => {
+            app.classList.remove('drag-over');
+        });
+    });
+    
+    // Handle drop
+    app.addEventListener('drop', async (e) => {
+        const files = e.dataTransfer.files;
+        if (files.length === 0) return;
+        
+        // Filter and read audio files
+        let addedCount = 0;
+        for (const file of files) {
+            if (file.type.startsWith('audio/') || 
+                /\.(wav|mp3|ogg|flac|m4a)$/i.test(file.name)) {
+                try {
+                    // Read file as base64
+                    const base64 = await readFileAsBase64(file);
+                    const added = await eel.add_sound_base64(file.name, base64)();
+                    if (added) addedCount++;
+                } catch (err) {
+                    console.error('Error reading file:', err);
+                }
+            }
+        }
+        
+        if (addedCount === 0) {
+            alert('No audio files added. Supported: WAV, MP3, OGG, FLAC');
+        } else {
+            await refreshSounds();
+        }
+    });
+}
+
+// Read file as base64
+function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            // Remove data URL prefix
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 }

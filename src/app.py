@@ -60,9 +60,9 @@ eel.init(WEB_DIR)
 def play_sound_global(name: str):
     """Play sound from global hotkey"""
     vol = sound_volumes.get(name, 100) / 100
-    # Apply scream mode (500% boost)
+    # Apply scream mode (5000% boost)
     if sound_scream_mode.get(name, False):
-        vol = min(vol * 5.0, 5.0)
+        vol = min(vol * 50.0, 50.0)
     # Apply pitch mode (chipmunk)
     pitch = 1.5 if sound_pitch_mode.get(name, False) else 1.0
     audio.set_volume(vol)
@@ -145,6 +145,51 @@ def add_sound_dialog():
     root.destroy()
     
     added = sum(1 for f in files if audio.add_sound(f))
+    return added > 0
+
+
+@eel.expose
+def add_sounds_by_path(paths: list):
+    """Add sounds by file paths (for drag & drop)"""
+    added = 0
+    for path in paths:
+        if path and audio.add_sound(path):
+            added += 1
+    return added
+
+
+@eel.expose
+def add_sound_base64(filename: str, base64_data: str):
+    """Add sound from base64 data (for drag & drop from browser)"""
+    import base64
+    import tempfile
+    from pathlib import Path
+    
+    try:
+        # Decode base64
+        data = base64.b64decode(base64_data)
+        
+        # Get extension
+        ext = Path(filename).suffix.lower()
+        if ext not in ['.wav', '.mp3', '.ogg', '.flac', '.m4a']:
+            return False
+        
+        # Save directly to sounds folder
+        name = Path(filename).stem
+        dest = Path(sounds_dir) / filename
+        
+        # Handle duplicate names
+        counter = 1
+        while dest.exists():
+            dest = Path(sounds_dir) / f"{name}_{counter}{ext}"
+            counter += 1
+        
+        dest.write_bytes(data)
+        audio.load_sounds()  # Reload sounds
+        return True
+    except Exception as e:
+        print(f"Error adding sound: {e}")
+        return False
     return added > 0
 
 

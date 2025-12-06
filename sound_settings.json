@@ -1,6 +1,7 @@
 {
   "volumes": {
-    "snaptt.me-47352902": 100
+    "snaptt.me-47352902": 100,
+    "snaptt.me-6811697": 100
   },
   "keybinds": {
     "snaptt.me-47352902": "Shift + 1",
@@ -10,10 +11,15 @@
   "screamMode": {
     "snaptt.me-6811697": true,
     "snaptt.me-47352902": true,
-    "32553bac-104b-4cc2-9634-21f7b74f010c": false
+    "32553bac-104b-4cc2-9634-21f7b74f010c": false,
+    "Yb Wasg'ood, Ariis - LUNA BALA (SLOWED)": false
   },
   "pitchMode": {
-    "snaptt.me-6811697": true
+    "snaptt.me-6811697": false
+  },
+  "names": {
+    "snaptt.me-47352902": "nhạc hay 1",
+    "snaptt.me-6811697": "nhạc hay 2"
   },
   "stopAllKeybind": "CapsLock"
 }
