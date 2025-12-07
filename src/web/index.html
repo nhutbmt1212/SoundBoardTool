@@ -132,7 +132,13 @@
     <script src="js/notifications.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/progress.js"></script>
-    <script src="js/events.js"></script>
+
+    <!-- Event Modules (load before main events.js) -->
+    <script src="js/events-sound.js"></script>
+    <script src="js/events-youtube.js"></script>
+    <script src="js/events-keybind.js"></script>
+    <script src="js/events-ui.js"></script>
+    <script src="js/events.js"></script> <!-- Main orchestrator -->
     <script src="js/app.js"></script>
 </body>
 
