@@ -56,7 +56,9 @@ class YouTubeStream:
     def __init__(self, vb_manager):
         self.vb_manager = vb_manager
         self.volume = 1.0
+        self.pitch = 1.0
         self.playing = False
+        self.paused = False
         self.current_url = None
         self.current_title = None
         
@@ -102,19 +104,21 @@ class YouTubeStream:
                 return str(filepath), cached['title']
         return None, None
     
-    def _download_and_cache(self, url: str) -> tuple:
+    def _download_and_cache(self, url: str, progress_callback=None) -> tuple:
         """Tải video về cache. Return (filepath, title)"""
         cache_key = self._get_cache_key(url)
         output_template = self.cache_dir / cache_key
         
-        print(f"⬇ Downloading YouTube audio...")
-        
+        hooks = []
+        if progress_callback:
+            hooks.append(progress_callback)
+            
         ydl_opts = {
             'format': 'bestaudio[ext=m4a]/bestaudio/best',
             'outtmpl': str(output_template),  # Không thêm extension, để yt-dlp tự động
-            'quiet': False,
-            'no_warnings': False,
-            'progress_hooks': [lambda d: print(f"  {d.get('_percent_str', '')} {d.get('_speed_str', '')}") if d['status'] == 'downloading' else None],
+            'quiet': True,
+            'no_warnings': True,
+            'progress_hooks': hooks,
         }
         
         try:
@@ -131,7 +135,6 @@ class YouTubeStream:
                         break
                 
                 if not output_file:
-                    print(f"❌ Downloaded file not found!")
                     return None, None
                 
                 # Lưu vào index
@@ -142,16 +145,13 @@ class YouTubeStream:
                 }
                 self._save_cache_index()
                 
-                print(f"✓ Downloaded: {title} -> {output_file.name}")
                 return str(output_file), title
                 
         except Exception as e:
-            print(f"❌ Download failed: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"Download error: {e}")
             return None, None
     
-    def play(self, url: str) -> dict:
+    def play(self, url: str, progress_callback=None) -> dict:
         """Stream YouTube audio to VB-Cable (with persistent cache)"""
         if not YTDLP_AVAILABLE:
             return {'success': False, 'error': 'yt-dlp not installed'}
@@ -166,12 +166,10 @@ class YouTubeStream:
             cached_file, title = self._get_cached_file(url)
             
             if cached_file:
-                print(f"⚡ CACHED! Playing: {title}")
                 audio_source = cached_file
             else:
                 # Chưa có cache - tải về lần đầu
-                print(f"📥 First time - downloading...")
-                cached_file, title = self._download_and_cache(url)
+                cached_file, title = self._download_and_cache(url, progress_callback)
                 if not cached_file:
                     return {'success': False, 'error': 'Failed to download'}
                 audio_source = cached_file
@@ -179,6 +177,7 @@ class YouTubeStream:
             # Phát file đã cache
             self.current_url = url
             self.current_title = title
+            self.paused = False
             self._stop_event.clear()
             
             self._thread = threading.Thread(
@@ -189,11 +188,9 @@ class YouTubeStream:
             self._thread.start()
             self.playing = True
             
-            print(f"▶ YouTube: {title}")
             return {'success': True, 'title': title}
                 
         except Exception as e:
-            print(f"YouTube error: {e}")
             return {'success': False, 'error': str(e)}
     
     def _extract_audio_url(self, info: dict) -> str:
@@ -223,32 +220,45 @@ class YouTubeStream:
             # Kiểm tra xem là file local hay URL
             is_local_file = os.path.exists(audio_source)
             
-            # Build FFmpeg command
-            if is_local_file:
-                # File local - không cần reconnect
-                ffmpeg_cmd = [
-                    ffmpeg_exe,
-                    '-i', audio_source,
-                    '-f', 's16le',
-                    '-acodec', 'pcm_s16le',
-                    '-ar', str(samplerate),
-                    '-ac', str(channels),
-                    '-'
-                ]
-            else:
-                # URL stream - cần reconnect
-                ffmpeg_cmd = [
-                    ffmpeg_exe,
+            # Build FFmpeg command with filtering support
+            filter_complex = []
+            
+            # Volume is handled in python now, but let's keep it simple
+            # Pitch shifting
+            if abs(self.pitch - 1.0) > 0.01:
+                # asetrate method for simple resampling pitch shift (chipmunk effect)
+                # new_rate = sample_rate * pitch
+                new_rate = int(samplerate * self.pitch)
+                filter_complex.append(f"asetrate={new_rate}")
+                
+            # If we need to maintain standard sample rate output after asetrate,
+            # we might need resampling, but playing raw PCM usually dictates the rate
+            # However, VB-Cable expects specific rate. 
+            # If we change rate, we speed up/slow down.
+            # Wait, standard chipmunk is speed up.
+            
+            # Construct command
+            cmd = [ffmpeg_exe]
+            
+            if not is_local_file:
+                cmd.extend([
                     '-reconnect', '1',
                     '-reconnect_streamed', '1',
-                    '-reconnect_delay_max', '5',
-                    '-i', audio_source,
-                    '-f', 's16le',
-                    '-acodec', 'pcm_s16le',
-                    '-ar', str(samplerate),
-                    '-ac', str(channels),
-                    '-'
-                ]
+                    '-reconnect_delay_max', '5'
+                ])
+                
+            cmd.extend(['-i', audio_source])
+            
+            if filter_complex:
+                cmd.extend(['-af', ','.join(filter_complex)])
+                
+            cmd.extend([
+                '-f', 's16le',
+                '-acodec', 'pcm_s16le',
+                '-ar', str(samplerate),
+                '-ac', str(channels),
+                '-'
+            ])
             
             startupinfo = None
             if os.name == 'nt':
@@ -256,7 +266,7 @@ class YouTubeStream:
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             
             self._process = subprocess.Popen(
-                ffmpeg_cmd,
+                cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 bufsize=8192,
@@ -267,8 +277,6 @@ class YouTubeStream:
             time.sleep(0.5)
             
             if self._process.poll() is not None:
-                stderr = self._process.stderr.read().decode('utf-8', errors='ignore')
-                print(f"FFmpeg error: {stderr[:500]}")
                 return
             
             # Open streams
@@ -288,6 +296,12 @@ class YouTubeStream:
             try:
                 frame_count = 0
                 while not self._stop_event.is_set():
+                    # Handle pause
+                    if self.paused:
+                        import time
+                        time.sleep(0.1)
+                        continue
+
                     raw_data = self._process.stdout.read(blocksize * bytes_per_sample)
                     if not raw_data:
                         break
@@ -304,11 +318,6 @@ class YouTubeStream:
                             speaker_stream.write(audio_out)
                         except Exception:
                             pass
-                    
-                    frame_count += 1
-                    if frame_count == 10:
-                        level = np.abs(audio).max()
-                        print(f"YouTube streaming... (audio level: {level:.4f})")
             finally:
                 vb_stream.stop()
                 vb_stream.close()
@@ -318,13 +327,10 @@ class YouTubeStream:
                     
         except Exception as e:
             if not self._stop_event.is_set():
-                print(f"YouTube stream error: {e}")
-                import traceback
-                traceback.print_exc()
+                pass
         finally:
             self._cleanup_process()
             self.playing = False
-            print("YouTube stream ended")
     
     def _open_speaker_stream(self, samplerate, channels, blocksize):
         """Open speaker stream for monitoring"""
@@ -343,7 +349,7 @@ class YouTubeStream:
                 stream.start()
                 return stream
         except Exception as e:
-            print(f"Speaker output not available: {e}")
+            pass
         return None
     
     def _cleanup_process(self):
@@ -372,8 +378,19 @@ class YouTubeStream:
             self._thread = None
         
         self.playing = False
+        self.paused = False
         self.current_url = None
         self.current_title = None
+    
+    def pause(self):
+        """Pause playback"""
+        if self.playing:
+            self.paused = True
+            
+    def resume(self):
+        """Resume playback"""
+        if self.playing:
+            self.paused = False
     
     def is_playing(self) -> bool:
         return self.playing
@@ -382,6 +399,7 @@ class YouTubeStream:
         """Get current stream info"""
         return {
             'playing': self.playing,
+            'paused': self.paused,
             'title': self.current_title,
             'url': self.current_url
         }
@@ -389,3 +407,7 @@ class YouTubeStream:
     def set_volume(self, vol: float):
         """Set stream volume (0.0 - 2.0)"""
         self.volume = max(0.0, min(2.0, vol))
+
+    def set_pitch(self, pitch: float):
+        """Set pitch multiplier (1.0 = normal, 1.5 = chipmunk)"""
+        self.pitch = pitch

@@ -8,20 +8,38 @@
     "snaptt.me-6811697": "Shift + 3",
     "LUNABALA": "Shift + 2"
   },
+  "youtubeKeybinds": {
+    "https://www.youtube.com/watch?v=oXtHPqOfSaw": "Ctrl + Shift + 2",
+    "https://www.youtube.com/watch?v=Bf2ml3oE2JA": "Ctrl + Shift + 3",
+    "https://www.youtube.com/watch?v=jOVJBBL36c4": "Ctrl + Shift + 4",
+    "https://www.youtube.com/watch?v=KgayxOF4Y7E": "Ctrl + Shift + 1",
+    "https://www.youtube.com/watch?v=CsrsR_sC2jE": "Ctrl + Shift + 5",
+    "https://www.youtube.com/watch?v=QUwWZVWUGJc": "Ctrl + Shift + 4"
+  },
   "screamMode": {
     "snaptt.me-6811697": true,
     "snaptt.me-47352902": true,
-    "32553bac-104b-4cc2-9634-21f7b74f010c": false,
     "LUNABALA": true
   },
   "pitchMode": {
     "snaptt.me-6811697": false,
-    "LUNABALA": true,
+    "LUNABALA": false,
     "snaptt.me-47352902": true
   },
   "names": {
     "snaptt.me-47352902": "nhạc hay 1",
     "snaptt.me-6811697": "nhạc hay 2"
   },
-  "stopAllKeybind": "CapsLock"
+  "youtubeNames": {
+    "https://www.youtube.com/watch?v=oXtHPqOfSaw": "Counting Stars",
+    "https://www.youtube.com/watch?v=KgayxOF4Y7E": "PASSO BEM SOLTO"
+  },
+  "stopAllKeybind": "CapsLock",
+  "youtubeScreamMode": {
+    "https://www.youtube.com/watch?v=jOVJBBL36c4": true,
+    "https://www.youtube.com/watch?v=oXtHPqOfSaw": true
+  },
+  "youtubePitchMode": {
+    "https://www.youtube.com/watch?v=Bf2ml3oE2JA": true
+  }
 }

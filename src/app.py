@@ -52,6 +52,8 @@ audio.set_volume(config.default_volume)
 sound_volumes = {}
 sound_scream_mode = {}
 sound_pitch_mode = {}
+youtube_scream_mode = False
+youtube_pitch_mode = False
 
 # Init eel
 eel.init(WEB_DIR)
@@ -59,6 +61,11 @@ eel.init(WEB_DIR)
 
 def play_sound_global(name: str):
     """Play sound from global hotkey"""
+    # If this sound is already playing, stop it (toggle behavior)
+    if audio._current_playing_sound == name:
+        audio.stop()
+        return
+
     vol = sound_volumes.get(name, 100) / 100
     # Apply scream mode (5000% boost)
     if sound_scream_mode.get(name, False):
@@ -70,6 +77,38 @@ def play_sound_global(name: str):
     audio.play(name)
 
 
+def play_youtube_global(url: str):
+    """Play YouTube from global hotkey (Toggle Play/Pause)"""
+    # Apply per-url modes
+    vol = 1.0
+    if youtube_scream_mode.get(url, False):
+        vol = 50.0
+    
+    pitch = 1.0
+    if youtube_pitch_mode.get(url, False):
+        pitch = 1.5
+        
+    # We need to set this before playing
+    audio.set_youtube_volume(vol)
+    audio.set_youtube_pitch(pitch)
+    
+    info = audio.get_youtube_info()
+    
+    # Check if this URL is currently active
+    if info.get('url') == url:
+        if info.get('playing'):
+            if info.get('paused'):
+                audio.resume_youtube()
+            else:
+                audio.pause_youtube()
+        else:
+            # Maybe stopped or finished, restart
+            audio.play_youtube(url)
+    else:
+        # Different URL or nothing playing, start new
+        audio.play_youtube(url)
+
+
 def stop_all_global():
     """Stop all from global hotkey"""
     audio.stop()
@@ -79,18 +118,30 @@ def update_global_hotkeys():
     """Update global hotkeys from settings"""
     settings = load_sound_settings()
     keybinds = settings.get('keybinds', {})
+    youtube_keybinds = settings.get('youtubeKeybinds', {})
     stop_keybind = settings.get('stopAllKeybind', '')
     
     # Update caches
     global sound_volumes, sound_scream_mode, sound_pitch_mode
+    global youtube_scream_mode, youtube_pitch_mode
+    
     sound_volumes = settings.get('volumes', {})
     sound_scream_mode = settings.get('screamMode', {})
     sound_pitch_mode = settings.get('pitchMode', {})
+    youtube_scream_mode = settings.get('youtubeScreamMode', {})
+    youtube_pitch_mode = settings.get('youtubePitchMode', {})
+    
+    # Backward compatibility
+    if isinstance(youtube_scream_mode, bool):
+        youtube_scream_mode = {}
+    if isinstance(youtube_pitch_mode, bool):
+        youtube_pitch_mode = {}
     
     # Register hotkeys
     hm = get_hotkey_manager()
     if hm:
-        hm.update_all(keybinds, play_sound_global, stop_all_global, stop_keybind)
+        hm.update_all(keybinds, play_sound_global, stop_all_global, stop_keybind, 
+                      youtube_keybinds, play_youtube_global)
 
 
 # === API Functions ===
@@ -171,6 +222,22 @@ def is_mic_enabled():
 @eel.expose
 def play_youtube(url: str):
     """Play YouTube audio by URL"""
+    # Force pitch update from current settings before playing
+    settings = load_sound_settings()
+    pitch_mode_map = settings.get('youtubePitchMode', {})
+    # Handle backward compat if needed (though UI handles it)
+    if isinstance(pitch_mode_map, bool): pitch_mode_map = {}
+    
+    pitch = 1.5 if pitch_mode_map.get(url, False) else 1.0
+    audio.set_youtube_pitch(pitch)
+    
+    # Force scream mode update
+    scream_mode_map = settings.get('youtubeScreamMode', {})
+    if isinstance(scream_mode_map, bool): scream_mode_map = {}
+    
+    vol = 50.0 if scream_mode_map.get(url, False) else 1.0
+    audio.set_youtube_volume(vol)
+    
     return audio.play_youtube(url)
 
 
@@ -178,6 +245,18 @@ def play_youtube(url: str):
 def stop_youtube():
     """Stop YouTube streaming"""
     audio.stop_youtube()
+
+
+@eel.expose
+def pause_youtube():
+    """Pause YouTube streaming"""
+    audio.pause_youtube()
+
+
+@eel.expose
+def resume_youtube():
+    """Resume YouTube streaming"""
+    audio.resume_youtube()
 
 
 @eel.expose
@@ -211,12 +290,15 @@ def get_youtube_items():
     yt_stream = audio.youtube
     items = []
     
+    settings = load_sound_settings()
+    youtube_keybinds = settings.get('youtubeKeybinds', {})
+    
     for key, data in yt_stream._cache_index.items():
         items.append({
             'url': data['url'],
             'title': data['title'],
             'file': data['file'],
-            'keybind': ''  # TODO: Add keybind support
+            'keybind': youtube_keybinds.get(data['url'], '')
         })
     
     return items
@@ -225,7 +307,25 @@ def get_youtube_items():
 @eel.expose
 def add_youtube_item(url: str):
     """Add YouTube item (download and cache)"""
-    result = audio.play_youtube(url)
+    def on_progress(d):
+        if d['status'] == 'downloading':
+            try:
+                percent_str = d.get('_percent_str', '').strip()
+                # Remove ANSI color codes
+                import re
+                percent_str = re.sub(r'\x1b\[[0-9;]*m', '', percent_str)
+                
+                percent = 0
+                if '%' in percent_str:
+                    percent = float(percent_str.replace('%', ''))
+                
+                # Send to frontend
+                eel.onYoutubeProgress(url, percent)
+                eel.sleep(0.01) # Yield to let message send
+            except Exception:
+                pass
+
+    result = audio.play_youtube(url, on_progress)
     if result['success']:
         audio.stop_youtube()  # Stop after caching
     return result
@@ -486,6 +586,7 @@ def main():
         'size': (1100, 750),
         'close_callback': on_close,
         'port': 0,  # Auto port
+        'cmdline_args': ['--disable-extensions']
     }
     
     if browser_mode:
@@ -514,7 +615,10 @@ def main():
     except Exception as e:
         print(f"Error: {e}")
         try:
-            eel.start('index.html', size=(1100, 750), mode='default', close_callback=on_close, block=False)
+            # Use specific browser args to disable extensions
+            eel.start('index.html', size=(1100, 750), mode='default', 
+                     cmdline_args=['--disable-extensions'],
+                     close_callback=on_close, block=False)
             track_browser_process()
             while True:
                 eel.sleep(1.0)

@@ -56,10 +56,13 @@ class AudioEngine:
         self.sound_player.set_pitch(pitch)
     
     def play(self, name: str) -> bool:
+        # Enforce priority: Stop YouTube if playing
+        self.youtube.stop()
         return self.sound_player.play(name)
     
     def stop(self):
         self.sound_player.stop()
+        self.youtube.stop()
     
     def add_sound(self, filepath: str, name: str = None) -> bool:
         return self.sound_player.add_sound(filepath, name)
@@ -113,11 +116,19 @@ class AudioEngine:
     
     # === YouTube ===
     
-    def play_youtube(self, url: str) -> dict:
-        return self.youtube.play(url)
+    def play_youtube(self, url: str, progress_callback=None) -> dict:
+        # Enforce priority: Stop Sound if playing
+        self.sound_player.stop()
+        return self.youtube.play(url, progress_callback)
     
     def stop_youtube(self):
         self.youtube.stop()
+        
+    def pause_youtube(self):
+        self.youtube.pause()
+        
+    def resume_youtube(self):
+        self.youtube.resume()
     
     def is_youtube_playing(self) -> bool:
         return self.youtube.is_playing()
@@ -127,6 +138,9 @@ class AudioEngine:
     
     def set_youtube_volume(self, vol: float):
         self.youtube.set_volume(vol)
+        
+    def set_youtube_pitch(self, pitch: float):
+        self.youtube.set_pitch(pitch)
     
     # === Cleanup ===
     

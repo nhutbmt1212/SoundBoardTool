@@ -6,7 +6,6 @@ const API = {
         try {
             return await eel.get_settings()();
         } catch (e) {
-            console.log('No saved settings');
             return {};
         }
     },
@@ -84,7 +83,6 @@ const API = {
         try {
             return await eel.is_mic_enabled()();
         } catch (e) {
-            console.log('Mic status check failed');
             return false;
         }
     },
@@ -121,6 +119,22 @@ const API = {
             await eel.stop_youtube()();
         } catch (e) {
             console.error('Error stopping YouTube:', e);
+        }
+    },
+
+    async pauseYoutube() {
+        try {
+            await eel.pause_youtube()();
+        } catch (e) {
+            console.error('Error pausing YouTube:', e);
+        }
+    },
+
+    async resumeYoutube() {
+        try {
+            await eel.resume_youtube()();
+        } catch (e) {
+            console.error('Error resuming YouTube:', e);
         }
     },
 

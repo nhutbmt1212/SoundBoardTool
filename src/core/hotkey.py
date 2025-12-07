@@ -106,7 +106,8 @@ class HotkeyManager:
             self._registered.clear()
             self._hotkeys.clear()
     
-    def update_all(self, keybinds: dict, play_callback, stop_callback, stop_keybind: str = None):
+    def update_all(self, keybinds: dict, play_callback, stop_callback, stop_keybind: str = None, 
+                   youtube_keybinds: dict = None, play_youtube_callback = None):
         """Update all hotkeys at once"""
         self._ensure_init()
         if not KEYBOARD_AVAILABLE:
@@ -114,9 +115,16 @@ class HotkeyManager:
         
         self.unregister_all()
         
+        # Register sound keybinds
         for name, keybind in keybinds.items():
             if keybind:
                 self.register(keybind, lambda n=name: play_callback(n))
+        
+        # Register YouTube keybinds
+        if youtube_keybinds and play_youtube_callback:
+            for url, keybind in youtube_keybinds.items():
+                if keybind:
+                    self.register(keybind, lambda u=url: play_youtube_callback(u))
         
         if stop_keybind:
             self.register(stop_keybind, stop_callback)

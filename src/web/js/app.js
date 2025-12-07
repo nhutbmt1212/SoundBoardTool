@@ -1,6 +1,7 @@
 // Soundboard Pro - Main Entry Point
 
 document.addEventListener('DOMContentLoaded', async () => {
+    Notifications.init();
     await init();
 });
 
@@ -40,17 +41,13 @@ async function loadSoundsWithRetry() {
         const hasContent = grid && grid.children.length > 0 && !grid.querySelector('.empty-state');
 
         if (hasContent) {
-            console.log('✓ Sounds loaded successfully');
             return;
         }
 
         // Wait before retry (exponential backoff)
         if (attempt < 2) {
             const delay = 300 * (attempt + 1);
-            console.log(`Retrying sound load in ${delay}ms... (attempt ${attempt + 1}/3)`);
             await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
-
-    console.log('Sound loading completed (may be empty)');
 }

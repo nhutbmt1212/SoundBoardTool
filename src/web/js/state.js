@@ -2,11 +2,17 @@
 
 const AppState = {
     selectedSound: null,
+    selectedYoutubeItem: null,
     soundVolumes: {},
     soundKeybinds: {},
+    youtubeKeybinds: {},
     soundScreamMode: {},
     soundPitchMode: {},
+    youtubeScreamMode: {},
+    youtubePitchMode: {},
+
     soundNames: {},
+    youtubeNames: {},
     stopAllKeybind: '',
     isRecordingKeybind: false,
     isRecordingStopKeybind: false,
@@ -27,6 +33,10 @@ const AppState = {
         return this.soundKeybinds[name] || '';
     },
 
+    getYoutubeKeybind(url) {
+        return this.youtubeKeybinds[url] || '';
+    },
+
     isScreamMode(name) {
         return this.soundScreamMode[name] || false;
     },
@@ -39,6 +49,18 @@ const AppState = {
         return this.soundNames[name] || name;
     },
 
+    isYoutubeScreamMode(url) {
+        return this.youtubeScreamMode[url] || false;
+    },
+
+    isYoutubePitchMode(url) {
+        return this.youtubePitchMode[url] || false;
+    },
+
+    getYoutubeDisplayName(url, defaultTitle) {
+        return this.youtubeNames[url] || defaultTitle;
+    },
+
     // Setters
     setVolume(name, value) {
         this.soundVolumes[name] = parseInt(value);
@@ -46,6 +68,10 @@ const AppState = {
 
     setKeybind(name, keybind) {
         this.soundKeybinds[name] = keybind;
+    },
+
+    setYoutubeKeybind(url, keybind) {
+        this.youtubeKeybinds[url] = keybind;
     },
 
     setScreamMode(name, enabled) {
@@ -64,6 +90,22 @@ const AppState = {
         }
     },
 
+    setYoutubeScreamMode(url, enabled) {
+        this.youtubeScreamMode[url] = enabled;
+    },
+
+    setYoutubePitchMode(url, enabled) {
+        this.youtubePitchMode[url] = enabled;
+    },
+
+    setYoutubeDisplayName(url, displayName, originalTitle) {
+        if (displayName && displayName !== originalTitle) {
+            this.youtubeNames[url] = displayName;
+        } else {
+            delete this.youtubeNames[url];
+        }
+    },
+
     // Remove sound data
     removeSound(name) {
         delete this.soundVolumes[name];
@@ -77,10 +119,15 @@ const AppState = {
     loadFromSettings(settings) {
         this.soundVolumes = settings.volumes || {};
         this.soundKeybinds = settings.keybinds || {};
+        this.youtubeKeybinds = settings.youtubeKeybinds || {};
         this.soundScreamMode = settings.screamMode || {};
         this.soundPitchMode = settings.pitchMode || {};
         this.soundNames = settings.names || {};
+        this.youtubeNames = settings.youtubeNames || {};
         this.stopAllKeybind = settings.stopAllKeybind || '';
+        // Backwards compatibility check - if boolean, reset to empty object
+        this.youtubeScreamMode = (typeof settings.youtubeScreamMode === 'object') ? settings.youtubeScreamMode : {};
+        this.youtubePitchMode = (typeof settings.youtubePitchMode === 'object') ? settings.youtubePitchMode : {};
     },
 
     // Export to settings object
@@ -88,10 +135,14 @@ const AppState = {
         return {
             volumes: this.soundVolumes,
             keybinds: this.soundKeybinds,
+            youtubeKeybinds: this.youtubeKeybinds,
             screamMode: this.soundScreamMode,
             pitchMode: this.soundPitchMode,
             names: this.soundNames,
-            stopAllKeybind: this.stopAllKeybind
+            youtubeNames: this.youtubeNames,
+            stopAllKeybind: this.stopAllKeybind,
+            youtubeScreamMode: this.youtubeScreamMode,
+            youtubePitchMode: this.youtubePitchMode
         };
     }
 };

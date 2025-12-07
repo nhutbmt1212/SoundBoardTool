@@ -42,23 +42,6 @@
     transform: translateY(-1px);
 }
 
-.tab-icon {
-    font-size: 16px;
-    line-height: 1;
-}
-
-/* Tab Content */
-.tab-content {
-    display: none;
-    flex-direction: column;
-    height: 100%;
-    animation: fadeIn 0.3s ease;
-}
-
-.tab-content.active {
-    display: flex;
-}
-
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -69,6 +52,28 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Tab Icon */
+.tab-icon {
+    font-size: 16px;
+    line-height: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+    display: flex;
 }
 
 /* Tab Header (Internal Toolbar) */
