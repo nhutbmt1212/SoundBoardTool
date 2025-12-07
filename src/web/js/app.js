@@ -1,53 +1,87 @@
 // Soundboard Pro - Main Entry Point
 
+/**
+ * Application initialization on DOM ready
+ */
 document.addEventListener('DOMContentLoaded', async () => {
     Notifications.init();
     await init();
 });
 
+/**
+ * Initializes the application
+ * Sets up UI, loads settings, renders sounds, and starts event listeners
+ * @returns {Promise<void>}
+ */
 async function init() {
-    // Initialize UI
-    UI.initIcons();
+    try {
+        console.log('[App] Initializing Soundboard Pro...');
 
-    // Load settings
-    const settings = await API.loadSettings();
-    AppState.loadFromSettings(settings);
+        // Initialize UI components
+        UI.initIcons();
+        console.log('[App] UI icons initialized');
 
-    // Render sounds with retry (backend may not be ready immediately)
-    await loadSoundsWithRetry();
+        // Load and apply settings
+        const settings = await API.loadSettings();
+        AppState.loadFromSettings(settings);
+        console.log('[App] Settings loaded');
 
-    // Update UI
-    UI.updateStopKeybindUI();
+        // Render sounds with retry mechanism
+        await loadSoundsWithRetry();
+        console.log('[App] Sounds loaded');
 
-    // Setup event listeners
-    document.addEventListener('keydown', (e) => EventHandlers.handleKeyDown(e));
-    EventHandlers.setupDragDrop();
+        // Update UI with loaded state
+        UI.updateStopKeybindUI();
 
-    // Initialize mic status
-    AppState.micEnabled = await API.isMicEnabled();
-    UI.updateMicUI();
+        // Setup global event listeners
+        document.addEventListener('keydown', (e) => EventHandlers.handleKeyDown(e));
+        EventHandlers.setupDragDrop();
+        console.log('[App] Event listeners registered');
 
-    // Start playing check
-    EventHandlers.startPlayingCheck();
+        // Initialize microphone status
+        AppState.micEnabled = await API.isMicEnabled();
+        UI.updateMicUI();
+        console.log('[App] Microphone status initialized');
+
+        // Start periodic playback state checks
+        EventHandlers.startPlayingCheck();
+        console.log('[App] Playback monitoring started');
+
+        console.log('[App] Initialization complete');
+    } catch (error) {
+        console.error('[App] Initialization failed:', error);
+        Notifications.error('Failed to initialize application. Please refresh the page.');
+    }
 }
 
+/**
+ * Loads sounds with retry mechanism
+ * Attempts to load sounds up to 3 times with exponential backoff
+ * Handles cases where backend may not be ready immediately
+ * @returns {Promise<void>}
+ */
 async function loadSoundsWithRetry() {
-    // Try to load sounds, retry if empty
-    for (let attempt = 0; attempt < 3; attempt++) {
+    const MAX_ATTEMPTS = 3;
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
         await EventHandlers.refreshSounds();
 
-        // Check if sounds were loaded
+        // Check if sounds were successfully loaded
         const grid = document.getElementById('sounds-grid');
         const hasContent = grid && grid.children.length > 0 && !grid.querySelector('.empty-state');
 
         if (hasContent) {
+            console.log(`[App] Sounds loaded successfully on attempt ${attempt + 1}`);
             return;
         }
 
-        // Wait before retry (exponential backoff)
-        if (attempt < 2) {
+        // Wait before retry with exponential backoff
+        if (attempt < MAX_ATTEMPTS - 1) {
             const delay = 300 * (attempt + 1);
+            console.log(`[App] No sounds found, retrying in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
+
+    console.log('[App] No sounds found after retries (this is normal for first run)');
 }

@@ -1,22 +1,16 @@
 """Configuration management"""
 import json
-import sys
-import os
 from pathlib import Path
+from .config_paths import get_config_path, get_sounds_dir
 
-# Get base directory (works for both dev and frozen exe)
-if getattr(sys, 'frozen', False):
-    BASE_DIR = Path(os.path.dirname(sys.executable))
-else:
-    BASE_DIR = Path(__file__).parent.parent.parent
-
-CONFIG_FILE = BASE_DIR / "soundboard_config.json"
-SETTINGS_FILE = BASE_DIR / "sound_settings.json"
+# Use AppData for config files
+CONFIG_FILE = Path(get_config_path("soundboard_config.json"))
+SETTINGS_FILE = Path(get_config_path("sound_settings.json"))
 
 
 class Config:
     def __init__(self):
-        self.sounds_dir = str(BASE_DIR / "sounds")
+        self.sounds_dir = get_sounds_dir()
         self.default_volume = 0.7
         self._load()
     
@@ -57,3 +51,4 @@ def save_sound_settings(settings: dict):
         )
     except Exception:
         pass
+

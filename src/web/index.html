@@ -83,7 +83,7 @@
                         <span class="mic-icon" id="mic-icon"></span>
                         <span class="mic-text" id="mic-text">Mic OFF</span>
                     </button>
-                    <input type="range" class="mic-volume" id="mic-volume" min="0" max="200" value="100"
+                    <input type="range" class="mic-volume" id="mic-volume" min="0" max="300" value="100"
                         oninput="onMicVolumeChange(this.value)" title="Mic Volume">
                 </div>
 
@@ -132,7 +132,13 @@
     <script src="js/notifications.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/progress.js"></script>
-    <script src="js/events.js"></script>
+
+    <!-- Event Modules (load before main events.js) -->
+    <script src="js/events-sound.js"></script>
+    <script src="js/events-youtube.js"></script>
+    <script src="js/events-keybind.js"></script>
+    <script src="js/events-ui.js"></script>
+    <script src="js/events.js"></script> <!-- Main orchestrator -->
     <script src="js/app.js"></script>
 </body>
 
