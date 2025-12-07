@@ -1,193 +1,311 @@
 // API Layer - Eel Communication for Soundboard Pro
 
 const API = {
-    // Settings
+    /**
+     * Internal error handling wrapper for API calls
+     * @private
+     * @param {Function} apiCall - The async API function to execute
+     * @param {*} defaultValue - Default value to return on error
+     * @param {string} operationName - Name of the operation for logging
+     * @param {boolean} shouldThrow - Whether to rethrow the error
+     * @returns {Promise<*>} Result of API call or default value
+     */
+    async _handleApiCall(apiCall, defaultValue, operationName, shouldThrow = false) {
+        try {
+            return await apiCall();
+        } catch (error) {
+            console.error(`[API Error] ${operationName}:`, error);
+            if (shouldThrow) throw error;
+            return defaultValue;
+        }
+    },
+
+    // ==================== Settings ====================
+
+    /**
+     * Loads application settings from backend
+     * @returns {Promise<Object>} Settings object or empty object if failed
+     */
     async loadSettings() {
-        try {
-            return await eel.get_settings()();
-        } catch (e) {
-            return {};
-        }
+        return this._handleApiCall(
+            () => eel.get_settings()(),
+            {},
+            'loadSettings'
+        );
     },
 
+    /**
+     * Saves application settings to backend
+     * @param {Object} settings - Settings object to save
+     * @returns {Promise<void>}
+     */
     async saveSettings(settings) {
-        try {
-            await eel.save_settings(settings)();
-        } catch (e) {
-            console.error('Error saving settings:', e);
-        }
+        return this._handleApiCall(
+            () => eel.save_settings(settings)(),
+            undefined,
+            'saveSettings'
+        );
     },
 
-    // Sounds
+    // ==================== Sounds ====================
+
+    /**
+     * Retrieves list of available sounds
+     * @returns {Promise<Array<string>>} Array of sound names
+     */
     async getSounds() {
-        try {
-            return await eel.get_sounds()();
-        } catch (e) {
-            console.error('Error getting sounds:', e);
-            return [];
-        }
+        return this._handleApiCall(
+            () => eel.get_sounds()(),
+            [],
+            'getSounds'
+        );
     },
 
+    /**
+     * Plays a sound with specified volume and pitch
+     * @param {string} name - Name of the sound to play
+     * @param {number} volume - Volume level (0.0 to 1.0)
+     * @param {number} pitch - Pitch multiplier (1.0 = normal)
+     * @returns {Promise<void>}
+     */
     async playSound(name, volume, pitch) {
-        try {
-            await eel.play_sound(name, volume, pitch)();
-        } catch (e) {
-            console.error('Error playing sound:', e);
-        }
+        return this._handleApiCall(
+            () => eel.play_sound(name, volume, pitch)(),
+            undefined,
+            `playSound(${name})`
+        );
     },
 
+    /**
+     * Stops all currently playing sounds
+     * @returns {Promise<void>}
+     */
     async stopAll() {
-        try {
-            await eel.stop_all()();
-        } catch (e) {
-            console.error('Error stopping sounds:', e);
-        }
+        return this._handleApiCall(
+            () => eel.stop_all()(),
+            undefined,
+            'stopAll'
+        );
     },
 
+    /**
+     * Gets the name of currently playing sound
+     * @returns {Promise<string|null>} Sound name or null if nothing playing
+     */
     async getPlayingSound() {
-        try {
-            return await eel.get_playing_sound()();
-        } catch (e) {
-            return null;
-        }
+        return this._handleApiCall(
+            () => eel.get_playing_sound()(),
+            null,
+            'getPlayingSound'
+        );
     },
 
+    /**
+     * Opens file dialog to add a new sound
+     * @returns {Promise<boolean>} True if sound was added successfully
+     */
     async addSoundDialog() {
-        try {
-            return await eel.add_sound_dialog()();
-        } catch (e) {
-            console.error('Error adding sound:', e);
-            return false;
-        }
+        return this._handleApiCall(
+            () => eel.add_sound_dialog()(),
+            false,
+            'addSoundDialog'
+        );
     },
 
+    /**
+     * Adds a sound from base64 encoded data
+     * @param {string} filename - Name of the sound file
+     * @param {string} base64 - Base64 encoded audio data
+     * @returns {Promise<boolean>} True if sound was added successfully
+     */
     async addSoundBase64(filename, base64) {
-        try {
-            return await eel.add_sound_base64(filename, base64)();
-        } catch (e) {
-            console.error('Error adding sound:', e);
-            return false;
-        }
+        return this._handleApiCall(
+            () => eel.add_sound_base64(filename, base64)(),
+            false,
+            `addSoundBase64(${filename})`
+        );
     },
 
+    /**
+     * Deletes a sound from the library
+     * @param {string} name - Name of the sound to delete
+     * @returns {Promise<void>}
+     */
     async deleteSound(name) {
-        try {
-            await eel.delete_sound(name)();
-        } catch (e) {
-            console.error('Error deleting sound:', e);
-        }
+        return this._handleApiCall(
+            () => eel.delete_sound(name)(),
+            undefined,
+            `deleteSound(${name})`
+        );
     },
 
-    // Microphone
+    // ==================== Microphone ====================
+
+    /**
+     * Checks if microphone passthrough is enabled
+     * @returns {Promise<boolean>} True if mic is enabled
+     */
     async isMicEnabled() {
-        try {
-            return await eel.is_mic_enabled()();
-        } catch (e) {
-            return false;
-        }
+        return this._handleApiCall(
+            () => eel.is_mic_enabled()(),
+            false,
+            'isMicEnabled'
+        );
     },
 
+    /**
+     * Toggles microphone passthrough on/off
+     * @param {boolean} enabled - True to enable, false to disable
+     * @returns {Promise<void>}
+     * @throws {Error} Rethrows error for UI handling
+     */
     async toggleMicPassthrough(enabled) {
-        try {
-            await eel.toggle_mic_passthrough(enabled)();
-        } catch (e) {
-            console.error('Error toggling mic:', e);
-            throw e;
-        }
+        return this._handleApiCall(
+            () => eel.toggle_mic_passthrough(enabled)(),
+            undefined,
+            `toggleMicPassthrough(${enabled})`,
+            true // Rethrow error for UI to handle
+        );
     },
 
+    /**
+     * Sets microphone volume level
+     * @param {number} volume - Volume level (0.0 to 1.0)
+     * @returns {Promise<void>}
+     */
     async setMicVolume(volume) {
-        try {
-            await eel.set_mic_volume(volume)();
-        } catch (e) {
-            console.error('Error setting mic volume:', e);
-        }
+        return this._handleApiCall(
+            () => eel.set_mic_volume(volume)(),
+            undefined,
+            `setMicVolume(${volume})`
+        );
     },
 
-    // YouTube
+    // ==================== YouTube ====================
+
+    /**
+     * Plays a YouTube video by URL
+     * @param {string} url - YouTube video URL
+     * @returns {Promise<Object>} Result object with success status and title/error
+     */
     async playYoutube(url) {
-        try {
-            return await eel.play_youtube(url)();
-        } catch (e) {
-            console.error('YouTube error:', e);
-            return { success: false, error: e.toString() };
-        }
+        return this._handleApiCall(
+            () => eel.play_youtube(url)(),
+            { success: false, error: 'Failed to connect to backend' },
+            `playYoutube(${url})`
+        );
     },
 
+    /**
+     * Stops currently playing YouTube video
+     * @returns {Promise<void>}
+     */
     async stopYoutube() {
-        try {
-            await eel.stop_youtube()();
-        } catch (e) {
-            console.error('Error stopping YouTube:', e);
-        }
+        return this._handleApiCall(
+            () => eel.stop_youtube()(),
+            undefined,
+            'stopYoutube'
+        );
     },
 
+    /**
+     * Pauses currently playing YouTube video
+     * @returns {Promise<void>}
+     */
     async pauseYoutube() {
-        try {
-            await eel.pause_youtube()();
-        } catch (e) {
-            console.error('Error pausing YouTube:', e);
-        }
+        return this._handleApiCall(
+            () => eel.pause_youtube()(),
+            undefined,
+            'pauseYoutube'
+        );
     },
 
+    /**
+     * Resumes paused YouTube video
+     * @returns {Promise<void>}
+     */
     async resumeYoutube() {
-        try {
-            await eel.resume_youtube()();
-        } catch (e) {
-            console.error('Error resuming YouTube:', e);
-        }
+        return this._handleApiCall(
+            () => eel.resume_youtube()(),
+            undefined,
+            'resumeYoutube'
+        );
     },
 
+    /**
+     * Gets current YouTube playback information
+     * @returns {Promise<Object>} Info object with playing status, title, url, and paused state
+     */
     async getYoutubeInfo() {
-        try {
-            return await eel.get_youtube_info()();
-        } catch (e) {
-            return { playing: false };
-        }
+        return this._handleApiCall(
+            () => eel.get_youtube_info()(),
+            { playing: false },
+            'getYoutubeInfo'
+        );
     },
 
+    /**
+     * Sets YouTube playback volume
+     * @param {number} volume - Volume level (0.0 to 1.0)
+     * @returns {Promise<void>}
+     */
     async setYoutubeVolume(volume) {
-        try {
-            await eel.set_youtube_volume(volume)();
-        } catch (e) {
-            console.error('Error setting YouTube volume:', e);
-        }
+        return this._handleApiCall(
+            () => eel.set_youtube_volume(volume)(),
+            undefined,
+            `setYoutubeVolume(${volume})`
+        );
     },
 
+    /**
+     * Downloads and saves YouTube video as a sound file
+     * @param {string} url - YouTube video URL
+     * @returns {Promise<Object>} Result object with success status and name/error
+     */
     async saveYoutubeAsSound(url) {
-        try {
-            return await eel.save_youtube_as_sound(url)();
-        } catch (e) {
-            console.error('Error saving YouTube as sound:', e);
-            return { success: false, error: e.toString() };
-        }
+        return this._handleApiCall(
+            () => eel.save_youtube_as_sound(url)(),
+            { success: false, error: 'Failed to save' },
+            `saveYoutubeAsSound(${url})`
+        );
     },
 
+    /**
+     * Retrieves list of saved YouTube items
+     * @returns {Promise<Array<Object>>} Array of YouTube item objects
+     */
     async getYoutubeItems() {
-        try {
-            return await eel.get_youtube_items()();
-        } catch (e) {
-            console.error('Error getting YouTube items:', e);
-            return [];
-        }
+        return this._handleApiCall(
+            () => eel.get_youtube_items()(),
+            [],
+            'getYoutubeItems'
+        );
     },
 
+    /**
+     * Adds a new YouTube item to the library
+     * @param {string} url - YouTube video URL
+     * @returns {Promise<Object>} Result object with success status and title/error
+     */
     async addYoutubeItem(url) {
-        try {
-            return await eel.add_youtube_item(url)();
-        } catch (e) {
-            console.error('Error adding YouTube item:', e);
-            return { success: false, error: e.toString() };
-        }
+        return this._handleApiCall(
+            () => eel.add_youtube_item(url)(),
+            { success: false, error: 'Failed to add item' },
+            `addYoutubeItem(${url})`
+        );
     },
 
+    /**
+     * Deletes a YouTube item from the library
+     * @param {string} url - YouTube video URL
+     * @returns {Promise<Object>} Result object with success status
+     */
     async deleteYoutubeItem(url) {
-        try {
-            return await eel.delete_youtube_item(url)();
-        } catch (e) {
-            console.error('Error deleting YouTube item:', e);
-            return { success: false, error: e.toString() };
-        }
+        return this._handleApiCall(
+            () => eel.delete_youtube_item(url)(),
+            { success: false, error: 'Failed to delete item' },
+            `deleteYoutubeItem(${url})`
+        );
     }
 };
 
