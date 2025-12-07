@@ -5,6 +5,7 @@ const AppState = {
     selectedYoutubeItem: null,
     soundVolumes: {},
     soundKeybinds: {},
+    youtubeKeybinds: {},
     soundScreamMode: {},
     soundPitchMode: {},
     soundNames: {},
@@ -28,6 +29,10 @@ const AppState = {
         return this.soundKeybinds[name] || '';
     },
 
+    getYoutubeKeybind(url) {
+        return this.youtubeKeybinds[url] || '';
+    },
+
     isScreamMode(name) {
         return this.soundScreamMode[name] || false;
     },
@@ -47,6 +52,10 @@ const AppState = {
 
     setKeybind(name, keybind) {
         this.soundKeybinds[name] = keybind;
+    },
+
+    setYoutubeKeybind(url, keybind) {
+        this.youtubeKeybinds[url] = keybind;
     },
 
     setScreamMode(name, enabled) {
@@ -78,6 +87,7 @@ const AppState = {
     loadFromSettings(settings) {
         this.soundVolumes = settings.volumes || {};
         this.soundKeybinds = settings.keybinds || {};
+        this.youtubeKeybinds = settings.youtubeKeybinds || {};
         this.soundScreamMode = settings.screamMode || {};
         this.soundPitchMode = settings.pitchMode || {};
         this.soundNames = settings.names || {};
@@ -89,6 +99,7 @@ const AppState = {
         return {
             volumes: this.soundVolumes,
             keybinds: this.soundKeybinds,
+            youtubeKeybinds: this.youtubeKeybinds,
             screamMode: this.soundScreamMode,
             pitchMode: this.soundPitchMode,
             names: this.soundNames,

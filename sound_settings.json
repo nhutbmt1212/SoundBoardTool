@@ -6,13 +6,17 @@
   "keybinds": {
     "snaptt.me-47352902": "Shift + 1",
     "snaptt.me-6811697": "Shift + 3",
-    "LUNABALA": "Shift + 2",
-    "32553bac-104b-4cc2-9634-21f7b74f010c": "Shift + 0"
+    "LUNABALA": "Shift + 2"
+  },
+  "youtubeKeybinds": {
+    "https://www.youtube.com/watch?v=oXtHPqOfSaw": "Shift + U",
+    "https://www.youtube.com/watch?v=Bf2ml3oE2JA": "Shift + D",
+    "https://www.youtube.com/watch?v=jOVJBBL36c4": "Shift + I",
+    "https://www.youtube.com/watch?v=KgayxOF4Y7E": "Shift + M"
   },
   "screamMode": {
     "snaptt.me-6811697": true,
     "snaptt.me-47352902": true,
-    "32553bac-104b-4cc2-9634-21f7b74f010c": false,
     "LUNABALA": true
   },
   "pitchMode": {

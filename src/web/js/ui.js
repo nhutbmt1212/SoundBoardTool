@@ -259,6 +259,15 @@ const UI = {
             </div>
             
             <div class="panel-section">
+                <div class="panel-section-title">${icon('keyboard', 16)} Keybind</div>
+                <input type="text" class="keybind-input" id="yt-keybind-input" 
+                       value="${AppState.getYoutubeKeybind(item.url)}" 
+                       placeholder="Click to set keybind"
+                       readonly
+                       onclick="EventHandlers.startYoutubeKeybindRecording()">
+            </div>
+            
+            <div class="panel-section">
                 <div class="panel-section-title">${icon('volume', 16)} Global YouTube Volume</div>
                 <div class="volume-control">
                     <input type="range" class="volume-slider" id="youtube-volume" 
@@ -307,29 +316,11 @@ const UI = {
 
     // Render single YouTube item
     renderYoutubeItem(item, info) {
-        const keybind = item.keybind || '';
+        // Use AppState as source of truth for keybinds
+        const keybind = AppState.getYoutubeKeybind(item.url) || item.keybind || '';
         const isCurrentUrl = info && info.url === item.url;
         const isPlaying = isCurrentUrl && info.playing;
         const isPaused = isCurrentUrl && info.paused;
-
-        // Determine button state
-        let actionBtn;
-        if (isPlaying && !isPaused) {
-            // Playing -> Show Pause
-            actionBtn = `
-                <button class="btn-yt-action pause" onclick="event.stopPropagation(); pauseYoutubeItem('${Utils.escapeAttr(item.url)}')" title="Pause">
-                    ${icon('pause', 12)}
-                </button>
-            `;
-        } else {
-            // Paused or Stopped -> Show Play
-            // If Paused, Play will Resume
-            actionBtn = `
-                <button class="btn-yt-action play" onclick="event.stopPropagation(); playYoutubeItem('${Utils.escapeAttr(item.url)}')" title="${isPaused ? 'Resume' : 'Play'}">
-                    ${icon('play', 12)}
-                </button>
-            `;
-        }
 
         return `
             <div class="sound-card youtube-item ${isPlaying ? 'playing' : ''} ${isPaused ? 'paused' : ''}" data-url="${item.url}">
@@ -340,11 +331,8 @@ const UI = {
                 </div>
                 <div class="sound-name" title="${Utils.escapeAttr(item.title)}">${Utils.escapeHtml(item.title)}</div>
                 
-                <div class="youtube-actions">
-                    ${actionBtn}
-                    <button class="btn-yt-action delete" onclick="event.stopPropagation(); deleteYoutubeItem('${Utils.escapeAttr(item.url)}')" title="Delete">
-                        ${icon('trash', 12)}
-                    </button>
+                <div class="sound-keybind ${keybind ? 'has-bind' : ''}">
+                    ${keybind || 'Add keybind'}
                 </div>
             </div>
         `;

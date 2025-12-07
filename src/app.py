@@ -70,6 +70,11 @@ def play_sound_global(name: str):
     audio.play(name)
 
 
+def play_youtube_global(url: str):
+    """Play YouTube from global hotkey"""
+    audio.play_youtube(url)
+
+
 def stop_all_global():
     """Stop all from global hotkey"""
     audio.stop()
@@ -79,6 +84,7 @@ def update_global_hotkeys():
     """Update global hotkeys from settings"""
     settings = load_sound_settings()
     keybinds = settings.get('keybinds', {})
+    youtube_keybinds = settings.get('youtubeKeybinds', {})
     stop_keybind = settings.get('stopAllKeybind', '')
     
     # Update caches
@@ -90,7 +96,8 @@ def update_global_hotkeys():
     # Register hotkeys
     hm = get_hotkey_manager()
     if hm:
-        hm.update_all(keybinds, play_sound_global, stop_all_global, stop_keybind)
+        hm.update_all(keybinds, play_sound_global, stop_all_global, stop_keybind, 
+                      youtube_keybinds, play_youtube_global)
 
 
 # === API Functions ===
@@ -223,12 +230,15 @@ def get_youtube_items():
     yt_stream = audio.youtube
     items = []
     
+    settings = load_sound_settings()
+    youtube_keybinds = settings.get('youtubeKeybinds', {})
+    
     for key, data in yt_stream._cache_index.items():
         items.append({
             'url': data['url'],
             'title': data['title'],
             'file': data['file'],
-            'keybind': ''  # TODO: Add keybind support
+            'keybind': youtube_keybinds.get(data['url'], '')
         })
     
     return items

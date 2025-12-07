@@ -377,20 +377,32 @@ const EventHandlers = {
         const grid = document.getElementById('youtube-grid');
 
         // Single click - select
-        grid.onclick = (e) => {
+        // Single click - select
+        grid.addEventListener('click', (e) => {
             const card = e.target.closest('.youtube-item');
             if (!card) return;
-
-            // Ignore if clicking action buttons
-            if (e.target.closest('.youtube-actions') || e.target.closest('.btn-yt-action')) return;
 
             const url = card.dataset.url;
             // Find item object
             const item = items.find(i => i.url === url);
             if (item) {
+                if (e.target.closest('.sound-keybind')) {
+                    e.stopPropagation();
+                    this.selectYoutubeItem(item);
+                    this.startYoutubeKeybindRecording();
+                    return;
+                }
                 this.selectYoutubeItem(item);
             }
-        };
+        });
+
+        // Double click - play
+        grid.addEventListener('dblclick', (e) => {
+            const card = e.target.closest('.youtube-item');
+            if (!card) return;
+            const url = card.dataset.url;
+            this.playYoutubeItem(url);
+        });
     },
 
     selectYoutubeItem(item) {
@@ -497,19 +509,130 @@ const EventHandlers = {
             if (AppState.forceStopped) {
                 return;
             }
+
+            // Check Sound playback
             const playingSound = await API.getPlayingSound();
-            // Double check flag after async call
-            if (AppState.forceStopped) {
-                return;
+            if (!AppState.forceStopped) {
+                if (!playingSound) {
+                    AppState.currentPlayingSound = null;
+                }
+                UI.updatePlayingState(playingSound);
             }
 
-            // Update current playing sound state
-            if (!playingSound) {
-                AppState.currentPlayingSound = null;
+            // Check YouTube playback - do this every tick or every few ticks?
+            // Doing it every 100ms might be okay, let's try.
+            try {
+                const ytInfo = await API.getYoutubeInfo();
+
+                // Only update if state changed significantly to avoid redraws?
+                // For now, simple update
+                if (ytInfo.playing) {
+                    UI.updateYoutubeUI(true, ytInfo.title);
+                    // Also update grid if needed
+                    // We need to optimize this to not re-render grid constantly
+                    // But we can update classes on existing elements
+                    document.querySelectorAll('.youtube-item').forEach(card => {
+                        const isCardUrl = card.dataset.url === ytInfo.url;
+                        const isPaused = ytInfo.paused;
+
+                        if (isCardUrl) {
+                            card.classList.add('playing');
+                            card.classList.toggle('paused', isPaused);
+                            // Update indicator
+                            const thumb = card.querySelector('.youtube-thumbnail');
+                            let indicator = thumb.querySelector('.playing-indicator');
+                            if (!indicator) {
+                                indicator = document.createElement('div');
+                                indicator.className = 'playing-indicator';
+                                thumb.appendChild(indicator);
+                            }
+                            indicator.textContent = isPaused ? '⏸' : '▶';
+                        } else {
+                            card.classList.remove('playing', 'paused');
+                            const indicator = card.querySelector('.playing-indicator');
+                            if (indicator) indicator.remove();
+                        }
+                    });
+                } else {
+                    UI.updateYoutubeUI(false);
+                    // Clear grid indicators
+                    document.querySelectorAll('.youtube-item').forEach(card => {
+                        card.classList.remove('playing', 'paused');
+                        const indicator = card.querySelector('.playing-indicator');
+                        if (indicator) indicator.remove();
+                    });
+                }
+            } catch (e) {
+                // Ignore errors
             }
 
-            UI.updatePlayingState(playingSound);
-        }, 100);
+        }, 200); // Increased interval to 200ms to reduce load with double check
+    },
+
+    // --- YouTube Keybind ---
+
+    startYoutubeKeybindRecording() {
+        const item = AppState.selectedYoutubeItem;
+        if (!item) return;
+
+        const input = document.getElementById('yt-keybind-input');
+        if (!input) return;
+
+        input.value = 'Press any key...';
+        input.classList.add('recording');
+
+        const handler = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Ignore pure modifier keys
+            if (Utils.isModifierKey(e.code)) return;
+
+            let key = e.key;
+            if (key === 'Escape') {
+                this.saveYoutubeKeybind(item.url, '');
+            } else {
+                const keybind = Utils.buildKeybindString(e);
+                this.saveYoutubeKeybind(item.url, keybind);
+            }
+
+            document.removeEventListener('keydown', handler);
+            input.classList.remove('recording');
+        };
+
+        document.addEventListener('keydown', handler);
+
+        // Remove handler if clicking outside
+        const clickHandler = (e) => {
+            if (e.target !== input) {
+                document.removeEventListener('keydown', handler);
+                document.removeEventListener('click', clickHandler);
+                input.classList.remove('recording');
+                input.value = AppState.getYoutubeKeybind(item.url);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', clickHandler), 100);
+    },
+
+    async saveYoutubeKeybind(url, keybind) {
+        AppState.setYoutubeKeybind(url, keybind);
+        await API.saveSettings(AppState.toSettings());
+
+        // Update Panel UI
+        const input = document.getElementById('yt-keybind-input');
+        if (input) input.value = keybind;
+
+        // Update Grid UI (Immediate)
+        const cards = document.querySelectorAll('.youtube-item');
+        for (const card of cards) {
+            if (card.dataset.url === url) {
+                const kbEl = card.querySelector('.sound-keybind');
+                if (kbEl) {
+                    kbEl.textContent = keybind || 'Add keybind';
+                    kbEl.classList.toggle('has-bind', !!keybind);
+                }
+            }
+        }
     }
 };
 
@@ -550,3 +673,5 @@ window.playYoutubeItem = (url) => EventHandlers.playYoutubeItem(url);
 window.pauseYoutubeItem = (url) => EventHandlers.pauseYoutubeItem(url);
 window.deleteYoutubeItem = (url) => EventHandlers.deleteYoutubeItem(url);
 window.bindYoutubeKey = (url) => EventHandlers.bindYoutubeKey(url);
+window.startYoutubeKeybindRecording = () => EventHandlers.startYoutubeKeybindRecording();
+window.saveYoutubeKeybind = (url, keybind) => EventHandlers.saveYoutubeKeybind(url, keybind);
