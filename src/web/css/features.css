@@ -1,331 +1,128 @@
 /* Feature-specific Styles: Mic, YouTube, Drag & Drop */
 
-/* Mic Passthrough Control */
-.mic-control {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
-}
+/* Mic Passthrough Control - Redesigned to fit in bottom bar better */
+/* (Styles are mostly handled in components.css now, but specific layout here) */
 
-.btn-mic {
-    background: linear-gradient(135deg, #333 0%, #222 100%);
-    border: 2px solid #444;
-    border-radius: 12px;
-    padding: 10px 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s;
-    color: #888;
-}
-
-.btn-mic:hover {
-    border-color: #00d9ff;
-    color: #00d9ff;
-}
-
-.btn-mic.active {
-    background: linear-gradient(135deg, #00d9ff 0%, #0099cc 100%);
-    border-color: #00d9ff;
-    color: white;
-    box-shadow: 0 0 15px rgba(0, 217, 255, 0.4);
-}
-
-.btn-mic .mic-icon {
-    font-size: 18px;
-}
-
-.btn-mic .mic-text {
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.mic-volume {
-    width: 80px;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: #333;
-    border-radius: 3px;
-    outline: none;
-}
-
-.mic-volume::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 14px;
-    height: 14px;
-    background: #00d9ff;
-    border-radius: 50%;
-    cursor: pointer;
-}
-
-/* YouTube Streaming Section - Redesigned */
+/* YouTube Streaming Section */
 .youtube-section {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    border-radius: 16px;
-    padding: 20px;
-    margin: 0 20px 15px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin: 0 var(--spacing-xl) var(--spacing-md);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-light);
 }
 
 .youtube-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .youtube-icon {
     font-size: 24px;
+    color: #ff0000;
 }
 
 .youtube-title {
     font-size: 16px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-main);
     flex: 1;
-}
-
-.youtube-cache-badge {
-    background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
-    color: #000;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    animation: pulse-badge 2s ease-in-out infinite;
-}
-
-@keyframes pulse-badge {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.8; transform: scale(0.98); }
-}
-
-.youtube-input-container {
-    margin-bottom: 16px;
 }
 
 .youtube-url-input {
     width: 100%;
-    background: rgba(0, 0, 0, 0.4);
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 14px 16px;
-    color: white;
+    background: var(--bg-app);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    color: var(--text-main);
     font-size: 14px;
-    transition: all 0.3s ease;
-    margin-bottom: 12px;
+    transition: var(--transition-fast);
+    margin-bottom: var(--spacing-md);
     outline: none;
-    box-sizing: border-box;
 }
 
 .youtube-url-input:focus {
     border-color: #ff0000;
-    box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
-    background: rgba(0, 0, 0, 0.5);
-}
-
-.youtube-url-input::placeholder {
-    color: #666;
+    box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.1);
 }
 
 .youtube-controls {
     display: flex;
-    gap: 12px;
-}
-
-.btn-youtube-play, .btn-youtube-stop {
-    flex: 1;
-    height: 48px;
-    border: none;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    gap: var(--spacing-md);
 }
 
 .btn-youtube-play {
-    background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+    background: #ff0000;
     color: white;
-    box-shadow: 0 4px 12px rgba(255, 0, 0, 0.3);
+    flex: 1;
+    height: 44px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 14px;
 }
 
 .btn-youtube-play:hover {
-    box-shadow: 0 6px 20px rgba(255, 0, 0, 0.5);
-    transform: translateY(-2px);
-}
-
-.btn-youtube-play:active {
-    transform: translateY(0);
-}
-
-.btn-youtube-play:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
+    background: #cc0000;
+    transform: translateY(-1px);
 }
 
 .btn-youtube-stop {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--bg-card-hover);
+    color: var(--text-main);
+    padding: 0 20px;
+    border-radius: var(--radius-md);
+    font-weight: 500;
 }
 
 .btn-youtube-stop:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
-}
-
-.btn-icon {
-    font-size: 16px;
-}
-
-.btn-text {
-    font-size: 13px;
-}
-
-.youtube-status {
-    margin-bottom: 16px;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .youtube-info {
     font-size: 13px;
-    color: #888;
-    padding: 12px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    min-height: 20px;
+    color: var(--text-muted);
+    padding: var(--spacing-md);
+    background: var(--bg-app);
+    border-radius: var(--radius-md);
+    margin-top: var(--spacing-md);
     display: flex;
     align-items: center;
-    gap: 8px;
-}
-
-.youtube-info.loading {
-    color: #ffaa00;
-    border-left: 3px solid #ffaa00;
+    gap: var(--spacing-sm);
+    min-height: 48px;
 }
 
 .youtube-info.playing {
-    color: #00ff88;
-    border-left: 3px solid #00ff88;
+    color: var(--secondary);
+    border-left: 2px solid var(--secondary);
 }
 
 .youtube-info.error {
-    color: #ff6b6b;
-    border-left: 3px solid #ff6b6b;
+    color: var(--danger);
+    border-left: 2px solid var(--danger);
 }
 
-.youtube-progress {
-    margin-top: 12px;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    overflow: hidden;
-    margin-bottom: 6px;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #ff0000 0%, #ff6b6b 100%);
-    width: 0%;
-    transition: width 0.3s ease;
-    animation: progress-shimmer 1.5s ease-in-out infinite;
-}
-
-@keyframes progress-shimmer {
-    0% { opacity: 0.6; }
-    50% { opacity: 1; }
-    100% { opacity: 0.6; }
-}
-
-.progress-text {
-    font-size: 11px;
-    color: #888;
-}
-
-.youtube-volume-container {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-}
-
-.volume-icon {
-    font-size: 18px;
-}
-
-.youtube-volume {
-    flex: 1;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    outline: none;
-    cursor: pointer;
-}
-
-.youtube-volume::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    background: #ff0000;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.youtube-volume::-webkit-slider-thumb:hover {
-    transform: scale(1.2);
-    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
-}
-
-.volume-value {
-    font-size: 12px;
-    color: #888;
-    min-width: 40px;
-    text-align: right;
-    font-weight: 600;
-}
-
-/* Drag & Drop */
-.app.drag-over {
-    position: relative;
-}
-
+/* Drag & Drop Overlay */
 .app.drag-over::after {
-    content: '🎵 Drop audio files here';
+    content: 'Drop audio files to add';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 217, 255, 0.15);
-    border: 3px dashed #00d9ff;
-    border-radius: 12px;
+    inset: 20px;
+    background: rgba(15, 16, 20, 0.95);
+    border: 2px dashed var(--primary);
+    border-radius: var(--radius-lg);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 24px;
-    font-weight: bold;
-    color: #00d9ff;
+    font-weight: 600;
+    color: var(--primary);
     z-index: 1000;
+    backdrop-filter: blur(4px);
     pointer-events: none;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
 }

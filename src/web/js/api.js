@@ -138,6 +138,42 @@ const API = {
         } catch (e) {
             console.error('Error setting YouTube volume:', e);
         }
+    },
+
+    async saveYoutubeAsSound(url) {
+        try {
+            return await eel.save_youtube_as_sound(url)();
+        } catch (e) {
+            console.error('Error saving YouTube as sound:', e);
+            return { success: false, error: e.toString() };
+        }
+    },
+
+    async getYoutubeItems() {
+        try {
+            return await eel.get_youtube_items()();
+        } catch (e) {
+            console.error('Error getting YouTube items:', e);
+            return [];
+        }
+    },
+
+    async addYoutubeItem(url) {
+        try {
+            return await eel.add_youtube_item(url)();
+        } catch (e) {
+            console.error('Error adding YouTube item:', e);
+            return { success: false, error: e.toString() };
+        }
+    },
+
+    async deleteYoutubeItem(url) {
+        try {
+            return await eel.delete_youtube_item(url)();
+        } catch (e) {
+            console.error('Error deleting YouTube item:', e);
+            return { success: false, error: e.toString() };
+        }
     }
 };
 

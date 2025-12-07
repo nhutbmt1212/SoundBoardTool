@@ -623,6 +623,9 @@ class AudioEngine:
                 self.sounds[f.stem] = str(f)
     
     def get_sounds(self) -> list[str]:
+        # Auto-reload if empty (fixes startup issue)
+        if not self.sounds:
+            self.load_sounds()
         return sorted(self.sounds.keys())
     
     def set_volume(self, vol: float):

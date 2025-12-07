@@ -178,6 +178,84 @@ def play_youtube(url: str):
 def stop_youtube():
     """Stop YouTube streaming"""
     audio.stop_youtube()
+
+
+@eel.expose
+def save_youtube_as_sound(url: str):
+    """Save YouTube cache as a sound item"""
+    import shutil
+    from pathlib import Path
+    
+    # Get cached file from YouTube
+    yt_stream = audio.youtube
+    cached_file, title = yt_stream._get_cached_file(url)
+    
+    if not cached_file:
+        return {'success': False, 'error': 'Not cached yet'}
+    
+    # Copy to sounds directory
+    src = Path(cached_file)
+    dest = Path(sounds_dir) / f"{title[:50]}{src.suffix}"  # Limit filename length
+    
+    try:
+        shutil.copy(src, dest)
+        audio.load_sounds()  # Reload sounds
+        return {'success': True, 'name': dest.stem}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+
+@eel.expose
+def get_youtube_items():
+    """Get all YouTube cached items"""
+    yt_stream = audio.youtube
+    items = []
+    
+    for key, data in yt_stream._cache_index.items():
+        items.append({
+            'url': data['url'],
+            'title': data['title'],
+            'file': data['file'],
+            'keybind': ''  # TODO: Add keybind support
+        })
+    
+    return items
+
+
+@eel.expose
+def add_youtube_item(url: str):
+    """Add YouTube item (download and cache)"""
+    result = audio.play_youtube(url)
+    if result['success']:
+        audio.stop_youtube()  # Stop after caching
+    return result
+
+
+@eel.expose
+def delete_youtube_item(url: str):
+    """Delete YouTube cached item"""
+    import os
+    from pathlib import Path
+    
+    yt_stream = audio.youtube
+    cached_file, title = yt_stream._get_cached_file(url)
+    
+    if not cached_file:
+        return {'success': False, 'error': 'Not found'}
+    
+    try:
+        # Delete file
+        os.remove(cached_file)
+        
+        # Remove from index
+        cache_key = yt_stream._get_cache_key(url)
+        if cache_key in yt_stream._cache_index:
+            del yt_stream._cache_index[cache_key]
+            yt_stream._save_cache_index()
+        
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
     return True
 
 

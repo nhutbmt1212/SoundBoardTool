@@ -3,13 +3,16 @@
 const UI = {
     // Initialize icons
     initIcons() {
-        document.getElementById('title-icon').innerHTML = Icons.music;
-        document.getElementById('btn-add').innerHTML = Icons.add;
-        document.getElementById('btn-refresh').innerHTML = Icons.refresh;
-        document.getElementById('stop-icon').innerHTML = Icons.stop;
-        
+        const titleIcon = document.getElementById('title-icon');
+        if (titleIcon) titleIcon.innerHTML = Icons.music;
+
+        const stopIcon = document.getElementById('stop-icon');
+        if (stopIcon) stopIcon.innerHTML = Icons.stop;
+
         const placeholder = document.getElementById('placeholder-icon');
         if (placeholder) placeholder.innerHTML = Icons.waveform;
+
+        console.log('[DEBUG] Icons initialized');
     },
 
     // Update Stop All keybind UI
@@ -30,7 +33,7 @@ const UI = {
     // Render sound grid
     renderSoundGrid(sounds) {
         const grid = document.getElementById('sounds-grid');
-        
+
         if (sounds.length === 0) {
             grid.innerHTML = `
                 <div class="empty-state">
@@ -41,7 +44,7 @@ const UI = {
             `;
             return;
         }
-        
+
         grid.innerHTML = sounds.map(name => this.renderSoundCard(name)).join('');
     },
 
@@ -51,11 +54,11 @@ const UI = {
         const isScream = AppState.isScreamMode(name);
         const isPitch = AppState.isPitchMode(name);
         const displayName = AppState.getDisplayName(name);
-        
+
         const badges = [];
         if (isScream) badges.push('😈');
         if (isPitch) badges.push('🐿️');
-        
+
         return `
             <div class="sound-card ${isScream ? 'scream-mode' : ''} ${isPitch ? 'pitch-mode' : ''}" data-name="${Utils.escapeAttr(name)}">
                 <div class="sound-thumbnail">
@@ -85,7 +88,7 @@ const UI = {
         const isScream = AppState.isScreamMode(name);
         const isPitch = AppState.isPitchMode(name);
         const displayName = AppState.getDisplayName(name);
-        
+
         panel.innerHTML = `
             <div class="panel-header">
                 <input type="text" class="panel-sound-name editable" id="sound-name-input" 
@@ -230,6 +233,42 @@ const UI = {
     // Enable YouTube play button
     enableYoutubePlayBtn() {
         document.getElementById('btn-youtube-play').disabled = false;
+    },
+
+    // Render YouTube grid
+    renderYoutubeGrid(items) {
+        const grid = document.getElementById('youtube-grid');
+
+        if (!items || items.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <span class="empty-icon">📺</span>
+                    <h2>No YouTube videos</h2>
+                    <p>Click "Add from YouTube" to get started</p>
+                </div>
+            `;
+            return;
+        }
+
+        grid.innerHTML = items.map(item => this.renderYoutubeItem(item)).join('');
+    },
+
+    // Render single YouTube item
+    renderYoutubeItem(item) {
+        const keybind = item.keybind || '';
+        const isPlaying = false; // TODO: Check if playing
+
+        return `
+            <div class="youtube-item ${isPlaying ? 'playing' : ''}" data-url="${item.url}">
+                <div class="youtube-item-icon">📺</div>
+                <div class="youtube-item-title" title="${item.title}">${item.title}</div>
+                ${keybind ? `<div class="youtube-item-keybind">${keybind}</div>` : ''}
+                <div class="youtube-item-actions">
+                    <button class="youtube-item-btn play" onclick="playYoutubeItem('${item.url}')">▶</button>
+                    <button class="youtube-item-btn delete" onclick="deleteYoutubeItem('${item.url}')">🗑</button>
+                </div>
+            </div>
+        `;
     }
 };
 
