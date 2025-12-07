@@ -11,10 +11,11 @@
   "youtubeKeybinds": {
     "https://www.youtube.com/watch?v=oXtHPqOfSaw": "Ctrl + Shift + 2",
     "https://www.youtube.com/watch?v=Bf2ml3oE2JA": "Ctrl + Shift + 3",
-    "https://www.youtube.com/watch?v=jOVJBBL36c4": "Ctrl + Shift + 4",
+    "https://www.youtube.com/watch?v=jOVJBBL36c4": "Ctrl + Shift + 6",
     "https://www.youtube.com/watch?v=KgayxOF4Y7E": "Ctrl + Shift + 1",
     "https://www.youtube.com/watch?v=CsrsR_sC2jE": "Ctrl + Shift + 5",
-    "https://www.youtube.com/watch?v=QUwWZVWUGJc": "Ctrl + Shift + 4"
+    "https://www.youtube.com/watch?v=QUwWZVWUGJc": "Ctrl + Shift + 4",
+    "https://www.youtube.com/watch?v=j-EEv5dqhuA": "Ctrl + Shift + 7"
   },
   "screamMode": {
     "snaptt.me-6811697": true,
@@ -22,7 +23,7 @@
     "LUNABALA": true
   },
   "pitchMode": {
-    "snaptt.me-6811697": false,
+    "snaptt.me-6811697": true,
     "LUNABALA": false,
     "snaptt.me-47352902": true
   },
@@ -37,10 +38,12 @@
   "stopAllKeybind": "CapsLock",
   "youtubeScreamMode": {
     "https://www.youtube.com/watch?v=jOVJBBL36c4": true,
-    "https://www.youtube.com/watch?v=oXtHPqOfSaw": true,
-    "https://www.youtube.com/watch?v=Bf2ml3oE2JA": false
+    "https://www.youtube.com/watch?v=oXtHPqOfSaw": false,
+    "https://www.youtube.com/watch?v=Bf2ml3oE2JA": false,
+    "https://www.youtube.com/watch?v=QUwWZVWUGJc": false
   },
   "youtubePitchMode": {
-    "https://www.youtube.com/watch?v=Bf2ml3oE2JA": false
+    "https://www.youtube.com/watch?v=Bf2ml3oE2JA": false,
+    "https://www.youtube.com/watch?v=jOVJBBL36c4": true
   }
 }

@@ -151,6 +151,12 @@ window.playYoutube = () => EventHandlers.playYoutube();
 window.stopYoutube = () => EventHandlers.stopYoutube();
 window.saveYoutubeAsSound = () => EventHandlers.saveYoutubeAsSound();
 window.onYoutubeVolumeChange = (v) => EventHandlers.onYoutubeVolumeChange(v);
+window.saveYoutubeAsSound = (url) => EventHandlers.saveYoutubeAsSound(url);
+window.showAddYoutubeDialog = () => EventHandlers.showAddYoutubeDialog();
+window.refreshYoutubeItems = () => EventHandlers.refreshYoutubeItems();
+window.playYoutubeItem = (url) => EventHandlers.playYoutubeItem(url);
+window.pauseYoutubeItem = (url) => EventHandlers.pauseYoutubeItem(url);
+window.deleteYoutubeItem = (url) => EventHandlers.deleteYoutubeItem(url);
 
 // ==================== Tab Switching ====================
 

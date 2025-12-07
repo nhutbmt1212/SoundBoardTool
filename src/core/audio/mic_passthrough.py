@@ -23,6 +23,10 @@ class MicPassthrough:
         self._buffer = None
         self._resample_ratio = None
         
+        # Overflow tracking
+        self._overflow_count = 0
+        self._last_overflow_report = 0
+        
         self._detect_mic()
     
     def _detect_mic(self):
@@ -80,7 +84,10 @@ class MicPassthrough:
             return True  # Already running
         
         try:
-            self._buffer = queue.Queue(maxsize=20)
+            # Larger buffer to prevent overflow (was 20, now 100)
+            self._buffer = queue.Queue(maxsize=100)
+            self._overflow_count = 0
+            self._last_overflow_report = 0
             
             # Get sample rates
             vb_samplerate = self.vb_manager.get_samplerate()
@@ -96,8 +103,17 @@ class MicPassthrough:
             engine = self
             
             def input_callback(indata, frames, time, status):
+                # Track overflow but don't spam console
                 if status:
-                    print(f"Mic input: {status}")
+                    if 'overflow' in str(status).lower():
+                        engine._overflow_count += 1
+                        # Report every 100 overflows instead of every single one
+                        if engine._overflow_count - engine._last_overflow_report >= 100:
+                            print(f"Mic input overflow (total: {engine._overflow_count})")
+                            engine._last_overflow_report = engine._overflow_count
+                    else:
+                        print(f"Mic input: {status}")
+                
                 try:
                     data = indata.copy() * engine.volume
                     
@@ -108,6 +124,7 @@ class MicPassthrough:
                     
                     engine._buffer.put_nowait(data)
                 except queue.Full:
+                    # Buffer full, skip this frame (graceful degradation)
                     pass
                 except Exception as e:
                     print(f"Mic resample error: {e}")

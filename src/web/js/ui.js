@@ -340,7 +340,7 @@ const UI = {
             </div>
             
             <div class="panel-actions">
-                <button class="btn-panel btn-stop" style="color: var(--primary); border-color: var(--primary);" onclick="window.saveYoutubeAsSound()">${icon('add', 14)} Save as Sound</button>
+                <button class="btn-panel btn-stop" style="color: var(--primary); border-color: var(--primary);" onclick="saveYoutubeAsSound('${Utils.escapeAttr(item.url)}')">${icon('add', 14)} Save as Sound</button>
             </div>
 
             <div class="panel-actions">
