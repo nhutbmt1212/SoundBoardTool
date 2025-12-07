@@ -104,6 +104,7 @@ def build():
         '--collect-all=eel',
         '--collect-all=pygame',
         '--collect-all=sounddevice',
+        '--collect-all=yt_dlp',
         # Exclude unnecessary
         '--exclude-module=matplotlib',
         '--exclude-module=PIL',
