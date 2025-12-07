@@ -56,7 +56,14 @@ const UI = {
             return;
         }
 
-        grid.innerHTML = sounds.map(name => this.renderSoundCard(name)).join('');
+        // Sort sounds alphabetically by display name
+        const sortedSounds = [...sounds].sort((a, b) => {
+            const nameA = AppState.getDisplayName(a).toLowerCase();
+            const nameB = AppState.getDisplayName(b).toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
+        grid.innerHTML = sortedSounds.map(name => this.renderSoundCard(name)).join('');
     },
 
     // Render single sound card
@@ -258,10 +265,15 @@ const UI = {
     // Show panel for YouTube item
     showYoutubePanel(item) {
         const panel = document.getElementById('right-panel');
+        const displayName = AppState.getYoutubeDisplayName(item.url, item.title);
 
         panel.innerHTML = `
             <div class="panel-header">
-                <div class="panel-sound-name" title="${Utils.escapeAttr(item.title)}">${Utils.escapeHtml(item.title)}</div>
+                <input type="text" class="panel-sound-name editable" id="yt-name-input" 
+                       value="${Utils.escapeAttr(displayName)}" 
+                       placeholder="${Utils.escapeAttr(item.title)}"
+                       onchange="EventHandlers.onYoutubeNameChange(this.value)"
+                       onkeydown="if(event.key==='Enter')this.blur()">
                 <div class="panel-sound-info" title="${Utils.escapeAttr(item.url)}">${Utils.escapeHtml(item.url)}</div>
             </div>
             
@@ -352,13 +364,68 @@ const UI = {
             return;
         }
 
-        grid.innerHTML = items.map(item => this.renderYoutubeItem(item, info)).join('');
+        // Sort YouTube items alphabetically by display name
+        const sortedItems = [...items].sort((a, b) => {
+            const nameA = AppState.getYoutubeDisplayName(a.url, a.title).toLowerCase();
+            const nameB = AppState.getYoutubeDisplayName(b.url, b.title).toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
+        grid.innerHTML = sortedItems.map(item => this.renderYoutubeItem(item, info)).join('');
     },
 
     // Render single YouTube item
+    // Add loading YouTube card
+    addLoadingYoutubeCard(url) {
+        const grid = document.getElementById('youtube-grid');
+        if (!grid) return;
+
+        // Remove empty state
+        const empty = grid.querySelector('.empty-state');
+        if (empty) empty.remove();
+
+        const card = document.createElement('div');
+        card.className = 'sound-card youtube-item loading';
+        card.dataset.url = 'loading-' + url;
+        card.innerHTML = `
+            <div class="sound-thumbnail youtube-thumbnail">
+                <div class="loading-pie" style="--p: 0;"></div>
+                <div class="loading-percent">0%</div>
+            </div>
+            <div class="sound-name">Downloading...</div>
+            <div class="sound-info" style="font-size: 10px; color: var(--text-muted); padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${Utils.escapeHtml(url)}</div>
+        `;
+
+        grid.prepend(card);
+    },
+
+    // Update loading progress
+    updateYoutubeProgress(url, percent) {
+        const grid = document.getElementById('youtube-grid');
+        if (!grid) return;
+
+        const card = grid.querySelector(`.youtube-item[data-url="loading-${Utils.escapeAttr(url)}"]`);
+        if (!card) return;
+
+        const pie = card.querySelector('.loading-pie');
+        const text = card.querySelector('.loading-percent');
+
+        if (pie) pie.style.setProperty('--p', percent);
+        if (text) text.textContent = Math.round(percent) + '%';
+    },
+
+    // Remove loading YouTube card
+    removeLoadingYoutubeCard(url) {
+        const grid = document.getElementById('youtube-grid');
+        if (!grid) return;
+        const card = grid.querySelector(`.youtube-item[data-url="loading-${Utils.escapeAttr(url)}"]`);
+        if (card) card.remove();
+    },
+
     renderYoutubeItem(item, info) {
-        // Use AppState as source of truth for keybinds
+        // Use AppState as source of truth for keybinds and display name
         const keybind = AppState.getYoutubeKeybind(item.url) || item.keybind || '';
+        const displayName = AppState.getYoutubeDisplayName(item.url, item.title);
         const isCurrentUrl = info && info.url === item.url;
         const isPlaying = isCurrentUrl && info.playing;
         const isPaused = isCurrentUrl && info.paused;
@@ -370,13 +437,67 @@ const UI = {
                     ${isPlaying && !isPaused ? `<div class="playing-indicator">${IconManager.get('playCircle', { size: 32 })}</div>` : ''}
                     ${isPaused ? `<div class="playing-indicator">${IconManager.get('pauseCircle', { size: 32 })}</div>` : ''}
                 </div>
-                <div class="sound-name" title="${Utils.escapeAttr(item.title)}">${Utils.escapeHtml(item.title)}</div>
+                <div class="sound-name" title="${Utils.escapeAttr(displayName)}">${Utils.escapeHtml(displayName)}</div>
                 
                 <div class="sound-keybind ${keybind ? 'has-bind' : ''}">
                     ${keybind || 'Add keybind'}
                 </div>
             </div>
         `;
+    },
+
+    // Modal
+    closeModalCallback: null,
+
+    showModal({ title, body, onConfirm, confirmText = 'Confirm', showCancel = true }) {
+        const overlay = document.getElementById('modal-overlay');
+        const titleEl = document.getElementById('modal-title');
+        const bodyEl = document.getElementById('modal-body');
+        const confirmBtn = document.getElementById('modal-confirm-btn');
+        const footer = document.getElementById('modal-footer');
+
+        if (!overlay) return;
+
+        titleEl.textContent = title;
+        bodyEl.innerHTML = body;
+        confirmBtn.textContent = confirmText;
+
+        // Reset footer
+        footer.style.display = 'flex';
+
+        // Hide cancel button if needed? Using CSS might be better but let's leave it for now
+        // For simple prompts we want Cancel.
+
+        // Clean previous listeners
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+        newConfirmBtn.onclick = () => {
+            if (onConfirm) onConfirm();
+            this.closeModal();
+        };
+
+        // Handle Enter key in inputs
+        const inputs = bodyEl.querySelectorAll('input');
+        if (inputs.length > 0) {
+            inputs[0].focus();
+            inputs[0].addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    newConfirmBtn.click();
+                }
+            });
+            // Focus first input after slight delay for animation
+            setTimeout(() => inputs[0].focus(), 50);
+        }
+
+        overlay.classList.add('active');
+        this.closeModalCallback = null; // Reset callback
+    },
+
+    closeModal() {
+        const overlay = document.getElementById('modal-overlay');
+        if (overlay) overlay.classList.remove('active');
+        if (this.closeModalCallback) this.closeModalCallback();
     }
 };
 

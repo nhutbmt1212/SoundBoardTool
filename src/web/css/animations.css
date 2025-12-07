@@ -1,52 +1,87 @@
-/* Animation Styles */
-
-@keyframes wave {
-    0%, 100% { transform: scaleY(1); }
-    50% { transform: scaleY(0.5); }
-}
-
 @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
 }
 
 @keyframes shake {
-    0%, 100% { transform: rotate(-5deg); }
-    50% { transform: rotate(5deg); }
+
+    0%,
+    100% {
+        transform: rotate(-5deg);
+    }
+
+    50% {
+        transform: rotate(5deg);
+    }
 }
 
 @keyframes playing-glow {
-    0%, 100% { 
+
+    0%,
+    100% {
         box-shadow: 0 0 20px rgba(0, 255, 136, 0.5), 0 0 40px rgba(0, 255, 136, 0.3);
     }
-    50% { 
+
+    50% {
         box-shadow: 0 0 30px rgba(0, 255, 136, 0.8), 0 0 60px rgba(0, 255, 136, 0.5);
     }
 }
 
 @keyframes gradient-rotate {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 136, 0.3); }
-    50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+    }
 }
 
 @keyframes scream-playing-glow {
-    0%, 100% { 
+
+    0%,
+    100% {
         box-shadow: 0 0 25px rgba(255, 68, 68, 0.7), 0 0 50px rgba(255, 136, 0, 0.5);
     }
-    50% { 
+
+    50% {
         box-shadow: 0 0 40px rgba(255, 68, 68, 1), 0 0 80px rgba(255, 136, 0, 0.8);
     }
 }
 
 @keyframes wave-scream {
-    0%, 100% { transform: scaleY(1); }
-    50% { transform: scaleY(1.5); }
+
+    0%,
+    100% {
+        transform: scaleY(1);
+    }
+
+    50% {
+        transform: scaleY(1.5);
+    }
 }
 
 /* Playing State */
@@ -104,6 +139,19 @@
 }
 
 .preview-wave.scream-active .wave-bar {
-    background: linear-gradient(to top, #ff4444, #ff8800);
     animation: wave-scream 0.3s ease-in-out infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.spinning {
+    animation: spin 1s linear infinite;
 }

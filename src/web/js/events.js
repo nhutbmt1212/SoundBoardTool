@@ -52,16 +52,22 @@ const EventHandlers = {
     },
 
     // Delete sound
-    async deleteSound(name) {
-        if (!confirm(`Delete "${name}"?`)) return;
+    deleteSound(name) {
+        UI.showModal({
+            title: 'Delete Sound',
+            body: `Are you sure you want to delete <b>"${Utils.escapeHtml(name)}"</b>?`,
+            confirmText: 'Delete',
+            onConfirm: async () => {
+                await API.deleteSound(name);
+                AppState.removeSound(name);
+                await this.saveSettings();
 
-        await API.deleteSound(name);
-        AppState.removeSound(name);
-        await this.saveSettings();
-
-        AppState.selectedSound = null;
-        UI.showEmptyPanel();
-        await this.refreshSounds();
+                AppState.selectedSound = null;
+                UI.showEmptyPanel();
+                await this.refreshSounds();
+                Notifications.success('Sound deleted');
+            }
+        });
     },
 
     // Refresh sounds
@@ -411,18 +417,42 @@ const EventHandlers = {
         UI.showYoutubePanel(item);
     },
 
-    async showAddYoutubeDialog() {
-        const url = prompt('Enter YouTube URL:');
-        if (!url) return;
+    showAddYoutubeDialog() {
+        UI.showModal({
+            title: 'Add from YouTube',
+            body: `
+                <div class="input-group">
+                    <input type="text" id="youtube-url-input" class="modal-input" placeholder="Paste YouTube URL here...">
+                    <div style="font-size: 12px; color: var(--text-muted);">Supports individual videos. Playlist support coming soon.</div>
+                </div>
+            `,
+            confirmText: 'Add Video',
+            onConfirm: async () => {
+                const input = document.getElementById('youtube-url-input');
+                const url = input.value.trim();
 
-        const result = await API.addYoutubeItem(url);
+                if (!url) return;
 
-        if (result.success) {
-            Notifications.success(`Added: ${result.title}`);
-            await this.refreshYoutubeItems();
-        } else {
-            Notifications.error(`Failed: ${result.error}`);
-        }
+                // Show loading notification
+                Notifications.info('Processing YouTube URL...');
+                UI.addLoadingYoutubeCard(url);
+
+                try {
+                    const result = await API.addYoutubeItem(url);
+
+                    if (result.success) {
+                        Notifications.success(`Added: ${result.title}`);
+                        await this.refreshYoutubeItems();
+                    } else {
+                        Notifications.error(`Failed: ${result.error}`);
+                        UI.removeLoadingYoutubeCard(url);
+                    }
+                } catch (e) {
+                    Notifications.error('An error occurred');
+                    UI.removeLoadingYoutubeCard(url);
+                }
+            }
+        });
     },
 
     async playYoutubeItem(url) {
@@ -446,12 +476,24 @@ const EventHandlers = {
     },
 
     async deleteYoutubeItem(url) {
-        if (!confirm('Delete this YouTube item?')) return;
+        // Find title for better message
+        const item = AppState.selectedYoutubeItem;
+        const title = item ? item.title : 'this item';
 
-        const result = await API.deleteYoutubeItem(url);
-        if (result.success) {
-            await this.refreshYoutubeItems();
-        }
+        UI.showModal({
+            title: 'Delete YouTube Item',
+            body: `Are you sure you want to delete <b>"${Utils.escapeHtml(title)}"</b>?`,
+            confirmText: 'Delete',
+            onConfirm: async () => {
+                const result = await API.deleteYoutubeItem(url);
+                if (result.success) {
+                    await this.refreshYoutubeItems();
+                    Notifications.success('YouTube item deleted');
+                } else {
+                    Notifications.error('Failed to delete item');
+                }
+            }
+        });
     },
 
     async bindYoutubeKey(url) {
@@ -692,6 +734,15 @@ const EventHandlers = {
         // Update label
         const label = checkbox.parentElement.querySelector('.pitch-label');
         if (label) label.textContent = isPitch ? 'ON - HIGH PITCH!' : 'OFF';
+    },
+
+    // YouTube name change
+    onYoutubeNameChange(value) {
+        if (!AppState.selectedYoutubeItem) return;
+        const item = AppState.selectedYoutubeItem;
+        AppState.setYoutubeDisplayName(item.url, value.trim(), item.title);
+        this.saveSettings();
+        this.refreshYoutubeItems().then(() => this.selectYoutubeItem(item));
     }
 };
 

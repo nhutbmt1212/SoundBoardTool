@@ -116,10 +116,10 @@ class AudioEngine:
     
     # === YouTube ===
     
-    def play_youtube(self, url: str) -> dict:
+    def play_youtube(self, url: str, progress_callback=None) -> dict:
         # Enforce priority: Stop Sound if playing
         self.sound_player.stop()
-        return self.youtube.play(url)
+        return self.youtube.play(url, progress_callback)
     
     def stop_youtube(self):
         self.youtube.stop()

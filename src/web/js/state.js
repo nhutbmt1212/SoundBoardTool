@@ -12,6 +12,7 @@ const AppState = {
     youtubePitchMode: {},
 
     soundNames: {},
+    youtubeNames: {},
     stopAllKeybind: '',
     isRecordingKeybind: false,
     isRecordingStopKeybind: false,
@@ -56,6 +57,10 @@ const AppState = {
         return this.youtubePitchMode[url] || false;
     },
 
+    getYoutubeDisplayName(url, defaultTitle) {
+        return this.youtubeNames[url] || defaultTitle;
+    },
+
     // Setters
     setVolume(name, value) {
         this.soundVolumes[name] = parseInt(value);
@@ -93,6 +98,14 @@ const AppState = {
         this.youtubePitchMode[url] = enabled;
     },
 
+    setYoutubeDisplayName(url, displayName, originalTitle) {
+        if (displayName && displayName !== originalTitle) {
+            this.youtubeNames[url] = displayName;
+        } else {
+            delete this.youtubeNames[url];
+        }
+    },
+
     // Remove sound data
     removeSound(name) {
         delete this.soundVolumes[name];
@@ -110,6 +123,7 @@ const AppState = {
         this.soundScreamMode = settings.screamMode || {};
         this.soundPitchMode = settings.pitchMode || {};
         this.soundNames = settings.names || {};
+        this.youtubeNames = settings.youtubeNames || {};
         this.stopAllKeybind = settings.stopAllKeybind || '';
         // Backwards compatibility check - if boolean, reset to empty object
         this.youtubeScreamMode = (typeof settings.youtubeScreamMode === 'object') ? settings.youtubeScreamMode : {};
@@ -125,6 +139,7 @@ const AppState = {
             screamMode: this.soundScreamMode,
             pitchMode: this.soundPitchMode,
             names: this.soundNames,
+            youtubeNames: this.youtubeNames,
             stopAllKeybind: this.stopAllKeybind,
             youtubeScreamMode: this.youtubeScreamMode,
             youtubePitchMode: this.youtubePitchMode

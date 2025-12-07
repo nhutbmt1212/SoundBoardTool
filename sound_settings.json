@@ -13,7 +13,8 @@
     "https://www.youtube.com/watch?v=Bf2ml3oE2JA": "Ctrl + Shift + 3",
     "https://www.youtube.com/watch?v=jOVJBBL36c4": "Ctrl + Shift + 4",
     "https://www.youtube.com/watch?v=KgayxOF4Y7E": "Ctrl + Shift + 1",
-    "https://www.youtube.com/watch?v=CsrsR_sC2jE": "Ctrl + Shift + 5"
+    "https://www.youtube.com/watch?v=CsrsR_sC2jE": "Ctrl + Shift + 5",
+    "https://www.youtube.com/watch?v=QUwWZVWUGJc": "Ctrl + Shift + 4"
   },
   "screamMode": {
     "snaptt.me-6811697": true,
@@ -28,6 +29,10 @@
   "names": {
     "snaptt.me-47352902": "nhạc hay 1",
     "snaptt.me-6811697": "nhạc hay 2"
+  },
+  "youtubeNames": {
+    "https://www.youtube.com/watch?v=oXtHPqOfSaw": "Counting Stars",
+    "https://www.youtube.com/watch?v=KgayxOF4Y7E": "PASSO BEM SOLTO"
   },
   "stopAllKeybind": "CapsLock",
   "youtubeScreamMode": {

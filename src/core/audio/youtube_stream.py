@@ -104,17 +104,21 @@ class YouTubeStream:
                 return str(filepath), cached['title']
         return None, None
     
-    def _download_and_cache(self, url: str) -> tuple:
+    def _download_and_cache(self, url: str, progress_callback=None) -> tuple:
         """Tải video về cache. Return (filepath, title)"""
         cache_key = self._get_cache_key(url)
         output_template = self.cache_dir / cache_key
         
+        hooks = []
+        if progress_callback:
+            hooks.append(progress_callback)
+            
         ydl_opts = {
             'format': 'bestaudio[ext=m4a]/bestaudio/best',
             'outtmpl': str(output_template),  # Không thêm extension, để yt-dlp tự động
             'quiet': True,
             'no_warnings': True,
-            'progress_hooks': [],
+            'progress_hooks': hooks,
         }
         
         try:
@@ -144,9 +148,10 @@ class YouTubeStream:
                 return str(output_file), title
                 
         except Exception as e:
+            print(f"Download error: {e}")
             return None, None
     
-    def play(self, url: str) -> dict:
+    def play(self, url: str, progress_callback=None) -> dict:
         """Stream YouTube audio to VB-Cable (with persistent cache)"""
         if not YTDLP_AVAILABLE:
             return {'success': False, 'error': 'yt-dlp not installed'}
@@ -164,7 +169,7 @@ class YouTubeStream:
                 audio_source = cached_file
             else:
                 # Chưa có cache - tải về lần đầu
-                cached_file, title = self._download_and_cache(url)
+                cached_file, title = self._download_and_cache(url, progress_callback)
                 if not cached_file:
                     return {'success': False, 'error': 'Failed to download'}
                 audio_source = cached_file

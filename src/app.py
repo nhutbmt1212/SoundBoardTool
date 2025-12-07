@@ -307,7 +307,25 @@ def get_youtube_items():
 @eel.expose
 def add_youtube_item(url: str):
     """Add YouTube item (download and cache)"""
-    result = audio.play_youtube(url)
+    def on_progress(d):
+        if d['status'] == 'downloading':
+            try:
+                percent_str = d.get('_percent_str', '').strip()
+                # Remove ANSI color codes
+                import re
+                percent_str = re.sub(r'\x1b\[[0-9;]*m', '', percent_str)
+                
+                percent = 0
+                if '%' in percent_str:
+                    percent = float(percent_str.replace('%', ''))
+                
+                # Send to frontend
+                eel.onYoutubeProgress(url, percent)
+                eel.sleep(0.01) # Yield to let message send
+            except Exception:
+                pass
+
+    result = audio.play_youtube(url, on_progress)
     if result['success']:
         audio.stop_youtube()  # Stop after caching
     return result
