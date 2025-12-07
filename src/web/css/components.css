@@ -599,3 +599,100 @@ button {
     background: var(--danger);
     box-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
 }
+
+/* Notifications */
+.notifications-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.notification {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    min-width: 300px;
+    max-width: 400px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.notification.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.notification-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.notification-content {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-main);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.notification-close {
+    cursor: pointer;
+    color: var(--text-muted);
+    opacity: 0.6;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-close:hover {
+    opacity: 1;
+    color: var(--text-main);
+}
+
+/* Notification Types */
+.notification.toast-success {
+    border-left: 4px solid var(--secondary);
+}
+
+.notification.toast-success .notification-icon {
+    color: var(--secondary);
+}
+
+.notification.toast-error {
+    border-left: 4px solid var(--danger);
+}
+
+.notification.toast-error .notification-icon {
+    color: var(--danger);
+}
+
+.notification.toast-warning {
+    border-left: 4px solid #ffd700;
+}
+
+.notification.toast-warning .notification-icon {
+    color: #ffd700;
+}
+
+.notification.toast-info {
+    border-left: 4px solid var(--primary);
+}
+
+.notification.toast-info .notification-icon {
+    color: var(--primary);
+}

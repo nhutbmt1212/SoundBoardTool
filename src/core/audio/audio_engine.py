@@ -56,10 +56,13 @@ class AudioEngine:
         self.sound_player.set_pitch(pitch)
     
     def play(self, name: str) -> bool:
+        # Enforce priority: Stop YouTube if playing
+        self.youtube.stop()
         return self.sound_player.play(name)
     
     def stop(self):
         self.sound_player.stop()
+        self.youtube.stop()
     
     def add_sound(self, filepath: str, name: str = None) -> bool:
         return self.sound_player.add_sound(filepath, name)
@@ -114,6 +117,8 @@ class AudioEngine:
     # === YouTube ===
     
     def play_youtube(self, url: str) -> dict:
+        # Enforce priority: Stop Sound if playing
+        self.sound_player.stop()
         return self.youtube.play(url)
     
     def stop_youtube(self):

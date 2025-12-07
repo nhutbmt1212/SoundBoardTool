@@ -102,7 +102,7 @@ const EventHandlers = {
 
         // Update label
         const label = document.querySelector('.scream-label');
-        if (label) label.textContent = isScream ? 'ON - 5000% BOOST! 💀' : 'OFF';
+        if (label) label.textContent = isScream ? 'ON - 5000% BOOST!' : 'OFF';
 
         // Update wave animation
         const wave = document.querySelector('.preview-wave');
@@ -293,7 +293,7 @@ const EventHandlers = {
             }
 
             if (addedCount === 0) {
-                alert('No audio files added. Supported: WAV, MP3, OGG, FLAC');
+                Notifications.warning('No audio files added. Supported: WAV, MP3, OGG, FLAC');
             } else {
                 await this.refreshSounds();
             }
@@ -322,7 +322,7 @@ const EventHandlers = {
         const url = urlInput.value.trim();
 
         if (!url) {
-            alert('Please enter a YouTube URL');
+            Notifications.warning('Please enter a YouTube URL');
             return;
         }
 
@@ -350,17 +350,17 @@ const EventHandlers = {
         const url = urlInput.value.trim();
 
         if (!url) {
-            alert('No YouTube URL');
+            Notifications.warning('No YouTube URL');
             return;
         }
 
         const result = await API.saveYoutubeAsSound(url);
 
         if (result.success) {
-            alert(`✓ Saved as sound: ${result.name}`);
+            Notifications.success(`Saved as sound: ${result.name}`);
             await this.refreshSounds();
         } else {
-            alert(`Failed to save: ${result.error}`);
+            Notifications.error(`Failed to save: ${result.error}`);
         }
     },
 
@@ -418,10 +418,10 @@ const EventHandlers = {
         const result = await API.addYoutubeItem(url);
 
         if (result.success) {
-            alert(`✓ Added: ${result.title}`);
+            Notifications.success(`Added: ${result.title}`);
             await this.refreshYoutubeItems();
         } else {
-            alert(`Failed: ${result.error}`);
+            Notifications.error(`Failed: ${result.error}`);
         }
     },
 
@@ -455,7 +455,7 @@ const EventHandlers = {
     },
 
     async bindYoutubeKey(url) {
-        alert('Press a key to bind...');
+        Notifications.info('Press a key to bind...');
         // TODO: Implement keybind for YouTube items
     },
 
@@ -532,23 +532,39 @@ const EventHandlers = {
                     // We need to optimize this to not re-render grid constantly
                     // But we can update classes on existing elements
                     document.querySelectorAll('.youtube-item').forEach(card => {
-                        const isCardUrl = card.dataset.url === ytInfo.url;
+                        const cardUrl = card.getAttribute('data-url') || card.dataset.url;
+                        const isCardUrl = cardUrl === ytInfo.url;
                         const isPaused = ytInfo.paused;
 
+                        // Handle active state
                         if (isCardUrl) {
-                            card.classList.add('playing');
-                            card.classList.toggle('paused', isPaused);
+                            if (!card.classList.contains('playing')) card.classList.add('playing');
+                            if (isPaused) {
+                                if (!card.classList.contains('paused')) card.classList.add('paused');
+                            } else {
+                                card.classList.remove('paused');
+                            }
+
                             // Update indicator
                             const thumb = card.querySelector('.youtube-thumbnail');
-                            let indicator = thumb.querySelector('.playing-indicator');
-                            if (!indicator) {
-                                indicator = document.createElement('div');
-                                indicator.className = 'playing-indicator';
-                                thumb.appendChild(indicator);
+                            if (thumb) {
+                                let indicator = thumb.querySelector('.playing-indicator');
+                                if (!indicator) {
+                                    indicator = document.createElement('div');
+                                    indicator.className = 'playing-indicator';
+                                    thumb.appendChild(indicator);
+                                }
+                                // Only update content if needed
+                                const newIcon = isPaused ? IconManager.get('pauseCircle', { size: 32 }) : IconManager.get('playCircle', { size: 32 });
+                                // Simple check: compare HTML length or something, or just clear and set
+                                // Since we are setting innerHTML, let's just do it
+                                if (indicator.innerHTML !== newIcon) {
+                                    indicator.innerHTML = newIcon;
+                                }
                             }
-                            indicator.textContent = isPaused ? '⏸' : '▶';
                         } else {
-                            card.classList.remove('playing', 'paused');
+                            if (card.classList.contains('playing')) card.classList.remove('playing');
+                            if (card.classList.contains('paused')) card.classList.remove('paused');
                             const indicator = card.querySelector('.playing-indicator');
                             if (indicator) indicator.remove();
                         }

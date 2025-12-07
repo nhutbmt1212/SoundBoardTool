@@ -3,16 +3,27 @@
 const UI = {
     // Initialize icons
     initIcons() {
-        const titleIcon = document.getElementById('title-icon');
-        if (titleIcon) titleIcon.innerHTML = Icons.music;
+        const setIcon = (id, name, size = 20) => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = IconManager.get(name, { size });
+        };
 
-        const stopIcon = document.getElementById('stop-icon');
-        if (stopIcon) stopIcon.innerHTML = Icons.stop;
+        setIcon('title-icon', 'music', 28);
+        setIcon('stop-icon', 'stop', 20);
+        setIcon('placeholder-icon', 'waveform', 64);
 
-        const placeholder = document.getElementById('placeholder-icon');
-        if (placeholder) placeholder.innerHTML = Icons.waveform;
+        // Tabs
+        setIcon('icon-tab-sounds', 'music', 16);
+        setIcon('icon-tab-youtube', 'youtube', 16);
 
-        console.log('[DEBUG] Icons initialized');
+        // Actions
+        setIcon('icon-btn-add', 'add', 14);
+        setIcon('icon-btn-refresh', 'refresh', 14);
+        setIcon('icon-btn-add-yt', 'youtube', 14); // Or add
+        setIcon('icon-btn-refresh-yt', 'refresh', 14);
+
+        // Mic
+        setIcon('mic-icon', 'micOff', 16); // Default off
     },
 
     // Update Stop All keybind UI
@@ -56,8 +67,8 @@ const UI = {
         const displayName = AppState.getDisplayName(name);
 
         const badges = [];
-        if (isScream) badges.push('😈');
-        if (isPitch) badges.push('🐿️');
+        if (isScream) badges.push(IconManager.get('scream', { size: 14 }));
+        if (isPitch) badges.push(IconManager.get('chipmunk', { size: 14 }));
 
         return `
             <div class="sound-card ${isScream ? 'scream-mode' : ''} ${isPitch ? 'pitch-mode' : ''}" data-name="${Utils.escapeAttr(name)}">
@@ -133,17 +144,17 @@ const UI = {
             </div>
             
             <div class="panel-section">
-                <div class="panel-section-title">😈 Scream Mode</div>
+                <div class="panel-section-title">${IconManager.get('scream', { size: 16 })} Scream Mode</div>
                 <label class="scream-toggle">
                     <input type="checkbox" id="scream-checkbox" ${isScream ? 'checked' : ''} onchange="EventHandlers.toggleScreamMode()">
                     <span class="scream-slider"></span>
-                    <span class="scream-label">${isScream ? 'ON - 5000% BOOST! 💀' : 'OFF'}</span>
+                    <span class="scream-label">${isScream ? 'ON - 5000% BOOST!' : 'OFF'}</span>
                 </label>
                 <div class="scream-hint">Boost volume to max for trolling</div>
             </div>
             
             <div class="panel-section">
-                <div class="panel-section-title">🐿️ Chipmunk Mode</div>
+                <div class="panel-section-title">${IconManager.get('chipmunk', { size: 16 })} Chipmunk Mode</div>
                 <label class="pitch-toggle">
                     <input type="checkbox" id="pitch-checkbox" ${isPitch ? 'checked' : ''} onchange="EventHandlers.togglePitchMode()">
                     <span class="pitch-slider"></span>
@@ -198,6 +209,8 @@ const UI = {
         const text = document.getElementById('mic-text');
         if (btn && text) {
             btn.classList.toggle('active', AppState.micEnabled);
+            const iconEl = document.getElementById('mic-icon');
+            if (iconEl) iconEl.innerHTML = IconManager.get(AppState.micEnabled ? 'mic' : 'micOff', { size: 16 });
             text.textContent = AppState.micEnabled ? 'Mic ON' : 'Mic OFF';
         }
     },
@@ -206,10 +219,10 @@ const UI = {
     updateYoutubeUI(playing, title = '') {
         const infoEl = document.getElementById('youtube-info');
         if (playing && title) {
-            infoEl.textContent = '▶ ' + title;
+            infoEl.innerHTML = IconManager.get('play', { size: 14 }) + ' ' + Utils.escapeHtml(title);
             infoEl.className = 'youtube-info playing';
         } else {
-            infoEl.textContent = '';
+            infoEl.innerHTML = '';
             infoEl.className = 'youtube-info';
         }
     },
@@ -226,7 +239,7 @@ const UI = {
     // Set YouTube error state
     setYoutubeError(error) {
         const infoEl = document.getElementById('youtube-info');
-        infoEl.textContent = '❌ ' + error;
+        infoEl.innerHTML = IconManager.get('warning', { size: 14 }) + ' ' + Utils.escapeHtml(error);
         infoEl.className = 'youtube-info error';
     },
 
@@ -254,7 +267,7 @@ const UI = {
             
             <div class="panel-preview">
                 <div class="sound-thumbnail youtube-thumbnail" style="width: 120px; height: 80px;">
-                    <span class="thumb-icon" style="opacity: 1;">📺</span>
+                    <span class="thumb-icon" style="opacity: 1;">${Icons.waveform}</span>
                 </div>
             </div>
             
@@ -303,7 +316,7 @@ const UI = {
         if (!items || items.length === 0) {
             grid.innerHTML = `
                 <div class="empty-state">
-                    <span class="empty-icon">📺</span>
+                    <span class="empty-icon">${IconManager.get('youtube', { size: 64 })}</span>
                     <h2>No YouTube videos</h2>
                     <p>Click "Add from YouTube" to get started</p>
                 </div>
@@ -323,11 +336,11 @@ const UI = {
         const isPaused = isCurrentUrl && info.paused;
 
         return `
-            <div class="sound-card youtube-item ${isPlaying ? 'playing' : ''} ${isPaused ? 'paused' : ''}" data-url="${item.url}">
+            <div class="sound-card youtube-item ${isPlaying ? 'playing' : ''} ${isPaused ? 'paused' : ''}" data-url="${Utils.escapeAttr(item.url)}">
                 <div class="sound-thumbnail youtube-thumbnail">
-                    <span class="thumb-icon">📺</span>
-                    ${isPlaying && !isPaused ? '<div class="playing-indicator">▶</div>' : ''}
-                    ${isPaused ? '<div class="playing-indicator">⏸</div>' : ''}
+                    <span class="thumb-icon">${Icons.waveform}</span>
+                    ${isPlaying && !isPaused ? `<div class="playing-indicator">${IconManager.get('playCircle', { size: 32 })}</div>` : ''}
+                    ${isPaused ? `<div class="playing-indicator">${IconManager.get('pauseCircle', { size: 32 })}</div>` : ''}
                 </div>
                 <div class="sound-name" title="${Utils.escapeAttr(item.title)}">${Utils.escapeHtml(item.title)}</div>
                 

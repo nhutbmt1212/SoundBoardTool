@@ -6,7 +6,6 @@ const API = {
         try {
             return await eel.get_settings()();
         } catch (e) {
-            console.log('No saved settings');
             return {};
         }
     },
@@ -84,7 +83,6 @@ const API = {
         try {
             return await eel.is_mic_enabled()();
         } catch (e) {
-            console.log('Mic status check failed');
             return false;
         }
     },

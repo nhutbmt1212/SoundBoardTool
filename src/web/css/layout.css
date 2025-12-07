@@ -96,6 +96,8 @@
     flex-direction: column;
     z-index: 30;
     transition: width 0.3s ease;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* Responsive */

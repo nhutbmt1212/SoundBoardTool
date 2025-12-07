@@ -108,14 +108,12 @@ class YouTubeStream:
         cache_key = self._get_cache_key(url)
         output_template = self.cache_dir / cache_key
         
-        print(f"⬇ Downloading YouTube audio...")
-        
         ydl_opts = {
             'format': 'bestaudio[ext=m4a]/bestaudio/best',
             'outtmpl': str(output_template),  # Không thêm extension, để yt-dlp tự động
-            'quiet': False,
-            'no_warnings': False,
-            'progress_hooks': [lambda d: print(f"  {d.get('_percent_str', '')} {d.get('_speed_str', '')}") if d['status'] == 'downloading' else None],
+            'quiet': True,
+            'no_warnings': True,
+            'progress_hooks': [],
         }
         
         try:
@@ -132,7 +130,6 @@ class YouTubeStream:
                         break
                 
                 if not output_file:
-                    print(f"❌ Downloaded file not found!")
                     return None, None
                 
                 # Lưu vào index
@@ -143,13 +140,9 @@ class YouTubeStream:
                 }
                 self._save_cache_index()
                 
-                print(f"✓ Downloaded: {title} -> {output_file.name}")
                 return str(output_file), title
                 
         except Exception as e:
-            print(f"❌ Download failed: {e}")
-            import traceback
-            traceback.print_exc()
             return None, None
     
     def play(self, url: str) -> dict:
@@ -167,11 +160,9 @@ class YouTubeStream:
             cached_file, title = self._get_cached_file(url)
             
             if cached_file:
-                print(f"⚡ CACHED! Playing: {title}")
                 audio_source = cached_file
             else:
                 # Chưa có cache - tải về lần đầu
-                print(f"📥 First time - downloading...")
                 cached_file, title = self._download_and_cache(url)
                 if not cached_file:
                     return {'success': False, 'error': 'Failed to download'}
@@ -191,11 +182,9 @@ class YouTubeStream:
             self._thread.start()
             self.playing = True
             
-            print(f"▶ YouTube: {title}")
             return {'success': True, 'title': title}
                 
         except Exception as e:
-            print(f"YouTube error: {e}")
             return {'success': False, 'error': str(e)}
     
     def _extract_audio_url(self, info: dict) -> str:
@@ -269,8 +258,6 @@ class YouTubeStream:
             time.sleep(0.5)
             
             if self._process.poll() is not None:
-                stderr = self._process.stderr.read().decode('utf-8', errors='ignore')
-                print(f"FFmpeg error: {stderr[:500]}")
                 return
             
             # Open streams
@@ -312,11 +299,6 @@ class YouTubeStream:
                             speaker_stream.write(audio_out)
                         except Exception:
                             pass
-                    
-                    frame_count += 1
-                    if frame_count == 10:
-                        level = np.abs(audio).max()
-                        print(f"YouTube streaming... (audio level: {level:.4f})")
             finally:
                 vb_stream.stop()
                 vb_stream.close()
@@ -326,13 +308,10 @@ class YouTubeStream:
                     
         except Exception as e:
             if not self._stop_event.is_set():
-                print(f"YouTube stream error: {e}")
-                import traceback
-                traceback.print_exc()
+                pass
         finally:
             self._cleanup_process()
             self.playing = False
-            print("YouTube stream ended")
     
     def _open_speaker_stream(self, samplerate, channels, blocksize):
         """Open speaker stream for monitoring"""
@@ -351,7 +330,7 @@ class YouTubeStream:
                 stream.start()
                 return stream
         except Exception as e:
-            print(f"Speaker output not available: {e}")
+            pass
         return None
     
     def _cleanup_process(self):
