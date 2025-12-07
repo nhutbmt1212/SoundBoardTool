@@ -649,6 +649,49 @@ const EventHandlers = {
                 }
             }
         }
+    },
+
+    // Toggle YouTube scream mode
+    toggleYoutubeScreamMode(url) {
+        if (!url) {
+            // Fallback try to get from selected item if no URL passed (should not happen with new UI)
+            if (AppState.selectedYoutubeItem) url = AppState.selectedYoutubeItem.url;
+            else return;
+        }
+
+        const checkbox = document.getElementById('yt-scream-checkbox');
+        const isScream = checkbox.checked;
+        AppState.setYoutubeScreamMode(url, isScream);
+        this.saveSettings();
+
+        // Update label
+        const label = checkbox.parentElement.querySelector('.scream-label');
+        if (label) label.textContent = isScream ? 'ON - 5000% BOOST!' : 'OFF';
+
+        // Update wave animation
+        const wave = document.querySelector('.panel-preview .preview-wave');
+        if (wave) wave.classList.toggle('scream-active', isScream);
+
+        // Notify backend of changed settings? 
+        // Currently backend reads settings only when play is triggered.
+        // That is fine.
+    },
+
+    // Toggle YouTube pitch mode
+    toggleYoutubePitchMode(url) {
+        if (!url) {
+            if (AppState.selectedYoutubeItem) url = AppState.selectedYoutubeItem.url;
+            else return;
+        }
+
+        const checkbox = document.getElementById('yt-pitch-checkbox');
+        const isPitch = checkbox.checked;
+        AppState.setYoutubePitchMode(url, isPitch);
+        this.saveSettings();
+
+        // Update label
+        const label = checkbox.parentElement.querySelector('.pitch-label');
+        if (label) label.textContent = isPitch ? 'ON - HIGH PITCH!' : 'OFF';
     }
 };
 

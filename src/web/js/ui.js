@@ -48,7 +48,7 @@ const UI = {
         if (sounds.length === 0) {
             grid.innerHTML = `
                 <div class="empty-state">
-                    <span class="empty-icon">${Icons.folder}</span>
+                    <span class="empty-icon">${IconManager.get('folder', { size: 64 })}</span>
                     <h2>No sounds found</h2>
                     <p>Click ${icon('add', 16)} to add sounds</p>
                 </div>
@@ -73,7 +73,7 @@ const UI = {
         return `
             <div class="sound-card ${isScream ? 'scream-mode' : ''} ${isPitch ? 'pitch-mode' : ''}" data-name="${Utils.escapeAttr(name)}">
                 <div class="sound-thumbnail">
-                    <span class="thumb-icon">${Icons.waveform}</span>
+                    <span class="thumb-icon">${IconManager.get('waveform')}</span>
                     ${badges.length ? `<span class="mode-badges">${badges.join('')}</span>` : ''}
                 </div>
                 <div class="sound-name" title="${Utils.escapeAttr(displayName)}">${Utils.escapeHtml(displayName)}</div>
@@ -178,7 +178,7 @@ const UI = {
     showEmptyPanel() {
         document.getElementById('right-panel').innerHTML = `
             <div class="panel-placeholder">
-                <span class="placeholder-icon">${Icons.waveform}</span>
+                <span class="placeholder-icon">${IconManager.get('waveform', { size: 64 })}</span>
                 <p>Click a sound to edit</p>
             </div>
         `;
@@ -266,8 +266,16 @@ const UI = {
             </div>
             
             <div class="panel-preview">
-                <div class="sound-thumbnail youtube-thumbnail" style="width: 120px; height: 80px;">
-                    <span class="thumb-icon" style="opacity: 1;">${Icons.waveform}</span>
+                <div class="preview-wave scream-active">
+                    <div class="wave-animation">
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                    </div>
                 </div>
             </div>
             
@@ -288,6 +296,26 @@ const UI = {
                            oninput="onYoutubeVolumeChange(this.value)">
                     <span class="volume-value" id="youtube-volume-value">100%</span>
                 </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-title">${IconManager.get('scream', { size: 16 })} Scream Mode</div>
+                <label class="scream-toggle">
+                    <input type="checkbox" id="yt-scream-checkbox" ${AppState.isYoutubeScreamMode(item.url) ? 'checked' : ''} onchange="EventHandlers.toggleYoutubeScreamMode('${Utils.escapeAttr(item.url)}')">
+                    <span class="scream-slider"></span>
+                    <span class="scream-label">${AppState.isYoutubeScreamMode(item.url) ? 'ON - 5000% BOOST!' : 'OFF'}</span>
+                </label>
+                <div class="scream-hint">Boost volume to max for trolling</div>
+            </div>
+            
+            <div class="panel-section">
+                <div class="panel-section-title">${IconManager.get('chipmunk', { size: 16 })} Chipmunk Mode</div>
+                <label class="pitch-toggle">
+                    <input type="checkbox" id="yt-pitch-checkbox" ${AppState.isYoutubePitchMode(item.url) ? 'checked' : ''} onchange="EventHandlers.toggleYoutubePitchMode('${Utils.escapeAttr(item.url)}')">
+                    <span class="pitch-slider"></span>
+                    <span class="pitch-label">${AppState.isYoutubePitchMode(item.url) ? 'ON - HIGH PITCH!' : 'OFF'}</span>
+                </label>
+                <div class="pitch-hint">Speed up audio for chipmunk voice</div>
             </div>
             
             <div class="panel-actions">
@@ -338,7 +366,7 @@ const UI = {
         return `
             <div class="sound-card youtube-item ${isPlaying ? 'playing' : ''} ${isPaused ? 'paused' : ''}" data-url="${Utils.escapeAttr(item.url)}">
                 <div class="sound-thumbnail youtube-thumbnail">
-                    <span class="thumb-icon">${Icons.waveform}</span>
+                    <span class="thumb-icon">${IconManager.get('waveform')}</span>
                     ${isPlaying && !isPaused ? `<div class="playing-indicator">${IconManager.get('playCircle', { size: 32 })}</div>` : ''}
                     ${isPaused ? `<div class="playing-indicator">${IconManager.get('pauseCircle', { size: 32 })}</div>` : ''}
                 </div>

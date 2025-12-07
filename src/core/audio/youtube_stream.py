@@ -56,6 +56,7 @@ class YouTubeStream:
     def __init__(self, vb_manager):
         self.vb_manager = vb_manager
         self.volume = 1.0
+        self.pitch = 1.0
         self.playing = False
         self.paused = False
         self.current_url = None
@@ -214,32 +215,45 @@ class YouTubeStream:
             # Kiểm tra xem là file local hay URL
             is_local_file = os.path.exists(audio_source)
             
-            # Build FFmpeg command
-            if is_local_file:
-                # File local - không cần reconnect
-                ffmpeg_cmd = [
-                    ffmpeg_exe,
-                    '-i', audio_source,
-                    '-f', 's16le',
-                    '-acodec', 'pcm_s16le',
-                    '-ar', str(samplerate),
-                    '-ac', str(channels),
-                    '-'
-                ]
-            else:
-                # URL stream - cần reconnect
-                ffmpeg_cmd = [
-                    ffmpeg_exe,
+            # Build FFmpeg command with filtering support
+            filter_complex = []
+            
+            # Volume is handled in python now, but let's keep it simple
+            # Pitch shifting
+            if abs(self.pitch - 1.0) > 0.01:
+                # asetrate method for simple resampling pitch shift (chipmunk effect)
+                # new_rate = sample_rate * pitch
+                new_rate = int(samplerate * self.pitch)
+                filter_complex.append(f"asetrate={new_rate}")
+                
+            # If we need to maintain standard sample rate output after asetrate,
+            # we might need resampling, but playing raw PCM usually dictates the rate
+            # However, VB-Cable expects specific rate. 
+            # If we change rate, we speed up/slow down.
+            # Wait, standard chipmunk is speed up.
+            
+            # Construct command
+            cmd = [ffmpeg_exe]
+            
+            if not is_local_file:
+                cmd.extend([
                     '-reconnect', '1',
                     '-reconnect_streamed', '1',
-                    '-reconnect_delay_max', '5',
-                    '-i', audio_source,
-                    '-f', 's16le',
-                    '-acodec', 'pcm_s16le',
-                    '-ar', str(samplerate),
-                    '-ac', str(channels),
-                    '-'
-                ]
+                    '-reconnect_delay_max', '5'
+                ])
+                
+            cmd.extend(['-i', audio_source])
+            
+            if filter_complex:
+                cmd.extend(['-af', ','.join(filter_complex)])
+                
+            cmd.extend([
+                '-f', 's16le',
+                '-acodec', 'pcm_s16le',
+                '-ar', str(samplerate),
+                '-ac', str(channels),
+                '-'
+            ])
             
             startupinfo = None
             if os.name == 'nt':
@@ -247,7 +261,7 @@ class YouTubeStream:
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             
             self._process = subprocess.Popen(
-                ffmpeg_cmd,
+                cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 bufsize=8192,
@@ -388,3 +402,7 @@ class YouTubeStream:
     def set_volume(self, vol: float):
         """Set stream volume (0.0 - 2.0)"""
         self.volume = max(0.0, min(2.0, vol))
+
+    def set_pitch(self, pitch: float):
+        """Set pitch multiplier (1.0 = normal, 1.5 = chipmunk)"""
+        self.pitch = pitch

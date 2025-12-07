@@ -138,6 +138,9 @@ class AudioEngine:
     
     def set_youtube_volume(self, vol: float):
         self.youtube.set_volume(vol)
+        
+    def set_youtube_pitch(self, pitch: float):
+        self.youtube.set_pitch(pitch)
     
     # === Cleanup ===
     

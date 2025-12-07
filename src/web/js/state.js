@@ -8,6 +8,9 @@ const AppState = {
     youtubeKeybinds: {},
     soundScreamMode: {},
     soundPitchMode: {},
+    youtubeScreamMode: {},
+    youtubePitchMode: {},
+
     soundNames: {},
     stopAllKeybind: '',
     isRecordingKeybind: false,
@@ -45,6 +48,14 @@ const AppState = {
         return this.soundNames[name] || name;
     },
 
+    isYoutubeScreamMode(url) {
+        return this.youtubeScreamMode[url] || false;
+    },
+
+    isYoutubePitchMode(url) {
+        return this.youtubePitchMode[url] || false;
+    },
+
     // Setters
     setVolume(name, value) {
         this.soundVolumes[name] = parseInt(value);
@@ -74,6 +85,14 @@ const AppState = {
         }
     },
 
+    setYoutubeScreamMode(url, enabled) {
+        this.youtubeScreamMode[url] = enabled;
+    },
+
+    setYoutubePitchMode(url, enabled) {
+        this.youtubePitchMode[url] = enabled;
+    },
+
     // Remove sound data
     removeSound(name) {
         delete this.soundVolumes[name];
@@ -92,6 +111,9 @@ const AppState = {
         this.soundPitchMode = settings.pitchMode || {};
         this.soundNames = settings.names || {};
         this.stopAllKeybind = settings.stopAllKeybind || '';
+        // Backwards compatibility check - if boolean, reset to empty object
+        this.youtubeScreamMode = (typeof settings.youtubeScreamMode === 'object') ? settings.youtubeScreamMode : {};
+        this.youtubePitchMode = (typeof settings.youtubePitchMode === 'object') ? settings.youtubePitchMode : {};
     },
 
     // Export to settings object
@@ -103,7 +125,9 @@ const AppState = {
             screamMode: this.soundScreamMode,
             pitchMode: this.soundPitchMode,
             names: this.soundNames,
-            stopAllKeybind: this.stopAllKeybind
+            stopAllKeybind: this.stopAllKeybind,
+            youtubeScreamMode: this.youtubeScreamMode,
+            youtubePitchMode: this.youtubePitchMode
         };
     }
 };

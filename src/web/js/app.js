@@ -1,6 +1,7 @@
 // Soundboard Pro - Main Entry Point
 
 document.addEventListener('DOMContentLoaded', async () => {
+    Notifications.init();
     await init();
 });
 

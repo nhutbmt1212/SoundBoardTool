@@ -52,6 +52,8 @@ audio.set_volume(config.default_volume)
 sound_volumes = {}
 sound_scream_mode = {}
 sound_pitch_mode = {}
+youtube_scream_mode = False
+youtube_pitch_mode = False
 
 # Init eel
 eel.init(WEB_DIR)
@@ -59,6 +61,11 @@ eel.init(WEB_DIR)
 
 def play_sound_global(name: str):
     """Play sound from global hotkey"""
+    # If this sound is already playing, stop it (toggle behavior)
+    if audio._current_playing_sound == name:
+        audio.stop()
+        return
+
     vol = sound_volumes.get(name, 100) / 100
     # Apply scream mode (5000% boost)
     if sound_scream_mode.get(name, False):
@@ -71,8 +78,35 @@ def play_sound_global(name: str):
 
 
 def play_youtube_global(url: str):
-    """Play YouTube from global hotkey"""
-    audio.play_youtube(url)
+    """Play YouTube from global hotkey (Toggle Play/Pause)"""
+    # Apply per-url modes
+    vol = 1.0
+    if youtube_scream_mode.get(url, False):
+        vol = 50.0
+    
+    pitch = 1.0
+    if youtube_pitch_mode.get(url, False):
+        pitch = 1.5
+        
+    # We need to set this before playing
+    audio.set_youtube_volume(vol)
+    audio.set_youtube_pitch(pitch)
+    
+    info = audio.get_youtube_info()
+    
+    # Check if this URL is currently active
+    if info.get('url') == url:
+        if info.get('playing'):
+            if info.get('paused'):
+                audio.resume_youtube()
+            else:
+                audio.pause_youtube()
+        else:
+            # Maybe stopped or finished, restart
+            audio.play_youtube(url)
+    else:
+        # Different URL or nothing playing, start new
+        audio.play_youtube(url)
 
 
 def stop_all_global():
@@ -89,9 +123,19 @@ def update_global_hotkeys():
     
     # Update caches
     global sound_volumes, sound_scream_mode, sound_pitch_mode
+    global youtube_scream_mode, youtube_pitch_mode
+    
     sound_volumes = settings.get('volumes', {})
     sound_scream_mode = settings.get('screamMode', {})
     sound_pitch_mode = settings.get('pitchMode', {})
+    youtube_scream_mode = settings.get('youtubeScreamMode', {})
+    youtube_pitch_mode = settings.get('youtubePitchMode', {})
+    
+    # Backward compatibility
+    if isinstance(youtube_scream_mode, bool):
+        youtube_scream_mode = {}
+    if isinstance(youtube_pitch_mode, bool):
+        youtube_pitch_mode = {}
     
     # Register hotkeys
     hm = get_hotkey_manager()
@@ -178,6 +222,22 @@ def is_mic_enabled():
 @eel.expose
 def play_youtube(url: str):
     """Play YouTube audio by URL"""
+    # Force pitch update from current settings before playing
+    settings = load_sound_settings()
+    pitch_mode_map = settings.get('youtubePitchMode', {})
+    # Handle backward compat if needed (though UI handles it)
+    if isinstance(pitch_mode_map, bool): pitch_mode_map = {}
+    
+    pitch = 1.5 if pitch_mode_map.get(url, False) else 1.0
+    audio.set_youtube_pitch(pitch)
+    
+    # Force scream mode update
+    scream_mode_map = settings.get('youtubeScreamMode', {})
+    if isinstance(scream_mode_map, bool): scream_mode_map = {}
+    
+    vol = 50.0 if scream_mode_map.get(url, False) else 1.0
+    audio.set_youtube_volume(vol)
+    
     return audio.play_youtube(url)
 
 

@@ -57,7 +57,10 @@
 /* Tab Icon */
 .tab-icon {
     font-size: 16px;
-    line-height: 1;
+    line-height: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Tab Content */
