@@ -118,6 +118,12 @@ class AudioEngine:
     
     def stop_youtube(self):
         self.youtube.stop()
+        
+    def pause_youtube(self):
+        self.youtube.pause()
+        
+    def resume_youtube(self):
+        self.youtube.resume()
     
     def is_youtube_playing(self) -> bool:
         return self.youtube.is_playing()

@@ -124,6 +124,22 @@ const API = {
         }
     },
 
+    async pauseYoutube() {
+        try {
+            await eel.pause_youtube()();
+        } catch (e) {
+            console.error('Error pausing YouTube:', e);
+        }
+    },
+
+    async resumeYoutube() {
+        try {
+            await eel.resume_youtube()();
+        } catch (e) {
+            console.error('Error resuming YouTube:', e);
+        }
+    },
+
     async getYoutubeInfo() {
         try {
             return await eel.get_youtube_info()();

@@ -181,6 +181,18 @@ def stop_youtube():
 
 
 @eel.expose
+def pause_youtube():
+    """Pause YouTube streaming"""
+    audio.pause_youtube()
+
+
+@eel.expose
+def resume_youtube():
+    """Resume YouTube streaming"""
+    audio.resume_youtube()
+
+
+@eel.expose
 def save_youtube_as_sound(url: str):
     """Save YouTube cache as a sound item"""
     import shutil
@@ -486,6 +498,7 @@ def main():
         'size': (1100, 750),
         'close_callback': on_close,
         'port': 0,  # Auto port
+        'cmdline_args': ['--disable-extensions']
     }
     
     if browser_mode:
@@ -514,7 +527,10 @@ def main():
     except Exception as e:
         print(f"Error: {e}")
         try:
-            eel.start('index.html', size=(1100, 750), mode='default', close_callback=on_close, block=False)
+            # Use specific browser args to disable extensions
+            eel.start('index.html', size=(1100, 750), mode='default', 
+                     cmdline_args=['--disable-extensions'],
+                     close_callback=on_close, block=False)
             track_browser_process()
             while True:
                 eel.sleep(1.0)

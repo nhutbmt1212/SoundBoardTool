@@ -367,7 +367,36 @@ const EventHandlers = {
     // YouTube Items Management
     async refreshYoutubeItems() {
         const items = await API.getYoutubeItems();
-        UI.renderYoutubeGrid(items);
+        const info = await API.getYoutubeInfo();
+        UI.renderYoutubeGrid(items, info);
+        this.setupYoutubeCardEvents(items);
+    },
+
+    // Setup YouTube card events
+    setupYoutubeCardEvents(items) {
+        const grid = document.getElementById('youtube-grid');
+
+        // Single click - select
+        grid.onclick = (e) => {
+            const card = e.target.closest('.youtube-item');
+            if (!card) return;
+
+            // Ignore if clicking action buttons
+            if (e.target.closest('.youtube-actions') || e.target.closest('.btn-yt-action')) return;
+
+            const url = card.dataset.url;
+            // Find item object
+            const item = items.find(i => i.url === url);
+            if (item) {
+                this.selectYoutubeItem(item);
+            }
+        };
+    },
+
+    selectYoutubeItem(item) {
+        AppState.selectedYoutubeItem = item;
+        UI.selectYoutubeCard(item.url);
+        UI.showYoutubePanel(item);
     },
 
     async showAddYoutubeDialog() {
@@ -385,10 +414,23 @@ const EventHandlers = {
     },
 
     async playYoutubeItem(url) {
+        // Check if resuming
+        const info = await API.getYoutubeInfo();
+        if (info.url === url && info.paused) {
+            await API.resumeYoutube();
+            this.refreshYoutubeItems();
+            return;
+        }
+
         const result = await API.playYoutube(url);
         if (result.success) {
             this.refreshYoutubeItems();
         }
+    },
+
+    async pauseYoutubeItem(url) {
+        await API.pauseYoutube();
+        this.refreshYoutubeItems();
     },
 
     async deleteYoutubeItem(url) {
@@ -429,10 +471,17 @@ const EventHandlers = {
 
         AppState.youtubePlayingInterval = setInterval(async () => {
             const info = await API.getYoutubeInfo();
+            // Update UI with paused state if needed, or just stop if not playing
             if (!info.playing) {
                 UI.updateYoutubeUI(false);
                 clearInterval(AppState.youtubePlayingInterval);
                 AppState.youtubePlayingInterval = null;
+                // Refresh grid to remove playing indicators
+                EventHandlers.refreshYoutubeItems();
+            } else {
+                // Update grid periodically to show play/pause state
+                // This might be too heavy? Maybe just when state changes?
+                // For now, let's just accept it might not auto-update pause state if changed externally
             }
         }, 2000);
     },
@@ -498,5 +547,6 @@ window.switchTab = (tabName) => {
 window.showAddYoutubeDialog = () => EventHandlers.showAddYoutubeDialog();
 window.refreshYoutubeItems = () => EventHandlers.refreshYoutubeItems();
 window.playYoutubeItem = (url) => EventHandlers.playYoutubeItem(url);
+window.pauseYoutubeItem = (url) => EventHandlers.pauseYoutubeItem(url);
 window.deleteYoutubeItem = (url) => EventHandlers.deleteYoutubeItem(url);
 window.bindYoutubeKey = (url) => EventHandlers.bindYoutubeKey(url);

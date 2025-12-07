@@ -2,6 +2,7 @@
 
 const AppState = {
     selectedSound: null,
+    selectedYoutubeItem: null,
     soundVolumes: {},
     soundKeybinds: {},
     soundScreamMode: {},

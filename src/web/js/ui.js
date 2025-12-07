@@ -235,8 +235,60 @@ const UI = {
         document.getElementById('btn-youtube-play').disabled = false;
     },
 
+    // Select YouTube card visually
+    selectYoutubeCard(url) {
+        document.querySelectorAll('.youtube-item').forEach(card => {
+            card.classList.toggle('selected', card.dataset.url === url);
+        });
+    },
+
+    // Show panel for YouTube item
+    showYoutubePanel(item) {
+        const panel = document.getElementById('right-panel');
+
+        panel.innerHTML = `
+            <div class="panel-header">
+                <div class="panel-sound-name" title="${Utils.escapeAttr(item.title)}">${Utils.escapeHtml(item.title)}</div>
+                <div class="panel-sound-info" title="${Utils.escapeAttr(item.url)}">${Utils.escapeHtml(item.url)}</div>
+            </div>
+            
+            <div class="panel-preview">
+                <div class="sound-thumbnail youtube-thumbnail" style="width: 120px; height: 80px;">
+                    <span class="thumb-icon" style="opacity: 1;">📺</span>
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <div class="panel-section-title">${icon('volume', 16)} Global YouTube Volume</div>
+                <div class="volume-control">
+                    <input type="range" class="volume-slider" id="youtube-volume" 
+                           min="0" max="100" value="100"
+                           oninput="onYoutubeVolumeChange(this.value)">
+                    <span class="volume-value" id="youtube-volume-value">100%</span>
+                </div>
+            </div>
+            
+            <div class="panel-actions">
+                <button class="btn-panel btn-play" onclick="playYoutubeItem('${Utils.escapeAttr(item.url)}')">${icon('play', 14)} Play</button>
+                <button class="btn-panel btn-stop" onclick="pauseYoutubeItem('${Utils.escapeAttr(item.url)}')">${icon('pause', 14)} Pause</button>
+            </div>
+            
+            <div class="panel-actions">
+                 <button class="btn-panel btn-stop" onclick="stopYoutube()">${icon('stop', 14)} Stop Playback</button>
+            </div>
+            
+            <div class="panel-actions">
+                <button class="btn-panel btn-stop" style="color: var(--primary); border-color: var(--primary);" onclick="window.saveYoutubeAsSound()">${icon('add', 14)} Save as Sound</button>
+            </div>
+
+            <div class="panel-actions">
+                <button class="btn-panel btn-delete" onclick="deleteYoutubeItem('${Utils.escapeAttr(item.url)}')">${icon('trash', 14)} Delete</button>
+            </div>
+        `;
+    },
+
     // Render YouTube grid
-    renderYoutubeGrid(items) {
+    renderYoutubeGrid(items, info) {
         const grid = document.getElementById('youtube-grid');
 
         if (!items || items.length === 0) {
@@ -250,22 +302,49 @@ const UI = {
             return;
         }
 
-        grid.innerHTML = items.map(item => this.renderYoutubeItem(item)).join('');
+        grid.innerHTML = items.map(item => this.renderYoutubeItem(item, info)).join('');
     },
 
     // Render single YouTube item
-    renderYoutubeItem(item) {
+    renderYoutubeItem(item, info) {
         const keybind = item.keybind || '';
-        const isPlaying = false; // TODO: Check if playing
+        const isCurrentUrl = info && info.url === item.url;
+        const isPlaying = isCurrentUrl && info.playing;
+        const isPaused = isCurrentUrl && info.paused;
+
+        // Determine button state
+        let actionBtn;
+        if (isPlaying && !isPaused) {
+            // Playing -> Show Pause
+            actionBtn = `
+                <button class="btn-yt-action pause" onclick="event.stopPropagation(); pauseYoutubeItem('${Utils.escapeAttr(item.url)}')" title="Pause">
+                    ${icon('pause', 12)}
+                </button>
+            `;
+        } else {
+            // Paused or Stopped -> Show Play
+            // If Paused, Play will Resume
+            actionBtn = `
+                <button class="btn-yt-action play" onclick="event.stopPropagation(); playYoutubeItem('${Utils.escapeAttr(item.url)}')" title="${isPaused ? 'Resume' : 'Play'}">
+                    ${icon('play', 12)}
+                </button>
+            `;
+        }
 
         return `
-            <div class="youtube-item ${isPlaying ? 'playing' : ''}" data-url="${item.url}">
-                <div class="youtube-item-icon">📺</div>
-                <div class="youtube-item-title" title="${item.title}">${item.title}</div>
-                ${keybind ? `<div class="youtube-item-keybind">${keybind}</div>` : ''}
-                <div class="youtube-item-actions">
-                    <button class="youtube-item-btn play" onclick="playYoutubeItem('${item.url}')">▶</button>
-                    <button class="youtube-item-btn delete" onclick="deleteYoutubeItem('${item.url}')">🗑</button>
+            <div class="sound-card youtube-item ${isPlaying ? 'playing' : ''} ${isPaused ? 'paused' : ''}" data-url="${item.url}">
+                <div class="sound-thumbnail youtube-thumbnail">
+                    <span class="thumb-icon">📺</span>
+                    ${isPlaying && !isPaused ? '<div class="playing-indicator">▶</div>' : ''}
+                    ${isPaused ? '<div class="playing-indicator">⏸</div>' : ''}
+                </div>
+                <div class="sound-name" title="${Utils.escapeAttr(item.title)}">${Utils.escapeHtml(item.title)}</div>
+                
+                <div class="youtube-actions">
+                    ${actionBtn}
+                    <button class="btn-yt-action delete" onclick="event.stopPropagation(); deleteYoutubeItem('${Utils.escapeAttr(item.url)}')" title="Delete">
+                        ${icon('trash', 12)}
+                    </button>
                 </div>
             </div>
         `;

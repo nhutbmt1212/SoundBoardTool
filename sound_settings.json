@@ -6,7 +6,8 @@
   "keybinds": {
     "snaptt.me-47352902": "Shift + 1",
     "snaptt.me-6811697": "Shift + 3",
-    "LUNABALA": "Shift + 2"
+    "LUNABALA": "Shift + 2",
+    "32553bac-104b-4cc2-9634-21f7b74f010c": "Shift + 0"
   },
   "screamMode": {
     "snaptt.me-6811697": true,
@@ -16,7 +17,7 @@
   },
   "pitchMode": {
     "snaptt.me-6811697": false,
-    "LUNABALA": true,
+    "LUNABALA": false,
     "snaptt.me-47352902": true
   },
   "names": {

@@ -57,6 +57,7 @@ class YouTubeStream:
         self.vb_manager = vb_manager
         self.volume = 1.0
         self.playing = False
+        self.paused = False
         self.current_url = None
         self.current_title = None
         
@@ -179,6 +180,7 @@ class YouTubeStream:
             # Phát file đã cache
             self.current_url = url
             self.current_title = title
+            self.paused = False
             self._stop_event.clear()
             
             self._thread = threading.Thread(
@@ -288,6 +290,12 @@ class YouTubeStream:
             try:
                 frame_count = 0
                 while not self._stop_event.is_set():
+                    # Handle pause
+                    if self.paused:
+                        import time
+                        time.sleep(0.1)
+                        continue
+
                     raw_data = self._process.stdout.read(blocksize * bytes_per_sample)
                     if not raw_data:
                         break
@@ -372,8 +380,19 @@ class YouTubeStream:
             self._thread = None
         
         self.playing = False
+        self.paused = False
         self.current_url = None
         self.current_title = None
+    
+    def pause(self):
+        """Pause playback"""
+        if self.playing:
+            self.paused = True
+            
+    def resume(self):
+        """Resume playback"""
+        if self.playing:
+            self.paused = False
     
     def is_playing(self) -> bool:
         return self.playing
@@ -382,6 +401,7 @@ class YouTubeStream:
         """Get current stream info"""
         return {
             'playing': self.playing,
+            'paused': self.paused,
             'title': self.current_title,
             'url': self.current_url
         }
