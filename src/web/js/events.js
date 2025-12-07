@@ -18,6 +18,7 @@ const EventHandlers = {
     onSoundNameChange: (value) => SoundEvents.onNameChange(value),
     toggleScreamMode: () => SoundEvents.toggleScreamMode(),
     togglePitchMode: () => SoundEvents.togglePitchMode(),
+    onTrimChange: () => SoundEvents.onTrimChange(),
 
     // ==================== Keybind Handlers (delegated to KeybindEvents) ====================
     startKeybindRecord: (name) => KeybindEvents.startSoundKeybindRecord(name),

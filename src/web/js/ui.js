@@ -151,6 +151,11 @@ const UI = {
             </div>
             
             <div class="panel-section">
+                <div class="panel-section-title">${icon('clock', 16)} Trim Audio</div>
+                <div id="waveform-container"></div>
+            </div>
+            
+            <div class="panel-section">
                 <div class="panel-section-title">${IconManager.get('scream', { size: 16 })} Scream Mode</div>
                 <label class="scream-toggle">
                     <input type="checkbox" id="scream-checkbox" ${isScream ? 'checked' : ''} onchange="EventHandlers.toggleScreamMode()">
@@ -179,6 +184,16 @@ const UI = {
                 <button class="btn-panel btn-delete" onclick="EventHandlers.deleteSound('${Utils.escapeAttr(name)}')">${icon('trash', 14)} Delete</button>
             </div>
         `;
+
+        // Initialize waveform visualizer after DOM is ready
+        setTimeout(() => {
+            console.log('[UI] Initializing range slider for:', name);
+            if (window.RangeSlider) {
+                new RangeSlider('waveform-container', name);
+            } else {
+                console.error('[UI] RangeSlider class not found!');
+            }
+        }, 100);
     },
 
     // Show empty panel
