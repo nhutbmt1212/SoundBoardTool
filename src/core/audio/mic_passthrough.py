@@ -1,5 +1,6 @@
-"""Microphone Passthrough - Routes mic audio to VB-Cable"""
-import queue
+"""Microphone Passthrough - Routes mic audio to VB-Cable with minimal latency"""
+import numpy as np
+import threading
 
 try:
     import sounddevice as sd
@@ -8,9 +9,15 @@ except ImportError:
     SD_AVAILABLE = False
     sd = None
 
+try:
+    from scipy import signal
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+
 
 class MicPassthrough:
-    """Handles microphone audio routing to VB-Cable"""
+    """Handles microphone audio routing to VB-Cable with optimized low-latency passthrough"""
     
     def __init__(self, vb_manager):
         self.vb_manager = vb_manager
@@ -21,11 +28,7 @@ class MicPassthrough:
         self._input_stream = None
         self._output_stream = None
         self._buffer = None
-        self._resample_ratio = None
-        
-        # Overflow tracking
-        self._overflow_count = 0
-        self._last_overflow_report = 0
+        self._buffer_lock = threading.Lock()
         
         self._detect_mic()
     
@@ -70,9 +73,10 @@ class MicPassthrough:
     def set_volume(self, vol: float):
         """Set passthrough volume (0.0 - 2.0)"""
         self.volume = max(0.0, min(2.0, vol))
+        print(f"Mic volume set to: {self.volume:.2f}")
     
     def start(self) -> bool:
-        """Start routing mic to VB-Cable"""
+        """Start routing mic to VB-Cable with minimal latency"""
         if not SD_AVAILABLE:
             return False
         
@@ -84,65 +88,94 @@ class MicPassthrough:
             return True  # Already running
         
         try:
-            # Larger buffer to prevent overflow (was 20, now 100)
-            self._buffer = queue.Queue(maxsize=100)
-            self._overflow_count = 0
-            self._last_overflow_report = 0
-            
             # Get sample rates
             vb_samplerate = self.vb_manager.get_samplerate()
             mic_info = sd.query_devices(self.device_id)
             mic_samplerate = int(mic_info['default_samplerate'])
             
+            # Optimal blocksize for balance between latency and stability
             blocksize = 512
-            self._resample_ratio = mic_samplerate / vb_samplerate if mic_samplerate != vb_samplerate else None
             
-            print(f"Mic passthrough: mic={mic_samplerate}Hz, vb={vb_samplerate}Hz")
+            # Buffer size: 10 frames for stability without too much latency
+            # At 48kHz with blocksize=512: ~106ms total buffer (acceptable for voice)
+            buffer_frames = 10
+            self._buffer = np.zeros((blocksize * buffer_frames, 1), dtype='float32')
+            self._write_pos = 0
+            self._read_pos = 0
             
-            # Create callbacks
+            # Pre-fill buffer to middle to prevent initial underrun
+            self._write_pos = (blocksize * buffer_frames) // 2
+            
+            print(f"Mic passthrough: mic={mic_samplerate}Hz, vb={vb_samplerate}Hz, blocksize={blocksize}")
+            
+            # Store reference to self for callbacks
             engine = self
             
             def input_callback(indata, frames, time, status):
-                # Track overflow but don't spam console
-                if status:
-                    if 'overflow' in str(status).lower():
-                        engine._overflow_count += 1
-                        # Report every 100 overflows instead of every single one
-                        if engine._overflow_count - engine._last_overflow_report >= 100:
-                            print(f"Mic input overflow (total: {engine._overflow_count})")
-                            engine._last_overflow_report = engine._overflow_count
-                    else:
-                        print(f"Mic input: {status}")
+                """Capture mic input with volume applied"""
+                if status and 'overflow' not in str(status).lower():
+                    print(f"Mic input: {status}")
                 
-                try:
-                    data = indata.copy() * engine.volume
+                # Apply volume and write to circular buffer
+                with engine._buffer_lock:
+                    data = indata * engine.volume
                     
-                    if engine._resample_ratio and engine._resample_ratio != 1.0:
-                        from scipy import signal
-                        target_length = int(len(data) / engine._resample_ratio)
-                        data = signal.resample(data, target_length)
+                    # Handle sample rate mismatch with high-quality resampling
+                    if mic_samplerate != vb_samplerate:
+                        if SCIPY_AVAILABLE:
+                            # Use scipy for high-quality resampling
+                            ratio = vb_samplerate / mic_samplerate
+                            new_length = int(len(data) * ratio)
+                            data = signal.resample(data, new_length).astype('float32')
+                        else:
+                            # Fallback to linear interpolation
+                            ratio = vb_samplerate / mic_samplerate
+                            new_length = int(len(data) * ratio)
+                            indices = np.linspace(0, len(data) - 1, new_length)
+                            data = np.interp(indices, np.arange(len(data)), data.flatten()).reshape(-1, 1).astype('float32')
                     
-                    engine._buffer.put_nowait(data)
-                except queue.Full:
-                    # Buffer full, skip this frame (graceful degradation)
-                    pass
-                except Exception as e:
-                    print(f"Mic resample error: {e}")
+                    # Write to circular buffer
+                    buffer_len = len(engine._buffer)
+                    data_len = len(data)
+                    
+                    if engine._write_pos + data_len <= buffer_len:
+                        engine._buffer[engine._write_pos:engine._write_pos + data_len] = data
+                    else:
+                        # Wrap around
+                        first_part = buffer_len - engine._write_pos
+                        engine._buffer[engine._write_pos:] = data[:first_part]
+                        engine._buffer[:data_len - first_part] = data[first_part:]
+                    
+                    engine._write_pos = (engine._write_pos + data_len) % buffer_len
             
             def output_callback(outdata, frames, time, status):
-                if status:
+                """Output to VB-Cable"""
+                if status and 'underflow' not in str(status).lower():
                     print(f"VB output: {status}")
-                try:
-                    data = engine._buffer.get_nowait()
-                    if len(data) >= len(outdata):
-                        outdata[:] = data[:len(outdata)]
+                
+                with engine._buffer_lock:
+                    buffer_len = len(engine._buffer)
+                    data_len = len(outdata)
+                    
+                    # Check if we have enough data
+                    available = (engine._write_pos - engine._read_pos) % buffer_len
+                    if available < data_len:
+                        # Not enough data, output silence to prevent glitches
+                        outdata[:] = 0
+                        return
+                    
+                    # Read from circular buffer
+                    if engine._read_pos + data_len <= buffer_len:
+                        outdata[:] = engine._buffer[engine._read_pos:engine._read_pos + data_len]
                     else:
-                        outdata[:len(data)] = data
-                        outdata[len(data):] = 0
-                except queue.Empty:
-                    outdata[:] = 0
+                        # Wrap around
+                        first_part = buffer_len - engine._read_pos
+                        outdata[:first_part] = engine._buffer[engine._read_pos:]
+                        outdata[first_part:] = engine._buffer[:data_len - first_part]
+                    
+                    engine._read_pos = (engine._read_pos + data_len) % buffer_len
             
-            # Create streams
+            # Create input stream
             self._input_stream = sd.InputStream(
                 device=self.device_id,
                 samplerate=mic_samplerate,
@@ -150,8 +183,10 @@ class MicPassthrough:
                 dtype='float32',
                 callback=input_callback,
                 blocksize=blocksize,
+                latency='low'
             )
             
+            # Create output stream
             self._output_stream = sd.OutputStream(
                 device=self.vb_manager.device_id,
                 samplerate=vb_samplerate,
@@ -166,7 +201,7 @@ class MicPassthrough:
             self._output_stream.start()
             self.enabled = True
             
-            print(f"✓ Mic passthrough started")
+            print(f"✓ Mic passthrough started (low latency mode)")
             return True
             
         except Exception as e:
@@ -196,6 +231,7 @@ class MicPassthrough:
         
         self._buffer = None
         self.enabled = False
+        print("Mic passthrough stopped")
     
     def is_enabled(self) -> bool:
         return self.enabled

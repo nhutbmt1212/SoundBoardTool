@@ -4,7 +4,12 @@ import subprocess
 import os
 import json
 import hashlib
+import sys
 from pathlib import Path
+
+# Import AppData path helper
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from core.config_paths import get_youtube_cache_dir
 
 try:
     import sounddevice as sd
@@ -66,9 +71,8 @@ class YouTubeStream:
         self._thread = None
         self._stop_event = threading.Event()
         
-        # Cache directory - lưu file audio đã tải vĩnh viễn
-        self.cache_dir = Path('youtube_cache')
-        self.cache_dir.mkdir(exist_ok=True)
+        # Cache directory - use AppData for proper permissions
+        self.cache_dir = Path(get_youtube_cache_dir())
         self.cache_index_file = self.cache_dir / 'index.json'
         self._cache_index = self._load_cache_index()
     

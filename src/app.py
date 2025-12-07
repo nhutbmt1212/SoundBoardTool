@@ -2,6 +2,7 @@
 import sys
 import os
 import signal
+import subprocess
 
 # Handle PyInstaller frozen app
 if getattr(sys, 'frozen', False):
@@ -25,12 +26,20 @@ if not acquire_lock():
 import eel
 from core.audio import AudioEngine
 from core.config import Config
+from core.config_paths import (
+    get_sounds_dir, 
+    get_config_path, 
+    migrate_old_configs,
+    get_vbcable_installer_path
+)
 from api import SoundAPI, YouTubeAPI, SettingsAPI
 from services import HotkeyService
 
-# Initialize paths
-sounds_dir = os.path.join(BASE_DIR, 'sounds')
-os.makedirs(sounds_dir, exist_ok=True)
+# Migrate old configs to AppData
+migrate_old_configs()
+
+# Initialize paths (now using AppData)
+sounds_dir = get_sounds_dir()
 
 # Initialize core components
 config = Config()
@@ -121,8 +130,81 @@ def cleanup_and_exit():
     os._exit(0)
 
 
+def show_vbcable_install_dialog():
+    """Show VB-Cable installation dialog and wait for install"""
+    try:
+        import tkinter as tk
+        from tkinter import messagebox
+        
+        root = tk.Tk()
+        root.withdraw()  # Hide main window
+        
+        installer_path = get_vbcable_installer_path()
+        
+        if installer_path:
+            result = messagebox.askyesno(
+                "VB-Cable Required",
+                "VB-Cable is required to run Soundboard Pro.\n\n"
+                "Would you like to install it now?\n\n"
+                "(Requires administrator rights)",
+                icon='warning'
+            )
+            
+            if result:
+                # Run installer
+                try:
+                    subprocess.run([installer_path], check=False)
+                    messagebox.showinfo(
+                        "Installation Complete",
+                        "Please restart Soundboard Pro after VB-Cable installation."
+                    )
+                except Exception as e:
+                    messagebox.showerror(
+                        "Installation Failed",
+                        f"Failed to run installer: {e}\n\n"
+                        "Please install VB-Cable manually from:\n"
+                        "https://vb-audio.com/Cable/"
+                    )
+            else:
+                messagebox.showinfo(
+                    "Installation Required",
+                    "VB-Cable is required to run Soundboard Pro.\n\n"
+                    "Download from: https://vb-audio.com/Cable/"
+                )
+        else:
+            messagebox.showerror(
+                "VB-Cable Required",
+                "VB-Cable is required to run Soundboard Pro.\n\n"
+                "Download from: https://vb-audio.com/Cable/"
+            )
+        
+        root.destroy()
+        return False  # Exit app
+        
+    except ImportError:
+        # Tkinter not available, print to console
+        print("\n" + "="*50)
+        print("  ⚠️  VB-Cable Required")
+        print("="*50)
+        print("VB-Cable is required to run Soundboard Pro.")
+        print("\nDownload from: https://vb-audio.com/Cable/")
+        print("\nAfter installation, restart Soundboard Pro.")
+        print("="*50 + "\n")
+        return False
+
+
 def find_browser():
-    """Find available browser"""
+    """Find available browser with fallback chain"""
+    # Try Edge first (most common on Windows)
+    edge_paths = [
+        os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
+        os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
+    ]
+    for path in edge_paths:
+        if os.path.exists(path):
+            return 'edge', path
+    
+    # Try Chrome
     chrome_paths = [
         os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
         os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
@@ -132,15 +214,17 @@ def find_browser():
         if os.path.exists(path):
             return 'chrome', path
     
-    edge_paths = [
-        os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
-        os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
+    # Try Firefox
+    firefox_paths = [
+        os.path.expandvars(r"%ProgramFiles%\Mozilla Firefox\firefox.exe"),
+        os.path.expandvars(r"%ProgramFiles(x86)%\Mozilla Firefox\firefox.exe"),
     ]
-    for path in edge_paths:
+    for path in firefox_paths:
         if os.path.exists(path):
-            return 'edge', path
+            return 'firefox', path
     
-    return None, None
+    # Fallback to default
+    return 'default', None
 
 
 def track_browser_process():
@@ -193,14 +277,14 @@ def main():
     print("🎵 Soundboard Pro")
     print(f"   Sounds: {sounds_dir}")
     
-    # Check VB-Cable
-    try:
-        from core.vbcable import ensure_vbcable
-        if not audio.is_vb_connected():
-            if ensure_vbcable():
-                audio._detect_vb_cable()
-    except Exception as e:
-        print(f"   VB-Cable check: {e}")
+    # Check VB-Cable (REQUIRED)
+    if not audio.is_vb_connected():
+        print("   VB-Cable: not detected")
+        if not show_vbcable_install_dialog():
+            print("   Exiting...")
+            sys.exit(1)
+    else:
+        print("   VB-Cable: connected")
     
     # Initialize API layers
     sound_api = SoundAPI(audio, sounds_dir)
@@ -215,8 +299,9 @@ def main():
     except Exception as e:
         print(f"   Hotkeys: failed ({e})")
     
-    # Find browser
+    # Find browser with fallback chain
     browser_mode, browser_path = find_browser()
+    print(f"   Browser: {browser_mode}")
     
     eel_options = {
         'size': (1100, 750),
@@ -225,39 +310,48 @@ def main():
         'cmdline_args': ['--disable-extensions']
     }
     
-    if browser_mode:
-        eel_options['mode'] = browser_mode
-        print(f"   Browser: {browser_mode}")
-    else:
-        eel_options['mode'] = 'default'
-        print("   Browser: default")
-    
     print("   Starting...")
     
-    try:
-        eel.start('index.html', **eel_options, block=False)
-        track_browser_process()
-        
-        # Keep main thread alive
-        while True:
-            eel.sleep(1.0)
-    except SystemExit:
-        pass
-    except KeyboardInterrupt:
-        print("\n   Interrupted")
-    except Exception as e:
-        print(f"Error: {e}")
+    # Try browsers in order: detected → chrome → edge → firefox → default
+    browsers_to_try = [browser_mode]
+    if browser_mode != 'chrome':
+        browsers_to_try.append('chrome')
+    if browser_mode != 'edge':
+        browsers_to_try.append('edge')
+    if browser_mode != 'firefox':
+        browsers_to_try.append('firefox')
+    if 'default' not in browsers_to_try:
+        browsers_to_try.append('default')
+    
+    started = False
+    for browser in browsers_to_try:
         try:
-            eel.start('index.html', size=(1100, 750), mode='default',
-                     cmdline_args=['--disable-extensions'],
-                     close_callback=on_close, block=False)
+            eel_options['mode'] = browser
+            eel.start('index.html', **eel_options, block=False)
             track_browser_process()
+            print(f"   ✓ Started with {browser}")
+            started = True
+            break
+        except Exception as e:
+            if browser == browsers_to_try[-1]:
+                # Last browser failed
+                print(f"   ✗ Failed to start with any browser: {e}")
+                raise
+            else:
+                # Try next browser
+                continue
+    
+    if started:
+        try:
+            # Keep main thread alive
             while True:
                 eel.sleep(1.0)
-        except Exception as e2:
-            print(f"Failed: {e2}")
-    finally:
-        cleanup_and_exit()
+        except SystemExit:
+            pass
+        except KeyboardInterrupt:
+            print("\n   Interrupted")
+    
+    cleanup_and_exit()
 
 
 if __name__ == "__main__":
