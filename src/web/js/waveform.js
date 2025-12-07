@@ -16,11 +16,9 @@ class RangeSlider {
     };
 
     constructor(containerId, soundName) {
-        console.log('[RangeSlider] Initializing for:', soundName);
         this.container = document.getElementById(containerId);
 
         if (!this.container) {
-            console.error('[RangeSlider] Container not found:', containerId);
             return;
         }
 
@@ -42,18 +40,14 @@ class RangeSlider {
         this.cacheElements();
         this.setupEvents();
         this.updateUI();
-
-        console.log('[RangeSlider] Initialized');
     }
 
     async loadDuration() {
         try {
             this.duration = await API.getAudioDuration(this.soundName);
-            console.log('[RangeSlider] Duration:', this.duration);
-
             this.loadTrimSettings();
         } catch (error) {
-            console.error('[RangeSlider] Error loading duration:', error);
+            // Silent fail
         }
     }
 
@@ -180,7 +174,6 @@ class RangeSlider {
 
     saveSettings() {
         const endToSave = (this.endTime >= this.duration - RangeSlider.MIN_GAP_SECONDS) ? 0 : this.endTime;
-        console.log('[RangeSlider] Saving:', this.startTime, 'to', endToSave);
         AppState.setTrimSettings(this.soundName, this.startTime, endToSave);
         SoundEvents.saveSettings();
     }

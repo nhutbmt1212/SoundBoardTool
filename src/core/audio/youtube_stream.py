@@ -111,8 +111,6 @@ class YouTubeStream:
             if filepath.exists():
                 # If file has no extension, try to detect and rename it
                 if not filepath.suffix:
-                    print(f"[YouTubeStream] Cached file has no extension: {filepath}")
-                    # Try to detect format and rename
                     new_path = self._fix_cached_file_extension(filepath)
                     if new_path:
                         # Update cache index
@@ -126,16 +124,14 @@ class YouTubeStream:
     def _fix_cached_file_extension(self, filepath: Path) -> Path:
         """Try to detect file format and add proper extension"""
         try:
-            # Try common audio extensions
+            import shutil
+            # Try common audio extensions (m4a is most common from YouTube)
             for ext in ['.m4a', '.webm', '.opus', '.mp3']:
                 new_path = filepath.with_suffix(ext)
-                # Try to rename
-                import shutil
                 shutil.move(str(filepath), str(new_path))
-                print(f"[YouTubeStream] Renamed {filepath.name} to {new_path.name}")
                 return new_path
-        except Exception as e:
-            print(f"[YouTubeStream] Could not rename file: {e}")
+        except Exception:
+            pass
         
         return None
     
@@ -462,20 +458,13 @@ class YouTubeStream:
     
     def get_duration(self, url: str) -> float:
         """Get duration of YouTube video in seconds"""
-        print(f"[YouTubeStream] Getting duration for: {url}")
-        
         # Check cache first
         cached_file, _ = self._get_cached_file(url)
         if cached_file:
-            print(f"[YouTubeStream] Found cached file: {cached_file}")
-            duration = self._get_file_duration(cached_file)
-            print(f"[YouTubeStream] Duration from cache: {duration}")
-            return duration
+            return self._get_file_duration(cached_file)
         
         # If not cached, extract info without downloading
-        print(f"[YouTubeStream] Video not cached, extracting info from YouTube...")
         if not YTDLP_AVAILABLE:
-            print("[YouTubeStream] yt-dlp not available")
             return 0.0
         
         try:
@@ -485,35 +474,24 @@ class YouTubeStream:
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                duration = float(info.get('duration', 0))
-                print(f"[YouTubeStream] Duration from YouTube: {duration}")
-                return duration
-        except Exception as e:
-            print(f"[YouTubeStream] Error getting duration: {e}")
+                return float(info.get('duration', 0))
+        except Exception:
             return 0.0
     
     def _get_file_duration(self, filepath: str) -> float:
         """Get duration of audio file using ffprobe or pygame"""
-        print(f"[YouTubeStream] Getting file duration for: {filepath}")
-        
-        # Check if file exists
         if not os.path.exists(filepath):
-            print(f"[YouTubeStream] File not found: {filepath}")
             return 0.0
         
         # Try ffprobe first
         try:
-            # Fix ffprobe path - need to handle both .exe and .EXE
             if FFMPEG_PATH:
                 ffmpeg_dir = os.path.dirname(FFMPEG_PATH)
                 ffprobe_exe = os.path.join(ffmpeg_dir, 'ffprobe.exe')
-                # Check if exists, if not try ffprobe without extension
                 if not os.path.exists(ffprobe_exe):
                     ffprobe_exe = os.path.join(ffmpeg_dir, 'ffprobe')
             else:
                 ffprobe_exe = 'ffprobe'
-            
-            print(f"[YouTubeStream] Using ffprobe: {ffprobe_exe}")
             
             cmd = [
                 ffprobe_exe,
@@ -536,35 +514,20 @@ class YouTubeStream:
                 timeout=5
             )
             
-            print(f"[YouTubeStream] ffprobe return code: {result.returncode}")
-            
             if result.returncode == 0:
                 output = result.stdout.decode().strip()
-                print(f"[YouTubeStream] ffprobe output: {output}")
                 if output:
-                    duration = float(output)
-                    print(f"[YouTubeStream] Parsed duration: {duration}")
-                    return duration
-                else:
-                    print("[YouTubeStream] ffprobe returned empty output")
-            else:
-                stderr = result.stderr.decode().strip()
-                print(f"[YouTubeStream] ffprobe error: {stderr}")
-                
-        except Exception as e:
-            print(f"[YouTubeStream] Exception with ffprobe: {e}")
+                    return float(output)
+        except Exception:
+            pass
         
         # Fallback to pygame if available
-        print("[YouTubeStream] Trying pygame fallback for duration...")
         try:
             import pygame
             if pygame.mixer.get_init():
                 sound = pygame.mixer.Sound(filepath)
-                duration = sound.get_length()
-                print(f"[YouTubeStream] Duration from pygame: {duration}")
-                return duration
-        except Exception as e:
-            print(f"[YouTubeStream] Exception with pygame: {e}")
+                return sound.get_length()
+        except Exception:
+            pass
         
-        print("[YouTubeStream] Could not get duration, returning 0.0")
         return 0.0

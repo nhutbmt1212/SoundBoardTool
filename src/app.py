@@ -86,7 +86,7 @@ def play_sound_global(name: str):
 
 
 def play_youtube_global(url: str):
-    """Play YouTube from global hotkey (toggle play/pause)"""
+    """Play YouTube from global hotkey (toggle play/stop)"""
     from core.config import load_sound_settings
     
     settings = hotkey_service.get_youtube_settings(url)
@@ -107,16 +107,12 @@ def play_youtube_global(url: str):
     
     info = audio.get_youtube_info()
     
-    # Toggle play/pause
-    if info.get('url') == url:
-        if info.get('playing'):
-            if info.get('paused'):
-                audio.resume_youtube()
-            else:
-                audio.pause_youtube()
-        else:
-            audio.play_youtube(url)
+    # Toggle play/stop (not pause)
+    if info.get('url') == url and info.get('playing'):
+        # If same video is playing, stop it
+        audio.stop_youtube()
     else:
+        # Otherwise play it
         audio.play_youtube(url)
 
 

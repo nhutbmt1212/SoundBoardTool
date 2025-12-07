@@ -187,11 +187,8 @@ const UI = {
 
         // Initialize waveform visualizer after DOM is ready
         setTimeout(() => {
-            console.log('[UI] Initializing range slider for:', name);
             if (window.RangeSlider) {
                 new RangeSlider('waveform-container', name);
-            } else {
-                console.error('[UI] RangeSlider class not found!');
             }
         }, 100);
     },
@@ -370,11 +367,8 @@ const UI = {
 
         // Initialize YouTube waveform visualizer after DOM is ready
         setTimeout(() => {
-            console.log('[UI] Initializing YouTube range slider for:', item.url);
             if (window.YouTubeRangeSlider) {
                 new YouTubeRangeSlider('youtube-waveform-container', item.url);
-            } else {
-                console.error('[UI] YouTubeRangeSlider class not found!');
             }
         }, 100);
     },

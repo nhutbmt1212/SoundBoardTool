@@ -16,11 +16,9 @@ class YouTubeRangeSlider {
     };
 
     constructor(containerId, youtubeUrl) {
-        console.log('[YouTubeRangeSlider] Initializing for:', youtubeUrl);
         this.container = document.getElementById(containerId);
 
         if (!this.container) {
-            console.error('[YouTubeRangeSlider] Container not found:', containerId);
             return;
         }
 
@@ -50,8 +48,6 @@ class YouTubeRangeSlider {
         
         // Update UI with actual data
         this.updateUI();
-
-        console.log('[YouTubeRangeSlider] Initialized with duration:', this.duration);
     }
     
     showLoading() {
@@ -62,17 +58,14 @@ class YouTubeRangeSlider {
     async loadDuration() {
         try {
             this.duration = await API.getYoutubeDuration(this.youtubeUrl);
-            console.log('[YouTubeRangeSlider] Duration loaded:', this.duration);
 
             if (this.duration === 0) {
-                console.warn('[YouTubeRangeSlider] Duration is 0, video may not be cached yet');
                 // Set a default duration for UI display
                 this.duration = 1;
             }
 
             this.loadTrimSettings();
         } catch (error) {
-            console.error('[YouTubeRangeSlider] Error loading duration:', error);
             // Set default duration on error
             this.duration = 1;
         }
@@ -206,7 +199,6 @@ class YouTubeRangeSlider {
 
     saveSettings() {
         const endToSave = (this.endTime >= this.duration - YouTubeRangeSlider.MIN_GAP_SECONDS) ? 0 : this.endTime;
-        console.log('[YouTubeRangeSlider] Saving:', this.startTime, 'to', endToSave);
         AppState.setYoutubeTrimSettings(this.youtubeUrl, this.startTime, endToSave);
         SoundEvents.saveSettings();
     }
