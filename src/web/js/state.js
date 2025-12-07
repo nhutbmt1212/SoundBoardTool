@@ -43,6 +43,9 @@ const AppState = {
     /** @type {Object<string, {start: number, end: number}>} Sound trim settings (start/end in seconds) */
     soundTrimSettings: {},
 
+    /** @type {Object<string, {start: number, end: number}>} YouTube trim settings (start/end in seconds) */
+    youtubeTrimSettings: {},
+
     /** @type {string} Global stop all keybind */
     stopAllKeybind: '',
 
@@ -245,6 +248,15 @@ const AppState = {
         return this.youtubeNames[url] || defaultTitle;
     },
 
+    /**
+     * Gets trim settings for a YouTube item
+     * @param {string} url - YouTube URL
+     * @returns {{start: number, end: number}|null} Trim settings or null if not set
+     */
+    getYoutubeTrimSettings(url) {
+        return this.youtubeTrimSettings[url] || null;
+    },
+
     // ==================== YouTube Setters ====================
 
     /**
@@ -288,6 +300,20 @@ const AppState = {
         }
     },
 
+    /**
+     * Sets trim settings for a YouTube item
+     * @param {string} url - YouTube URL
+     * @param {number} start - Start time in seconds
+     * @param {number} end - End time in seconds (0 = no trim)
+     */
+    setYoutubeTrimSettings(url, start, end) {
+        if (start > 0 || end > 0) {
+            this.youtubeTrimSettings[url] = { start: start || 0, end: end || 0 };
+        } else {
+            delete this.youtubeTrimSettings[url];
+        }
+    },
+
     // ==================== Persistence ====================
 
     /**
@@ -303,6 +329,7 @@ const AppState = {
         this.soundNames = settings.names || {};
         this.youtubeNames = settings.youtubeNames || {};
         this.soundTrimSettings = settings.trimSettings || {};
+        this.youtubeTrimSettings = settings.youtubeTrimSettings || {};
         this.stopAllKeybind = settings.stopAllKeybind || '';
 
         // Backwards compatibility check - if boolean, reset to empty object
@@ -328,6 +355,7 @@ const AppState = {
             names: this.soundNames,
             youtubeNames: this.youtubeNames,
             trimSettings: this.soundTrimSettings,
+            youtubeTrimSettings: this.youtubeTrimSettings,
             stopAllKeybind: this.stopAllKeybind,
             youtubeScreamMode: this.youtubeScreamMode,
             youtubePitchMode: this.youtubePitchMode

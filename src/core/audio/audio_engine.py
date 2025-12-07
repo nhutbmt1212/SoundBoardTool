@@ -154,6 +154,9 @@ class AudioEngine:
     def set_youtube_pitch(self, pitch: float):
         self.youtube.set_pitch(pitch)
     
+    def set_youtube_trim(self, start: float, end: float):
+        self.youtube.set_trim(start, end)
+    
     # === Cleanup ===
     
     def cleanup(self):

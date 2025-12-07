@@ -335,6 +335,19 @@ const API = {
             { success: false, error: 'Failed to delete item' },
             `deleteYoutubeItem(${url})`
         );
+    },
+
+    /**
+     * Gets YouTube video duration in seconds
+     * @param {string} url - YouTube video URL
+     * @returns {Promise<number>} Duration in seconds
+     */
+    async getYoutubeDuration(url) {
+        return this._handleApiCall(
+            () => eel.get_youtube_duration(url)(),
+            0,
+            `getYoutubeDuration(${url})`
+        );
     }
 };
 

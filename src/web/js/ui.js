@@ -324,6 +324,11 @@ const UI = {
                     <span class="volume-value" id="youtube-volume-value">100%</span>
                 </div>
             </div>
+            
+            <div class="panel-section">
+                <div class="panel-section-title">${icon('clock', 16)} Trim Audio</div>
+                <div id="youtube-waveform-container"></div>
+            </div>
 
             <div class="panel-section">
                 <div class="panel-section-title">${IconManager.get('scream', { size: 16 })} Scream Mode</div>
@@ -362,6 +367,16 @@ const UI = {
                 <button class="btn-panel btn-delete" onclick="deleteYoutubeItem('${Utils.escapeAttr(item.url)}')">${icon('trash', 14)} Delete</button>
             </div>
         `;
+
+        // Initialize YouTube waveform visualizer after DOM is ready
+        setTimeout(() => {
+            console.log('[UI] Initializing YouTube range slider for:', item.url);
+            if (window.YouTubeRangeSlider) {
+                new YouTubeRangeSlider('youtube-waveform-container', item.url);
+            } else {
+                console.error('[UI] YouTubeRangeSlider class not found!');
+            }
+        }, 100);
     },
 
     // Render YouTube grid
