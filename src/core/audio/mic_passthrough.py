@@ -30,6 +30,12 @@ class MicPassthrough:
         self._buffer = None
         self._buffer_lock = threading.Lock()
         
+        # Noise gate parameters - tuned to eliminate feedback when silent
+        self._noise_gate_threshold = 0.04  # -28dB threshold (blocks feedback, allows voice)
+        self._noise_gate_ratio = 0.01   # Fade to 1% when below threshold (aggressive suppression)
+        self._gate_smoothing = 0.92        # Smooth gate transitions (faster response)
+        self._current_gate = 1.0           # Current gate level
+        
         self._detect_mic()
     
     def _detect_mic(self):
@@ -71,9 +77,27 @@ class MicPassthrough:
             self.start()
     
     def set_volume(self, vol: float):
-        """Set passthrough volume (0.0 - 2.0)"""
-        self.volume = max(0.0, min(2.0, vol))
+        """Set passthrough volume (0.0 - 3.0)"""
+        self.volume = max(0.0, min(3.0, vol))
         print(f"Mic volume set to: {self.volume:.2f}")
+    
+    def _apply_noise_gate(self, data):
+        """Apply noise gate to reduce background noise"""
+        # Calculate RMS (root mean square) for volume detection
+        rms = np.sqrt(np.mean(data ** 2))
+        
+        # Determine target gate level
+        if rms > self._noise_gate_threshold:
+            target_gate = 1.0  # Full volume when speaking
+        else:
+            target_gate = self._noise_gate_ratio  # Reduce to 5% when silent
+        
+        # Smooth gate transitions to avoid clicking
+        self._current_gate = (self._gate_smoothing * self._current_gate + 
+                             (1 - self._gate_smoothing) * target_gate)
+        
+        # Apply gate
+        return data * self._current_gate
     
     def start(self) -> bool:
         """Start routing mic to VB-Cable with minimal latency"""
@@ -106,7 +130,11 @@ class MicPassthrough:
             # Pre-fill buffer to middle to prevent initial underrun
             self._write_pos = (blocksize * buffer_frames) // 2
             
+            # Reset noise gate
+            self._current_gate = 1.0
+            
             print(f"Mic passthrough: mic={mic_samplerate}Hz, vb={vb_samplerate}Hz, blocksize={blocksize}")
+            print(f"Noise gate: enabled (threshold={self._noise_gate_threshold:.3f})")
             
             # Store reference to self for callbacks
             engine = self
@@ -118,7 +146,11 @@ class MicPassthrough:
                 
                 # Apply volume and write to circular buffer
                 with engine._buffer_lock:
-                    data = indata * engine.volume
+                    # First apply noise gate to reduce background noise
+                    data = engine._apply_noise_gate(indata)
+                    
+                    # Then apply volume (so volume slider works)
+                    data = data * engine.volume
                     
                     # Handle sample rate mismatch with high-quality resampling
                     if mic_samplerate != vb_samplerate:

@@ -97,7 +97,7 @@ const UIEvents = {
 
     /**
      * Handles microphone volume slider change
-     * @param {number} value - New volume value (0-200, maps to 0.0-2.0)
+     * @param {number} value - New volume value (0-300, maps to 0.0-3.0)
      * @returns {Promise<void>}
      */
     async onMicVolumeChange(value) {

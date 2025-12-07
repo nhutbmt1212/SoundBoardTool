@@ -170,7 +170,7 @@ const API = {
 
     /**
      * Sets microphone volume level
-     * @param {number} volume - Volume level (0.0 to 1.0)
+     * @param {number} volume - Volume level (0.0 to 3.0)
      * @returns {Promise<void>}
      */
     async setMicVolume(volume) {
