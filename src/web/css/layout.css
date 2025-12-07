@@ -1,0 +1,115 @@
+/* Main App Container */
+.app {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    background-color: var(--bg-app);
+    overflow: hidden;
+}
+
+/* Main Content Area (Left/Center) */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    /* No overflow here, we want internal scrolling */
+    min-width: 0;
+    /* Prevent flex overflow */
+}
+
+/* Header Gradient Area */
+.header-gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 240px;
+    background: var(--bg-header);
+    opacity: 0.6;
+    z-index: 0;
+    pointer-events: none;
+    mask-image: linear-gradient(to bottom, black, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, black, transparent);
+}
+
+/* Title / Header Section */
+.title-section {
+    position: relative;
+    z-index: 10;
+    padding: var(--spacing-lg) var(--spacing-xl);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 80px;
+}
+
+.title-section h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    color: var(--text-main);
+}
+
+/* Grids */
+.sounds-grid,
+.youtube-grid {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    padding: var(--spacing-md) var(--spacing-xl);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-auto-rows: min-content;
+    align-items: start;
+    gap: var(--spacing-md);
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Soft padding at bottom for scrolling */
+    padding-bottom: 100px;
+}
+
+/* Bottom Controls */
+.bottom-controls {
+    position: relative;
+    z-index: 20;
+    background: rgba(15, 16, 20, 0.85);
+    /* transperant bg */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border-light);
+    padding: var(--spacing-md) var(--spacing-xl);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+}
+
+/* Right Panel (Sidebar) */
+.right-panel {
+    width: 320px;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    z-index: 30;
+    transition: width 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .right-panel {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(100%);
+        box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .right-panel.active {
+        transform: translateX(0);
+    }
+}

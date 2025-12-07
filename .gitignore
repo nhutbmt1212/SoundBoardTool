@@ -52,6 +52,9 @@ sounds/*.flac
 sounds/*.m4a
 !sounds/.gitkeep
 
+# YouTube cache
+youtube_cache/
+
 # Temp files
 *.tmp
 *.log

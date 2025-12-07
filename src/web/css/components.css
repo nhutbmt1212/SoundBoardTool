@@ -1,0 +1,634 @@
+/* Sound Card */
+.sound-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    height: fit-content;
+}
+
+.sound-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.sound-card.selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(0, 217, 255, 0.2);
+}
+
+.sound-card.playing {
+    border-color: var(--secondary);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+}
+
+.sound-thumbnail {
+    width: 100%;
+    height: 100px;
+    background: var(--bg-app);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    position: relative;
+    flex-shrink: 0;
+}
+
+.sound-thumbnail svg {
+    width: 32px;
+    height: 32px;
+    opacity: 0.8;
+}
+
+.sound-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    padding: 0 4px;
+}
+
+.sound-keybind {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    text-align: center;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sound-keybind.has-bind {
+    color: var(--primary);
+    background: rgba(0, 217, 255, 0.1);
+}
+
+/* Icons */
+.icon svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
+/* Button Base */
+button {
+    font-family: inherit;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: var(--transition-fast);
+}
+
+/* Action Buttons (Add, Refresh) */
+.btn-add,
+.btn-refresh {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.btn-add:hover,
+.btn-refresh:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--border-light);
+}
+
+/* Stop All Button */
+.btn-stop-all {
+    background: var(--danger);
+    color: white;
+    height: 40px;
+    padding: 0 24px;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
+}
+
+.btn-stop-all:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 71, 87, 0.4);
+}
+
+.btn-stop-all:active {
+    transform: translateY(0);
+}
+
+/* Mic Control */
+.mic-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px 12px;
+    border-radius: var(--radius-full);
+}
+
+.btn-mic {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    padding: 0;
+}
+
+.btn-mic:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-mic.active {
+    color: var(--secondary);
+    background: rgba(0, 255, 136, 0.1);
+}
+
+/* Mic Volume Slider */
+.mic-volume {
+    width: 80px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.mic-volume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text-main);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Panel Inputs */
+.panel-sound-name {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-main);
+    font-size: 16px;
+    font-weight: 600;
+    width: 100%;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 4px;
+}
+
+.panel-sound-name:hover {
+    border-color: var(--border-light);
+}
+
+.panel-sound-name:focus {
+    border-color: var(--primary);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Volume Slider in Panel */
+.volume-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+}
+
+.volume-slider {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px var(--primary-glow);
+}
+
+/* Empty State */
+.empty-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+    color: var(--text-muted);
+}
+
+
+
+.sound-keybind {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    text-align: center;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sound-keybind.has-bind {
+    color: var(--primary);
+    background: rgba(0, 217, 255, 0.1);
+}
+
+/* Icons */
+.icon svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
+/* Button Base */
+button {
+    font-family: inherit;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: var(--transition-fast);
+}
+
+/* Action Buttons (Add, Refresh) */
+.btn-add,
+.btn-refresh {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.btn-add:hover,
+.btn-refresh:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--border-light);
+}
+
+/* Stop All Button */
+.btn-stop-all {
+    background: var(--danger);
+    color: white;
+    height: 40px;
+    padding: 0 24px;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
+}
+
+.btn-stop-all:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 71, 87, 0.4);
+}
+
+.btn-stop-all:active {
+    transform: translateY(0);
+}
+
+/* Mic Control */
+.mic-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px 12px;
+    border-radius: var(--radius-full);
+}
+
+.btn-mic {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    padding: 0;
+}
+
+.btn-mic:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-mic.active {
+    color: var(--secondary);
+    background: rgba(0, 255, 136, 0.1);
+}
+
+/* Mic Volume Slider */
+.mic-volume {
+    width: 80px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.mic-volume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text-main);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Panel Inputs */
+.panel-sound-name {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-main);
+    font-size: 16px;
+    font-weight: 600;
+    width: 100%;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 4px;
+}
+
+.panel-sound-name:hover {
+    border-color: var(--border-light);
+}
+
+.panel-sound-name:focus {
+    border-color: var(--primary);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Volume Slider in Panel */
+.volume-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+}
+
+.volume-slider {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    -webkit-appearance: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px var(--primary-glow);
+}
+
+/* Empty State */
+.empty-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+    color: var(--text-muted);
+}
+
+.empty-icon svg {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    color: rgba(255, 255, 255, 0.1);
+}
+
+/* --- Right Panel Components --- */
+
+/* Panel Header */
+.panel-header {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.panel-sound-info {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    padding-left: 8px;
+    font-family: monospace;
+    opacity: 0.6;
+}
+
+/* Panel Sections */
+.panel-section {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.panel-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+/* Keybind Input */
+.keybind-input {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    color: var(--text-main);
+    font-size: 13px;
+    font-family: inherit;
+    width: 100%;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.keybind-input:hover {
+    border-color: var(--primary);
+    background: var(--bg-card-hover);
+}
+
+.keybind-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(0, 217, 255, 0.1);
+}
+
+.keybind-input.recording {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: rgba(255, 71, 87, 0.05);
+    animation: blink 1s infinite;
+}
+
+/* Panel Preview (Waveform) */
+.panel-preview {
+    padding: var(--spacing-lg);
+    display: flex;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.preview-wave {
+    width: 100%;
+    height: 60px;
+    background: var(--bg-app);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Wave Animation Bars */
+.wave-animation {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    height: 30px;
+}
+
+.wave-bar {
+    width: 4px;
+    background: var(--primary);
+    border-radius: 2px;
+    animation: wave 1s ease-in-out infinite;
+}
+
+/* Stagger animations */
+.wave-bar:nth-child(1) {
+    height: 16px;
+    animation-delay: 0.0s;
+}
+
+.wave-bar:nth-child(2) {
+    height: 28px;
+    animation-delay: 0.1s;
+}
+
+.wave-bar:nth-child(3) {
+    height: 20px;
+    animation-delay: 0.2s;
+}
+
+.wave-bar:nth-child(4) {
+    height: 32px;
+    animation-delay: 0.3s;
+}
+
+.wave-bar:nth-child(5) {
+    height: 24px;
+    animation-delay: 0.4s;
+}
+
+.wave-bar:nth-child(6) {
+    height: 28px;
+    animation-delay: 0.5s;
+}
+
+.wave-bar:nth-child(7) {
+    height: 16px;
+    animation-delay: 0.6s;
+}
+
+/* Panel Actions */
+.panel-actions {
+    padding: var(--spacing-md) var(--spacing-lg);
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.btn-panel {
+    flex: 1;
+    padding: 10px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    transition: var(--transition-fast);
+}
+
+.btn-play {
+    background: var(--primary);
+    color: var(--bg-app);
+    font-weight: 600;
+}
+
+.btn-play:hover {
+    background: #00e5ff;
+    /* Slightly brighter */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 217, 255, 0.3);
+}
+
+.btn-stop {
+    background: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--border-light);
+}
+
+.btn-stop:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--text-muted);
+}
+
+.btn-delete {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid rgba(255, 71, 87, 0.3);
+}
+
+.btn-delete:hover {
+    background: rgba(255, 71, 87, 0.1);
+    border-color: var(--danger);
+}

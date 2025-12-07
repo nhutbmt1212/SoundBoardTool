@@ -7,3 +7,4 @@ pyinstaller>=5.0
 keyboard
 pywin32
 psutil
+yt-dlp

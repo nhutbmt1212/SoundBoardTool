@@ -1,0 +1,128 @@
+/* Feature-specific Styles: Mic, YouTube, Drag & Drop */
+
+/* Mic Passthrough Control - Redesigned to fit in bottom bar better */
+/* (Styles are mostly handled in components.css now, but specific layout here) */
+
+/* YouTube Streaming Section */
+.youtube-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin: 0 var(--spacing-xl) var(--spacing-md);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-light);
+}
+
+.youtube-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.youtube-icon {
+    font-size: 24px;
+    color: #ff0000;
+}
+
+.youtube-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-main);
+    flex: 1;
+}
+
+.youtube-url-input {
+    width: 100%;
+    background: var(--bg-app);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    color: var(--text-main);
+    font-size: 14px;
+    transition: var(--transition-fast);
+    margin-bottom: var(--spacing-md);
+    outline: none;
+}
+
+.youtube-url-input:focus {
+    border-color: #ff0000;
+    box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.1);
+}
+
+.youtube-controls {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.btn-youtube-play {
+    background: #ff0000;
+    color: white;
+    flex: 1;
+    height: 44px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.btn-youtube-play:hover {
+    background: #cc0000;
+    transform: translateY(-1px);
+}
+
+.btn-youtube-stop {
+    background: var(--bg-card-hover);
+    color: var(--text-main);
+    padding: 0 20px;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+}
+
+.btn-youtube-stop:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.youtube-info {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: var(--spacing-md);
+    background: var(--bg-app);
+    border-radius: var(--radius-md);
+    margin-top: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-height: 48px;
+}
+
+.youtube-info.playing {
+    color: var(--secondary);
+    border-left: 2px solid var(--secondary);
+}
+
+.youtube-info.error {
+    color: var(--danger);
+    border-left: 2px solid var(--danger);
+}
+
+/* Drag & Drop Overlay */
+.app.drag-over::after {
+    content: 'Drop audio files to add';
+    position: absolute;
+    inset: 20px;
+    background: rgba(15, 16, 20, 0.95);
+    border: 2px dashed var(--primary);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--primary);
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+}

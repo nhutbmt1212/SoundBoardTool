@@ -1,0 +1,82 @@
+/* Tabs Container */
+.tabs-container {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: 0 var(--spacing-xl);
+    margin-bottom: var(--spacing-md);
+    position: relative;
+    z-index: 10;
+}
+
+/* Tab Button */
+.tab-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    padding: 8px 24px;
+    border-radius: var(--radius-full);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.tab-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.active {
+    color: var(--bg-app);
+    background: var(--text-main);
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
+}
+
+.tab-btn.active:hover {
+    transform: translateY(-1px);
+}
+
+.tab-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Tab Header (Internal Toolbar) */
+.tab-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 var(--spacing-xl) var(--spacing-sm);
+    position: relative;
+    z-index: 5;
+}
