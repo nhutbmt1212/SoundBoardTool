@@ -14,13 +14,17 @@ const UI = {
 
         // Tabs
         setIcon('icon-tab-sounds', 'music', 16);
+        setIcon('icon-tab-sounds', 'music', 16);
         setIcon('icon-tab-youtube', 'youtube', 16);
+        setIcon('icon-tab-tiktok', 'tiktok', 16);
 
         // Actions
         setIcon('icon-btn-add', 'add', 14);
         setIcon('icon-btn-refresh', 'refresh', 14);
-        setIcon('icon-btn-add-yt', 'youtube', 14); // Or add
+        setIcon('icon-btn-add-yt', 'add', 14);
+        setIcon('icon-btn-add-tt', 'add', 14);
         setIcon('icon-btn-refresh-yt', 'refresh', 14);
+        setIcon('icon-btn-refresh-tt', 'refresh', 14);
 
         // Mic
         setIcon('mic-icon', 'micOff', 16); // Default off
@@ -203,7 +207,57 @@ const UI = {
         `;
     },
 
-    // Update playing state on cards
+    // Unified Now Playing Bar
+    currentPlayingType: null,
+
+    updateNowPlaying(title, type, isPlaying, isPaused = false) {
+        const iconContainer = document.getElementById('now-playing-icon');
+        const titleEl = document.getElementById('now-playing-title');
+        const statusIcon = document.getElementById('now-playing-status-icon');
+        const progressFill = document.getElementById('now-playing-progress');
+
+        if (!title && !isPlaying) {
+            // Only clear if the current type matches the request type
+            // This prevents 'youtube' stop event from clearing 'sound' play event logic if race condition
+            if (title === null && (this.currentPlayingType === type || this.currentPlayingType === null)) {
+                titleEl.textContent = 'Select a sound...';
+                titleEl.classList.remove('active');
+                iconContainer.classList.remove('playing');
+                iconContainer.innerHTML = IconManager.get('waveform', { size: 24 });
+                statusIcon.innerHTML = '';
+                progressFill.style.width = '0%';
+                this.currentPlayingType = null;
+            }
+            return;
+        }
+
+        // Active playing or paused state
+        this.currentPlayingType = type;
+
+        // Update Title
+        titleEl.textContent = title || 'Unknown Track';
+        titleEl.classList.add('active');
+
+        // Update Icon based on type
+        let typeIcon = 'waveform';
+        if (type === 'youtube') typeIcon = 'youtube';
+        if (type === 'tiktok') typeIcon = 'tiktok';
+
+        iconContainer.innerHTML = IconManager.get(typeIcon, { size: 24 });
+
+        // Update Playing Status
+        if (isPlaying && !isPaused) {
+            iconContainer.classList.add('playing');
+            statusIcon.innerHTML = IconManager.get('pause', { size: 20 });
+            progressFill.style.width = '100%';
+        } else {
+            iconContainer.classList.remove('playing');
+            statusIcon.innerHTML = IconManager.get('play', { size: 20 });
+            progressFill.style.width = '0%';
+        }
+    },
+
+    // Update playing state on cards (Local Sounds)
     updatePlayingState(playingSound) {
         document.querySelectorAll('.sound-card').forEach(card => {
             // Only add playing class if playingSound matches, otherwise remove
@@ -213,6 +267,13 @@ const UI = {
                 card.classList.remove('playing');
             }
         });
+
+        if (playingSound) {
+            const displayName = AppState.getDisplayName(playingSound);
+            this.updateNowPlaying(displayName, 'sound', true);
+        } else {
+            this.updateNowPlaying(null, 'sound', false);
+        }
     },
 
     // Clear all playing states
@@ -236,23 +297,19 @@ const UI = {
 
     // Update YouTube UI
     updateYoutubeUI(playing, title = '') {
-        const infoEl = document.getElementById('youtube-info');
         if (playing && title) {
-            infoEl.innerHTML = IconManager.get('play', { size: 14 }) + ' ' + Utils.escapeHtml(title);
-            infoEl.className = 'youtube-info playing';
-        } else {
-            infoEl.innerHTML = '';
-            infoEl.className = 'youtube-info';
+            this.updateNowPlaying(title, 'youtube', true);
+        } else if (!playing && title === '') {
+            // Stop
+            // this.updateNowPlaying(null, 'youtube', false);
         }
     },
 
     // Set YouTube loading state
     setYoutubeLoading() {
-        const infoEl = document.getElementById('youtube-info');
+        this.updateNowPlaying('Loading YouTube...', 'youtube', false);
         const playBtn = document.getElementById('btn-youtube-play');
-        infoEl.textContent = 'Loading...';
-        infoEl.className = 'youtube-info loading';
-        playBtn.disabled = true;
+        if (playBtn) playBtn.disabled = true;
     },
 
     // Set YouTube error state
@@ -468,6 +525,233 @@ const UI = {
                 </div>
             </div>
         `;
+    },
+
+    // Update TikTok UI
+    updateTikTokUI(playing, title = '') {
+        if (playing && title) {
+            this.updateNowPlaying(title, 'tiktok', true);
+        } else if (!playing && title === '') {
+            // Stop handled elsewhere or explicitly
+        }
+    },
+
+    // Set TikTok loading state
+    setTikTokLoading() {
+        this.updateNowPlaying('Loading TikTok...', 'tiktok', false);
+    },
+
+    // Set TikTok error state
+    setTikTokError(error) {
+        const infoEl = document.getElementById('tiktok-info');
+        infoEl.innerHTML = IconManager.get('warning', { size: 14 }) + ' ' + Utils.escapeHtml(error);
+        infoEl.className = 'tiktok-info error';
+    },
+
+    // Enable TikTok play button
+    enableTikTokPlayBtn() {
+    },
+
+    // Select TikTok card visually
+    selectTikTokCard(url) {
+        document.querySelectorAll('.tiktok-item').forEach(card => {
+            card.classList.toggle('selected', card.dataset.url === url);
+        });
+    },
+
+    // Show panel for TikTok item
+    showTikTokPanel(item) {
+        const panel = document.getElementById('right-panel');
+        const displayName = AppState.getTikTokDisplayName(item.url, item.title);
+
+        panel.innerHTML = `
+            <div class="panel-header">
+                <input type="text" class="panel-sound-name editable" id="tt-name-input" 
+                       value="${Utils.escapeAttr(displayName)}" 
+                       placeholder="${Utils.escapeAttr(item.title)}"
+                       onchange="TikTokEvents.onNameChange(this.value)"
+                       onkeydown="if(event.key==='Enter')this.blur()">
+                <div class="panel-sound-info" title="${Utils.escapeAttr(item.url)}">${Utils.escapeHtml(item.url)}</div>
+            </div>
+            
+            <div class="panel-preview">
+                <div class="preview-wave scream-active">
+                    <div class="wave-animation">
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                        <div class="wave-bar"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <div class="panel-section-title">${icon('keyboard', 16)} Keybind</div>
+                <input type="text" class="keybind-input" id="tt-keybind-input" 
+                       value="${AppState.getTikTokKeybind(item.url)}" 
+                       placeholder="Click to set keybind"
+                       readonly
+                       onclick="TikTokEvents.startKeybindRecording()">
+            </div>
+            
+            <div class="panel-section">
+                <div class="panel-section-title">${icon('volume', 16)} TikTok Volume</div>
+                <div class="volume-control">
+                    <input type="range" class="volume-slider" id="tiktok-volume" 
+                           min="0" max="100" value="100"
+                           oninput="TikTokEvents.onVolumeChange(this.value)">
+                    <span class="volume-value" id="tiktok-volume-value">100%</span>
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <div class="panel-section-title">${icon('clock', 16)} Trim Audio</div>
+                <div id="tiktok-waveform-container"></div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-title">${IconManager.get('scream', { size: 16 })} Scream Mode</div>
+                <label class="scream-toggle">
+                    <input type="checkbox" id="tt-scream-checkbox" ${AppState.isTikTokScreamMode(item.url) ? 'checked' : ''} onchange="TikTokEvents.toggleScreamMode('${Utils.escapeAttr(item.url)}')">
+                    <span class="scream-slider"></span>
+                    <span class="scream-label">${AppState.isTikTokScreamMode(item.url) ? 'ON - 5000% BOOST!' : 'OFF'}</span>
+                </label>
+                <div class="scream-hint">Boost volume to max for trolling</div>
+            </div>
+            
+            <div class="panel-section">
+                <div class="panel-section-title">${IconManager.get('chipmunk', { size: 16 })} Chipmunk Mode</div>
+                <label class="pitch-toggle">
+                    <input type="checkbox" id="tt-pitch-checkbox" ${AppState.isTikTokPitchMode(item.url) ? 'checked' : ''} onchange="TikTokEvents.togglePitchMode('${Utils.escapeAttr(item.url)}')">
+                    <span class="pitch-slider"></span>
+                    <span class="pitch-label">${AppState.isTikTokPitchMode(item.url) ? 'ON - HIGH PITCH!' : 'OFF'}</span>
+                </label>
+                <div class="pitch-hint">Speed up audio for chipmunk voice</div>
+            </div>
+            
+            <div class="panel-actions">
+                <button class="btn-panel btn-play" onclick="TikTokEvents.playItem('${Utils.escapeAttr(item.url)}')">${icon('play', 14)} Play</button>
+                <button class="btn-panel btn-stop" onclick="TikTokEvents.pauseItem('${Utils.escapeAttr(item.url)}')">${icon('pause', 14)} Pause</button>
+            </div>
+            
+            <div class="panel-actions">
+                 <button class="btn-panel btn-stop" onclick="TikTokEvents.stop()">${icon('stop', 14)} Stop Playback</button>
+            </div>
+            
+             <div class="panel-actions">
+                <button class="btn-panel btn-stop" style="color: var(--primary); border-color: var(--primary);" onclick="TikTokEvents.saveAsSound()">${icon('add', 14)} Save as Sound</button>
+            </div>
+
+            <div class="panel-actions">
+                <button class="btn-panel btn-delete" onclick="TikTokEvents.deleteItem('${Utils.escapeAttr(item.url)}')">${icon('trash', 14)} Delete</button>
+            </div>
+        `;
+
+        // Initialize TikTok waveform visualizer after DOM is ready
+        setTimeout(() => {
+            if (window.TikTokRangeSlider) {
+                new TikTokRangeSlider('tiktok-waveform-container', item.url);
+            }
+        }, 100);
+    },
+
+    // Render TikTok grid
+    renderTikTokGrid(items, info) {
+        const grid = document.getElementById('tiktok-grid');
+
+        if (!items || items.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <span class="empty-icon">${IconManager.get('tiktok', { size: 64 })}</span>
+                    <h2>No TikTok videos</h2>
+                    <p>Click "Add from TikTok" to get started</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Sort TikTok items alphabetically by display name
+        const sortedItems = [...items].sort((a, b) => {
+            const nameA = AppState.getTikTokDisplayName(a.url, a.title).toLowerCase();
+            const nameB = AppState.getTikTokDisplayName(b.url, b.title).toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
+        grid.innerHTML = sortedItems.map(item => this.renderTikTokItem(item, info)).join('');
+    },
+
+    // Render single TikTok item
+    renderTikTokItem(item, info) {
+        const keybind = AppState.getTikTokKeybind(item.url) || item.keybind || '';
+        const displayName = AppState.getTikTokDisplayName(item.url, item.title);
+        const isCurrentUrl = info && info.url === item.url;
+        const isPlaying = isCurrentUrl && info.playing;
+        const isPaused = isCurrentUrl && info.paused;
+
+        return `
+            <div class="sound-card tiktok-item ${isPlaying ? 'playing' : ''} ${isPaused ? 'paused' : ''}" data-url="${Utils.escapeAttr(item.url)}">
+                <div class="sound-thumbnail youtube-thumbnail">
+                    <span class="thumb-icon">${IconManager.get('waveform')}</span>
+                    ${isPlaying && !isPaused ? `<div class="playing-indicator">${IconManager.get('playCircle', { size: 32 })}</div>` : ''}
+                    ${isPaused ? `<div class="playing-indicator">${IconManager.get('pauseCircle', { size: 32 })}</div>` : ''}
+                </div>
+                <div class="sound-name" title="${Utils.escapeAttr(displayName)}">${Utils.escapeHtml(displayName)}</div>
+                
+                <div class="sound-keybind ${keybind ? 'has-bind' : ''}">
+                    ${keybind || 'Add keybind'}
+                </div>
+            </div>
+        `;
+    },
+
+    // Add loading TikTok card
+    addLoadingTikTokCard(url) {
+        const grid = document.getElementById('tiktok-grid');
+        if (!grid) return;
+
+        // Remove empty state
+        const empty = grid.querySelector('.empty-state');
+        if (empty) empty.remove();
+
+        const card = document.createElement('div');
+        card.className = 'sound-card tiktok-item loading';
+        card.dataset.url = 'loading-' + url;
+        card.innerHTML = `
+            <div class="sound-thumbnail youtube-thumbnail">
+                <div class="loading-pie" style="--p: 0;"></div>
+                <div class="loading-percent">0%</div>
+            </div>
+            <div class="sound-name">Downloading...</div>
+            <div class="sound-info" style="font-size: 10px; color: var(--text-muted); padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${Utils.escapeHtml(url)}</div>
+        `;
+
+        grid.prepend(card);
+    },
+
+    // Update loading progress
+    updateTikTokProgress(url, percent) {
+        const grid = document.getElementById('tiktok-grid');
+        if (!grid) return;
+
+        const card = grid.querySelector(`.tiktok-item[data-url="loading-${Utils.escapeAttr(url)}"]`);
+        if (!card) return;
+
+        const pie = card.querySelector('.loading-pie');
+        const text = card.querySelector('.loading-percent');
+
+        if (pie) pie.style.setProperty('--p', percent);
+        if (text) text.textContent = Math.round(percent) + '%';
+    },
+
+    // Remove loading TikTok card
+    removeLoadingTikTokCard(url) {
+        const grid = document.getElementById('tiktok-grid');
+        if (!grid) return;
+        const card = grid.querySelector(`.tiktok-item[data-url="loading-${Utils.escapeAttr(url)}"]`);
+        if (card) card.remove();
     },
 
     // Modal

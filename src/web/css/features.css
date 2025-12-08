@@ -126,3 +126,26 @@
     pointer-events: none;
     box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
 }
+
+.tiktok-info {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: var(--spacing-md);
+    background: var(--bg-app);
+    border-radius: var(--radius-md);
+    margin-top: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-height: 48px;
+}
+
+.tiktok-info.playing {
+    color: var(--secondary);
+    border-left: 2px solid var(--secondary);
+}
+
+.tiktok-info.error {
+    color: var(--danger);
+    border-left: 2px solid var(--danger);
+}

@@ -60,8 +60,19 @@ class HotkeyManager:
             
             try:
                 kb_format = self._convert_keybind(keybind)
-                self._hotkeys[keybind] = callback
-                keyboard.add_hotkey(kb_format, callback, suppress=False)
+                import time
+                
+                # Debounce mechanism
+                def debounced_callback(cb=callback):
+                    current_time = time.time()
+                    last_time = getattr(cb, '_last_trigger_time', 0)
+                    if current_time - last_time < 0.3:  # 300ms debounce
+                        return
+                    cb._last_trigger_time = current_time
+                    cb()
+                
+                self._hotkeys[keybind] = debounced_callback
+                keyboard.add_hotkey(kb_format, debounced_callback, suppress=False)
                 self._registered[keybind] = kb_format
                 return True
             except Exception:
@@ -107,7 +118,8 @@ class HotkeyManager:
             self._hotkeys.clear()
     
     def update_all(self, keybinds: dict, play_callback, stop_callback, stop_keybind: str = None, 
-                   youtube_keybinds: dict = None, play_youtube_callback = None):
+                   youtube_keybinds: dict = None, play_youtube_callback = None,
+                   tiktok_keybinds: dict = None, play_tiktok_callback = None):
         """Update all hotkeys at once"""
         self._ensure_init()
         if not KEYBOARD_AVAILABLE:
@@ -125,6 +137,12 @@ class HotkeyManager:
             for url, keybind in youtube_keybinds.items():
                 if keybind:
                     self.register(keybind, lambda u=url: play_youtube_callback(u))
+        
+        # Register TikTok keybinds
+        if tiktok_keybinds and play_tiktok_callback:
+            for url, keybind in tiktok_keybinds.items():
+                if keybind:
+                    self.register(keybind, lambda u=url: play_tiktok_callback(u))
         
         if stop_keybind:
             self.register(stop_keybind, stop_callback)

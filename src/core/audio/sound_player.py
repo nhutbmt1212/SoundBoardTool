@@ -183,26 +183,35 @@ class SoundPlayer:
         return audio
 
     def _stream_audio_to_device(self, audio, samplerate, device_id, tid):
-         """Stream audio data to the specified output device"""
-         try:
+        """Stream audio data to the specified output device"""
+        try:
             channels = audio.shape[1] if audio.ndim > 1 else 1
-            with sd.OutputStream(
-                device=device_id,
-                samplerate=samplerate,
-                channels=channels,
-                dtype='float32',
-                blocksize=self.STREAM_CHUNK_SIZE,
-            ) as stream:
+            
+            stream_kwargs = {
+                'samplerate': samplerate,
+                'channels': channels,
+                'dtype': 'float32',
+                'blocksize': self.STREAM_CHUNK_SIZE,
+            }
+            
+            if device_id is not None:
+                stream_kwargs['device'] = device_id
+                
+            with sd.OutputStream(**stream_kwargs) as stream:
                 for i in range(0, len(audio), self.STREAM_CHUNK_SIZE):
                     if self._stop_flag.is_set() or tid != self._thread_id:
-                        break
+                        stream.abort()
+                        return
                     
                     chunk = audio[i:i + self.STREAM_CHUNK_SIZE]
                     if chunk.ndim == 1:
                         chunk = chunk.reshape(-1, 1)
                     stream.write(chunk)
-         except Exception as e:
-            print(f"Error streaming audio to device {device_id}: {e}")
+        except Exception as e:
+            # Suppress specific transient errors to avoid spamming log
+            msg = str(e)
+            if "AUDCLNT_E_DEVICE_INVALIDATED" not in msg and "There is no driver installed" not in msg:
+                 print(f"Error streaming audio: {e}")
 
     def _play_speaker(self, path: str, tid: int, name: str):
         """Play to speaker in background thread with trim support"""

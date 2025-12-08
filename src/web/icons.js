@@ -47,6 +47,7 @@ const Icons = {
 
     // Brands
     youtube: 'fa-brands fa-youtube',
+    tiktok: 'fa-brands fa-tiktok',
 
     // UI
     close: 'fa-solid fa-xmark',

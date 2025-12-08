@@ -55,7 +55,8 @@
 
 /* Grids */
 .sounds-grid,
-.youtube-grid {
+.youtube-grid,
+.tiktok-grid {
     position: relative;
     z-index: 1;
     flex: 1;
@@ -69,6 +70,114 @@
     overflow-x: hidden;
     /* Soft padding at bottom for scrolling */
     padding-bottom: 100px;
+}
+
+/* Now Playing Bar */
+.now-playing-bar {
+    background: rgba(24, 26, 32, 0.95);
+    border-top: 1px solid var(--border-light);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 25;
+    position: relative;
+    /* transition: all 0.3s ease; */
+    border-bottom: 1px solid var(--border-light);
+}
+
+.now-playing-content {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-xl);
+    gap: var(--spacing-md);
+    height: 70px;
+}
+
+.now-playing-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.now-playing-icon.playing {
+    box-shadow: 0 0 15px var(--primary-glow);
+    border: 1px solid var(--primary);
+    animation: pulse-glow 2s infinite;
+}
+
+.now-playing-info {
+    flex: 1;
+    min-width: 0;
+    /* Text truncation fix */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.now-playing-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.now-playing-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.now-playing-title.active {
+    color: var(--primary);
+    text-shadow: 0 0 10px var(--primary-glow);
+}
+
+.now-playing-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+}
+
+.now-playing-progress-bar {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.05);
+    width: 100%;
+    position: relative;
+}
+
+.now-playing-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    width: 0%;
+    transition: width 0.1s linear;
+    box-shadow: 0 0 10px var(--primary-glow);
+}
+
+/* Animations */
+@keyframes pulse-glow {
+    0% {
+        box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    50% {
+        box-shadow: 0 0 20px var(--primary-glow);
+    }
+
+    100% {
+        box-shadow: 0 0 10px var(--primary-glow);
+    }
 }
 
 /* Bottom Controls */

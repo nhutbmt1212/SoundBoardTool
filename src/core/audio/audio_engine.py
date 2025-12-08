@@ -3,6 +3,7 @@ from .vb_cable_manager import VBCableManager
 from .sound_player import SoundPlayer
 from .mic_passthrough import MicPassthrough
 from .youtube_stream import YouTubeStream
+from .tiktok_stream import TikTokStream
 
 
 class AudioEngine:
@@ -20,6 +21,7 @@ class AudioEngine:
         self.sound_player = SoundPlayer(sounds_dir, self.vb_manager)
         self.mic = MicPassthrough(self.vb_manager)
         self.youtube = YouTubeStream(self.vb_manager)
+        self.tiktok = TikTokStream(self.vb_manager)
     
     # === Sound Playback ===
     
@@ -60,13 +62,33 @@ class AudioEngine:
         self.sound_player.set_trim(start, end)
     
     def play(self, name: str) -> bool:
-        # Enforce priority: Stop YouTube if playing
+        # Debounce: prevent playing same sound multiple times within 300ms
+        import time
+        current_time = time.time()
+        last_play_time = getattr(self, '_last_play_time', 0)
+        
+        # NOTE: We allow different sounds to interrupt freely, but same sound needs debounce?
+        # The user said "lặp sound" (repeating sound), implying the same sound triggers multiple times.
+        # But if they spam different sounds, that's maybe desired?
+        # Let's debounce ANY sound play call to safer side. 100ms is usually fast enough for human spam but slow enough for glitch.
+        # User said "keybind... lặp sound".
+        
+        if current_time - last_play_time < 0.2:  # 200ms global debounce for playback
+             return False
+        
+        self._last_play_time = current_time
+
+        # Enforce priority: Stop YouTube and TikTok if playing
+        # Wait for them to fully stop
         self.youtube.stop()
+        self.tiktok.stop()
+        
         return self.sound_player.play(name)
     
     def stop(self):
         self.sound_player.stop()
         self.youtube.stop()
+        self.tiktok.stop()
     
     def add_sound(self, filepath: str, name: str = None) -> bool:
         return self.sound_player.add_sound(filepath, name)
@@ -129,8 +151,10 @@ class AudioEngine:
     # === YouTube ===
     
     def play_youtube(self, url: str, progress_callback=None) -> dict:
-        # Enforce priority: Stop Sound if playing
+        # Enforce priority: Stop Sound and TikTok if playing
         self.sound_player.stop()
+        self.tiktok.stop()
+        
         return self.youtube.play(url, progress_callback)
     
     def stop_youtube(self):
@@ -157,6 +181,40 @@ class AudioEngine:
     def set_youtube_trim(self, start: float, end: float):
         self.youtube.set_trim(start, end)
     
+    # === TikTok ===
+    
+    def play_tiktok(self, url: str, progress_callback=None) -> dict:
+        # Enforce priority: Stop Sound and YouTube if playing
+        # Wait for them to fully stop to prevent overlap
+        self.sound_player.stop()
+        self.youtube.stop()
+        
+        return self.tiktok.play(url, progress_callback)
+    
+    def stop_tiktok(self):
+        self.tiktok.stop()
+        
+    def pause_tiktok(self):
+        self.tiktok.pause()
+        
+    def resume_tiktok(self):
+        self.tiktok.resume()
+    
+    def is_tiktok_playing(self) -> bool:
+        return self.tiktok.is_playing()
+    
+    def get_tiktok_info(self) -> dict:
+        return self.tiktok.get_info()
+    
+    def set_tiktok_volume(self, vol: float):
+        self.tiktok.set_volume(vol)
+        
+    def set_tiktok_pitch(self, pitch: float):
+        self.tiktok.set_pitch(pitch)
+    
+    def set_tiktok_trim(self, start: float, end: float):
+        self.tiktok.set_trim(start, end)
+    
     # === Cleanup ===
     
     def cleanup(self):
@@ -164,3 +222,4 @@ class AudioEngine:
         self.sound_player.cleanup()
         self.mic.stop()
         self.youtube.stop()
+        self.tiktok.stop()

@@ -46,6 +46,24 @@ const AppState = {
     /** @type {Object<string, {start: number, end: number}>} YouTube trim settings (start/end in seconds) */
     youtubeTrimSettings: {},
 
+    /** @type {Object<string, {start: number, end: number}>} TikTok trim settings (start/end in seconds) */
+    tiktokTrimSettings: {},
+
+    /** @type {Object|null} Currently selected TikTok item */
+    selectedTikTokItem: null,
+
+    /** @type {Object<string, string>} TikTok keybind mappings */
+    tiktokKeybinds: {},
+
+    /** @type {Object<string, boolean>} TikTok scream mode states */
+    tiktokScreamMode: {},
+
+    /** @type {Object<string, boolean>} TikTok pitch mode states */
+    tiktokPitchMode: {},
+
+    /** @type {Object<string, string>} Custom TikTok display names */
+    tiktokNames: {},
+
     /** @type {string} Global stop all keybind */
     stopAllKeybind: '',
 
@@ -60,6 +78,9 @@ const AppState = {
 
     /** @type {number|null} YouTube status check interval ID */
     youtubePlayingInterval: null,
+
+    /** @type {number|null} TikTok status check interval ID */
+    tiktokPlayingInterval: null,
 
     /** @type {number|null} Playing state check interval ID */
     playingCheckInterval: null,
@@ -314,6 +335,111 @@ const AppState = {
         }
     },
 
+    // ==================== TikTok Getters ====================
+
+    /**
+     * Gets keybind for a TikTok item
+     * @param {string} url - TikTok URL
+     * @returns {string} Keybind string or empty string
+     */
+    getTikTokKeybind(url) {
+        return this.tiktokKeybinds[url] || '';
+    },
+
+    /**
+     * Checks if scream mode is enabled for a TikTok item
+     * @param {string} url - TikTok URL
+     * @returns {boolean} True if scream mode enabled
+     */
+    isTikTokScreamMode(url) {
+        return this.tiktokScreamMode[url] || false;
+    },
+
+    /**
+     * Checks if pitch mode is enabled for a TikTok item
+     * @param {string} url - TikTok URL
+     * @returns {boolean} True if pitch mode enabled
+     */
+    isTikTokPitchMode(url) {
+        return this.tiktokPitchMode[url] || false;
+    },
+
+    /**
+     * Gets custom display name for a TikTok item
+     * @param {string} url - TikTok URL
+     * @param {string} defaultTitle - Default title to use if no custom name
+     * @returns {string} Custom display name or default title
+     */
+    getTikTokDisplayName(url, defaultTitle) {
+        return this.tiktokNames[url] || defaultTitle;
+    },
+
+    /**
+     * Gets trim settings for a TikTok item
+     * @param {string} url - TikTok URL
+     * @returns {{start: number, end: number}|null} Trim settings or null if not set
+     */
+    getTikTokTrimSettings(url) {
+        return this.tiktokTrimSettings[url] || null;
+    },
+
+    // ==================== TikTok Setters ====================
+
+    /**
+     * Sets keybind for a TikTok item
+     * @param {string} url - TikTok URL
+     * @param {string} keybind - Keybind string
+     */
+    setTikTokKeybind(url, keybind) {
+        this.tiktokKeybinds[url] = keybind;
+    },
+
+    /**
+     * Sets scream mode for a TikTok item
+     * @param {string} url - TikTok URL
+     * @param {boolean} enabled - True to enable scream mode
+     */
+    setTikTokScreamMode(url, enabled) {
+        this.tiktokScreamMode[url] = enabled;
+    },
+
+    /**
+     * Sets pitch mode for a TikTok item
+     * @param {string} url - TikTok URL
+     * @param {boolean} enabled - True to enable pitch mode
+     */
+    setTikTokPitchMode(url, enabled) {
+        this.tiktokPitchMode[url] = enabled;
+    },
+
+    /**
+     * Sets custom display name for a TikTok item
+     * @param {string} url - TikTok URL
+     * @param {string} displayName - Custom display name (empty to reset)
+     * @param {string} originalTitle - Original title for comparison
+     */
+    setTikTokDisplayName(url, displayName, originalTitle) {
+        if (displayName && displayName !== originalTitle) {
+            this.tiktokNames[url] = displayName;
+        } else {
+            delete this.tiktokNames[url];
+        }
+    },
+
+    /**
+     * Sets trim settings for a TikTok item
+     * @param {string} url - TikTok URL
+     * @param {number} start - Start time in seconds
+     * @param {number} end - End time in seconds (0 = no trim)
+     */
+    setTikTokTrimSettings(url, start, end) {
+        if (start > 0 || end > 0) {
+            this.tiktokTrimSettings[url] = { start: start || 0, end: end || 0 };
+        } else {
+            delete this.tiktokTrimSettings[url];
+        }
+    },
+
     // ==================== Persistence ====================
 
     /**
@@ -330,6 +456,9 @@ const AppState = {
         this.youtubeNames = settings.youtubeNames || {};
         this.soundTrimSettings = settings.trimSettings || {};
         this.youtubeTrimSettings = settings.youtubeTrimSettings || {};
+        this.tiktokKeybinds = settings.tiktokKeybinds || {};
+        this.tiktokNames = settings.tiktokNames || {};
+        this.tiktokTrimSettings = settings.tiktokTrimSettings || {};
         this.stopAllKeybind = settings.stopAllKeybind || '';
 
         // Backwards compatibility check - if boolean, reset to empty object
@@ -339,6 +468,9 @@ const AppState = {
         this.youtubePitchMode = (typeof settings.youtubePitchMode === 'object')
             ? settings.youtubePitchMode
             : {};
+
+        this.tiktokScreamMode = (typeof settings.tiktokScreamMode === 'object') ? settings.tiktokScreamMode : {};
+        this.tiktokPitchMode = (typeof settings.tiktokPitchMode === 'object') ? settings.tiktokPitchMode : {};
     },
 
     /**
@@ -358,7 +490,12 @@ const AppState = {
             youtubeTrimSettings: this.youtubeTrimSettings,
             stopAllKeybind: this.stopAllKeybind,
             youtubeScreamMode: this.youtubeScreamMode,
-            youtubePitchMode: this.youtubePitchMode
+            youtubePitchMode: this.youtubePitchMode,
+            tiktokKeybinds: this.tiktokKeybinds,
+            tiktokScreamMode: this.tiktokScreamMode,
+            tiktokPitchMode: this.tiktokPitchMode,
+            tiktokNames: this.tiktokNames,
+            tiktokTrimSettings: this.tiktokTrimSettings
         };
     }
 };

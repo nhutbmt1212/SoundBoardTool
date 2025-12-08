@@ -348,6 +348,146 @@ const API = {
             0,
             `getYoutubeDuration(${url})`
         );
+    },
+
+    // ==================== TikTok ====================
+
+    /**
+     * Plays a TikTok video by URL
+     * @param {string} url - TikTok video URL
+     * @returns {Promise<Object>} Result object with success status and title/error
+     */
+    async playTikTok(url) {
+        return this._handleApiCall(
+            () => eel.play_tiktok(url)(),
+            { success: false, error: 'Failed to connect to backend' },
+            `playTikTok(${url})`
+        );
+    },
+
+    /**
+     * Stops currently playing TikTok video
+     * @returns {Promise<void>}
+     */
+    async stopTikTok() {
+        return this._handleApiCall(
+            () => eel.stop_tiktok()(),
+            undefined,
+            'stopTikTok'
+        );
+    },
+
+    /**
+     * Pauses currently playing TikTok video
+     * @returns {Promise<void>}
+     */
+    async pauseTikTok() {
+        return this._handleApiCall(
+            () => eel.pause_tiktok()(),
+            undefined,
+            'pauseTikTok'
+        );
+    },
+
+    /**
+     * Resumes paused TikTok video
+     * @returns {Promise<void>}
+     */
+    async resumeTikTok() {
+        return this._handleApiCall(
+            () => eel.resume_tiktok()(),
+            undefined,
+            'resumeTikTok'
+        );
+    },
+
+    /**
+     * Gets current TikTok playback information
+     * @returns {Promise<Object>} Info object with playing status, title, url, and paused state
+     */
+    async getTikTokInfo() {
+        return this._handleApiCall(
+            () => eel.get_tiktok_info()(),
+            { playing: false },
+            'getTikTokInfo'
+        );
+    },
+
+    /**
+     * Sets TikTok playback volume
+     * @param {number} volume - Volume level (0.0 to 1.0)
+     * @returns {Promise<void>}
+     */
+    async setTikTokVolume(volume) {
+        return this._handleApiCall(
+            () => eel.set_tiktok_volume(volume)(),
+            undefined,
+            `setTikTokVolume(${volume})`
+        );
+    },
+
+    /**
+     * Downloads and saves TikTok video as a sound file
+     * @param {string} url - TikTok video URL
+     * @returns {Promise<Object>} Result object with success status and name/error
+     */
+    async saveTikTokAsSound(url) {
+        return this._handleApiCall(
+            () => eel.save_tiktok_as_sound(url)(),
+            { success: false, error: 'Failed to save' },
+            `saveTikTokAsSound(${url})`
+        );
+    },
+
+    /**
+     * Retrieves list of saved TikTok items
+     * @returns {Promise<Array<Object>>} Array of TikTok item objects
+     */
+    async getTikTokItems() {
+        return this._handleApiCall(
+            () => eel.get_tiktok_items()(),
+            [],
+            'getTikTokItems'
+        );
+    },
+
+    /**
+     * Adds a new TikTok item to the library
+     * @param {string} url - TikTok video URL
+     * @returns {Promise<Object>} Result object with success status and title/error
+     */
+    async addTikTokItem(url) {
+        return this._handleApiCall(
+            () => eel.add_tiktok_item(url)(),
+            { success: false, error: 'Failed to add item' },
+            `addTikTokItem(${url})`
+        );
+    },
+
+    /**
+     * Deletes a TikTok item from the library
+     * @param {string} url - TikTok video URL
+     * @returns {Promise<Object>} Result object with success status
+     */
+    async deleteTikTokItem(url) {
+        return this._handleApiCall(
+            () => eel.delete_tiktok_item(url)(),
+            { success: false, error: 'Failed to delete item' },
+            `deleteTikTokItem(${url})`
+        );
+    },
+
+    /**
+     * Gets TikTok video duration in seconds
+     * @param {string} url - TikTok video URL
+     * @returns {Promise<number>} Duration in seconds
+     */
+    async getTikTokDuration(url) {
+        return this._handleApiCall(
+            () => eel.get_tiktok_duration(url)(),
+            0,
+            `getTikTokDuration(${url})`
+        );
     }
 };
 

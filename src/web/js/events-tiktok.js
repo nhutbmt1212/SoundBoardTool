@@ -1,66 +1,67 @@
-// YouTube Event Handlers for Soundboard Pro
+// TikTok Event Handlers for Soundboard Pro
 
 /**
- * YouTube event handlers module
- * Handles all YouTube-related user interactions, playback, and item management
+ * TikTok event handlers module
+ * Handles all TikTok-related user interactions, playback, and item management
  */
-const YouTubeEvents = {
+const TikTokEvents = {
     // ==================== Playback Control ====================
 
     /**
-     * Plays a YouTube video from URL input
+     * Plays a TikTok video from URL input
      * @returns {Promise<void>}
      */
     async play() {
-        const urlInput = document.getElementById('youtube-url');
-        const url = urlInput.value.trim();
+        const urlInput = document.getElementById('tiktok-url');
+        const url = urlInput ? urlInput.value.trim() : '';
 
         if (!url) {
-            Notifications.warning('Please enter a YouTube URL');
+            Notifications.warning('Please enter a TikTok URL');
             return;
         }
 
-        UI.setYoutubeLoading();
+        UI.setTikTokLoading();
 
-        const result = await API.playYoutube(url);
+        const result = await API.playTikTok(url);
 
         if (result.success) {
-            UI.updateYoutubeUI(true, result.title);
+            UI.updateTikTokUI(true, result.title);
             this.startStatusCheck();
 
             // Show save button
-            const saveBtn = document.getElementById('btn-youtube-save');
+            const saveBtn = document.getElementById('btn-tiktok-save');
             if (saveBtn) saveBtn.style.display = 'flex';
         } else {
-            UI.setYoutubeError(result.error || 'Failed to play');
+            UI.setTikTokError(result.error || 'Failed to play');
         }
 
-        UI.enableYoutubePlayBtn();
+        UI.enableTikTokPlayBtn();
     },
 
     /**
-     * Stops currently playing YouTube video
+     * Stops currently playing TikTok video
      * @returns {Promise<void>}
      */
     async stop() {
-        await API.stopYoutube();
-        UI.updateYoutubeUI(false);
+        await API.stopTikTok();
+        UI.updateTikTokUI(false);
     },
 
     /**
-     * Downloads and saves current YouTube video as a sound file
+     * Downloads and saves current TikTok video as a sound file
      * @returns {Promise<void>}
      */
     async saveAsSound() {
-        const urlInput = document.getElementById('youtube-url');
-        const url = urlInput.value.trim();
+        // Fallback to selected item if no generic input
+        const item = AppState.selectedTikTokItem;
+        const url = item ? item.url : ''; // Or maybe we need input?
 
         if (!url) {
-            Notifications.warning('No YouTube URL');
+            Notifications.warning('No TikTok URL selected');
             return;
         }
 
-        const result = await API.saveYoutubeAsSound(url);
+        const result = await API.saveTikTokAsSound(url);
 
         if (result.success) {
             Notifications.success(`Saved as sound: ${result.name}`);
@@ -73,70 +74,70 @@ const YouTubeEvents = {
     // ==================== Items Management ====================
 
     /**
-     * Refreshes YouTube items grid from backend
+     * Refreshes TikTok items grid from backend
      * @returns {Promise<void>}
      */
     async refreshItems() {
-        const items = await API.getYoutubeItems();
-        const info = await API.getYoutubeInfo();
-        UI.renderYoutubeGrid(items, info);
+        const items = await API.getTikTokItems();
+        const info = await API.getTikTokInfo();
+        UI.renderTikTokGrid(items, info);
         this.setupCardEvents(items);
     },
 
     /**
-     * Selects a YouTube item and shows its details panel
-     * @param {Object} item - YouTube item object
+     * Selects a TikTok item and shows its details panel
+     * @param {Object} item - TikTok item object
      */
     selectItem(item) {
-        AppState.selectedYoutubeItem = item;
-        UI.selectYoutubeCard(item.url);
-        UI.showYoutubePanel(item);
+        AppState.selectedTikTokItem = item;
+        UI.selectTikTokCard(item.url);
+        UI.showTikTokPanel(item);
     },
 
     /**
-     * Shows dialog to add a new YouTube item
+     * Shows dialog to add a new TikTok item
      */
     showAddDialog() {
         UI.showModal({
-            title: 'Add from YouTube',
+            title: 'Add from TikTok',
             body: `
                 <div class="input-group">
-                    <input type="text" id="youtube-url-input" class="modal-input" placeholder="Paste YouTube URL here...">
-                    <div style="font-size: 12px; color: var(--text-muted);">Supports individual videos. Playlist support coming soon.</div>
+                    <input type="text" id="tiktok-url-input" class="modal-input" placeholder="Paste TikTok URL here...">
+                    <div style="font-size: 12px; color: var(--text-muted);">Supports individual videos.</div>
                 </div>
             `,
             confirmText: 'Add Video',
             onConfirm: async () => {
-                const input = document.getElementById('youtube-url-input');
+                const input = document.getElementById('tiktok-url-input');
                 const url = input.value.trim();
 
                 if (!url) return;
 
                 // Show loading notification
-                Notifications.info('Processing YouTube URL...');
-                UI.addLoadingYoutubeCard(url);
+                Notifications.info('Processing TikTok URL...');
+                UI.addLoadingTikTokCard(url);
 
                 try {
-                    const result = await API.addYoutubeItem(url);
+                    const result = await API.addTikTokItem(url);
 
                     if (result.success) {
                         Notifications.success(`Added: ${result.title}`);
                         await this.refreshItems();
                     } else {
                         Notifications.error(`Failed: ${result.error}`);
-                        UI.removeLoadingYoutubeCard(url);
+                        UI.removeLoadingTikTokCard(url);
                     }
                 } catch (e) {
                     Notifications.error('An error occurred');
-                    UI.removeLoadingYoutubeCard(url);
+                    UI.removeLoadingTikTokCard(url);
                 }
             }
         });
     },
 
     /**
-     * Plays or resumes a YouTube item by URL
-     * @param {string} url - YouTube video URL
+     * Plays or resumes a TikTok item by URL
+     * @param {string} url - TikTok video URL
      * @returns {Promise<void>}
      */
     async playItem(url) {
@@ -145,14 +146,14 @@ const YouTubeEvents = {
 
         try {
             // Check if resuming
-            const info = await API.getYoutubeInfo();
+            const info = await API.getTikTokInfo();
             if (info.url === url && info.paused) {
-                await API.resumeYoutube();
+                await API.resumeTikTok();
                 this.refreshItems();
                 return;
             }
 
-            const result = await API.playYoutube(url);
+            const result = await API.playTikTok(url);
             if (result.success) {
                 this.refreshItems();
             }
@@ -164,34 +165,34 @@ const YouTubeEvents = {
     },
 
     /**
-     * Pauses currently playing YouTube item
-     * @param {string} url - YouTube video URL
+     * Pauses currently playing TikTok item
+     * @param {string} url - TikTok video URL
      * @returns {Promise<void>}
      */
     async pauseItem(url) {
-        await API.pauseYoutube();
+        await API.pauseTikTok();
         this.refreshItems();
     },
 
     /**
-     * Deletes a YouTube item after user confirmation
-     * @param {string} url - YouTube video URL
+     * Deletes a TikTok item after user confirmation
+     * @param {string} url - TikTok video URL
      * @returns {Promise<void>}
      */
     async deleteItem(url) {
         // Find title for better message
-        const item = AppState.selectedYoutubeItem;
+        const item = AppState.selectedTikTokItem;
         const title = item ? item.title : 'this item';
 
         UI.showModal({
-            title: 'Delete YouTube Item',
+            title: 'Delete TikTok Item',
             body: `Are you sure you want to delete <b>"${Utils.escapeHtml(title)}"</b>?`,
             confirmText: 'Delete',
             onConfirm: async () => {
-                const result = await API.deleteYoutubeItem(url);
+                const result = await API.deleteTikTokItem(url);
                 if (result.success) {
                     await this.refreshItems();
-                    Notifications.success('YouTube item deleted');
+                    Notifications.success('TikTok item deleted');
                 } else {
                     Notifications.error('Failed to delete item');
                 }
@@ -202,45 +203,45 @@ const YouTubeEvents = {
     // ==================== Settings & Controls ====================
 
     /**
-     * Handles YouTube volume slider change
+     * Handles TikTok volume slider change
      * @param {number} value - New volume value (0-100)
      * @returns {Promise<void>}
      */
     async onVolumeChange(value) {
-        await API.setYoutubeVolume(parseInt(value) / 100);
+        await API.setTikTokVolume(parseInt(value) / 100);
         // Update volume display
-        const volumeValue = document.getElementById('youtube-volume-value');
+        const volumeValue = document.getElementById('tiktok-volume-value');
         if (volumeValue) {
             volumeValue.textContent = `${value}%`;
         }
     },
 
     /**
-     * Handles YouTube item custom name change
+     * Handles TikTok item custom name change
      * @param {string} value - New display name
      */
     onNameChange(value) {
-        if (!AppState.selectedYoutubeItem) return;
-        const item = AppState.selectedYoutubeItem;
-        AppState.setYoutubeDisplayName(item.url, value.trim(), item.title);
+        if (!AppState.selectedTikTokItem) return;
+        const item = AppState.selectedTikTokItem;
+        AppState.setTikTokDisplayName(item.url, value.trim(), item.title);
         SoundEvents.saveSettings();
         this.refreshItems().then(() => this.selectItem(item));
     },
 
     /**
-     * Toggles scream mode for a YouTube item
-     * @param {string} url - YouTube video URL
+     * Toggles scream mode for a TikTok item
+     * @param {string} url - TikTok video URL
      */
     toggleScreamMode(url) {
         if (!url) {
             // Fallback try to get from selected item if no URL passed
-            if (AppState.selectedYoutubeItem) url = AppState.selectedYoutubeItem.url;
+            if (AppState.selectedTikTokItem) url = AppState.selectedTikTokItem.url;
             else return;
         }
 
-        const checkbox = document.getElementById('yt-scream-checkbox');
+        const checkbox = document.getElementById('tt-scream-checkbox');
         const isScream = checkbox.checked;
-        AppState.setYoutubeScreamMode(url, isScream);
+        AppState.setTikTokScreamMode(url, isScream);
         SoundEvents.saveSettings();
 
         // Update label
@@ -253,18 +254,18 @@ const YouTubeEvents = {
     },
 
     /**
-     * Toggles pitch mode for a YouTube item
-     * @param {string} url - YouTube video URL
+     * Toggles pitch mode for a TikTok item
+     * @param {string} url - TikTok video URL
      */
     togglePitchMode(url) {
         if (!url) {
-            if (AppState.selectedYoutubeItem) url = AppState.selectedYoutubeItem.url;
+            if (AppState.selectedTikTokItem) url = AppState.selectedTikTokItem.url;
             else return;
         }
 
-        const checkbox = document.getElementById('yt-pitch-checkbox');
+        const checkbox = document.getElementById('tt-pitch-checkbox');
         const isPitch = checkbox.checked;
-        AppState.setYoutubePitchMode(url, isPitch);
+        AppState.setTikTokPitchMode(url, isPitch);
         SoundEvents.saveSettings();
 
         // Update label
@@ -275,13 +276,13 @@ const YouTubeEvents = {
     // ==================== Keybind Management ====================
 
     /**
-     * Starts keybind recording for a YouTube item
+     * Starts keybind recording for a TikTok item
      */
     startKeybindRecording() {
-        const item = AppState.selectedYoutubeItem;
+        const item = AppState.selectedTikTokItem;
         if (!item) return;
 
-        const input = document.getElementById('yt-keybind-input');
+        const input = document.getElementById('tt-keybind-input');
         if (!input) return;
 
         input.value = 'Press any key...';
@@ -314,28 +315,28 @@ const YouTubeEvents = {
                 document.removeEventListener('keydown', handler);
                 document.removeEventListener('click', clickHandler);
                 input.classList.remove('recording');
-                input.value = AppState.getYoutubeKeybind(item.url);
+                input.value = AppState.getTikTokKeybind(item.url);
             }
         };
         setTimeout(() => document.addEventListener('click', clickHandler), 100);
     },
 
     /**
-     * Saves YouTube item keybind and updates UI
-     * @param {string} url - YouTube video URL
+     * Saves TikTok item keybind and updates UI
+     * @param {string} url - TikTok video URL
      * @param {string} keybind - Keybind string
      * @returns {Promise<void>}
      */
     async saveKeybind(url, keybind) {
-        AppState.setYoutubeKeybind(url, keybind);
+        AppState.setTikTokKeybind(url, keybind);
         await API.saveSettings(AppState.toSettings());
 
         // Update Panel UI
-        const input = document.getElementById('yt-keybind-input');
+        const input = document.getElementById('tt-keybind-input');
         if (input) input.value = keybind;
 
         // Update Grid UI (Immediate)
-        const cards = document.querySelectorAll('.youtube-item');
+        const cards = document.querySelectorAll('.tiktok-item');
         for (const card of cards) {
             if (card.dataset.url === url) {
                 const kbEl = card.querySelector('.sound-keybind');
@@ -350,15 +351,15 @@ const YouTubeEvents = {
     // ==================== UI Event Setup ====================
 
     /**
-     * Sets up event listeners for YouTube item cards
-     * @param {Array<Object>} items - Array of YouTube item objects
+     * Sets up event listeners for TikTok item cards
+     * @param {Array<Object>} items - Array of TikTok item objects
      */
     setupCardEvents(items) {
-        const grid = document.getElementById('youtube-grid');
+        const grid = document.getElementById('tiktok-grid');
 
         // Single click - select
         grid.addEventListener('click', (e) => {
-            const card = e.target.closest('.youtube-item');
+            const card = e.target.closest('.tiktok-item');
             if (!card) return;
 
             const url = card.dataset.url;
@@ -377,7 +378,7 @@ const YouTubeEvents = {
 
         // Double click - play
         grid.addEventListener('dblclick', (e) => {
-            const card = e.target.closest('.youtube-item');
+            const card = e.target.closest('.tiktok-item');
             if (!card) return;
             const url = card.dataset.url;
             this.playItem(url);
@@ -387,26 +388,26 @@ const YouTubeEvents = {
     // ==================== Status Monitoring ====================
 
     /**
-     * Starts periodic YouTube status checking
+     * Starts periodic TikTok status checking
      */
     startStatusCheck() {
-        if (AppState.youtubePlayingInterval) {
-            clearInterval(AppState.youtubePlayingInterval);
+        if (AppState.tiktokPlayingInterval) {
+            clearInterval(AppState.tiktokPlayingInterval);
         }
 
-        AppState.youtubePlayingInterval = setInterval(async () => {
-            const info = await API.getYoutubeInfo();
+        AppState.tiktokPlayingInterval = setInterval(async () => {
+            const info = await API.getTikTokInfo();
             // Update UI with paused state if needed, or just stop if not playing
             if (!info.playing) {
-                UI.updateYoutubeUI(false);
-                clearInterval(AppState.youtubePlayingInterval);
-                AppState.youtubePlayingInterval = null;
+                UI.updateTikTokUI(false);
+                clearInterval(AppState.tiktokPlayingInterval);
+                AppState.tiktokPlayingInterval = null;
                 // Refresh grid to remove playing indicators
-                YouTubeEvents.refreshItems();
+                TikTokEvents.refreshItems();
             }
         }, 2000);
     }
 };
 
 // Export to global scope
-window.YouTubeEvents = YouTubeEvents;
+window.TikTokEvents = TikTokEvents;

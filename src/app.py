@@ -32,7 +32,7 @@ from core.config_paths import (
     migrate_old_configs,
     get_vbcable_installer_path
 )
-from api import SoundAPI, YouTubeAPI, SettingsAPI
+from api import SoundAPI, YouTubeAPI, SettingsAPI, TikTokAPI
 from services import HotkeyService
 
 # Migrate old configs to AppData
@@ -116,6 +116,37 @@ def play_youtube_global(url: str):
         audio.play_youtube(url)
 
 
+def play_tiktok_global(url: str):
+    """Play TikTok from global hotkey (toggle play/stop)"""
+    from core.config import load_sound_settings
+    
+    settings = hotkey_service.get_tiktok_settings(url)
+    all_settings = load_sound_settings()
+    
+    vol = 50.0 if settings['scream'] else 1.0
+    pitch = 1.5 if settings['pitch'] else 1.0
+    
+    # Load trim settings
+    trim_settings = all_settings.get('tiktokTrimSettings', {})
+    trim = trim_settings.get(url, {})
+    trim_start = trim.get('start', 0)
+    trim_end = trim.get('end', 0)
+    
+    audio.set_tiktok_volume(vol)
+    audio.set_tiktok_pitch(pitch)
+    audio.set_tiktok_trim(trim_start, trim_end)
+    
+    info = audio.get_tiktok_info()
+    
+    # Toggle play/stop (not pause)
+    if info.get('url') == url and info.get('playing'):
+        # If same video is playing, stop it
+        audio.stop_tiktok()
+    else:
+        # Otherwise play it
+        audio.play_tiktok(url)
+
+
 def stop_all_global():
     """Stop all from global hotkey"""
     audio.stop()
@@ -135,15 +166,28 @@ def cleanup_and_exit():
     """Clean up all resources and exit"""
     from core.single_instance import kill_browser
     
-    kill_browser()
-    hotkey_service.cleanup()
+    # Release lock first so we can restart even if cleanup hangs
+    try:
+        release_lock()
+    except Exception:
+        pass
+
+    try:
+        kill_browser()
+    except Exception:
+        pass
+
+    try:
+        hotkey_service.cleanup()
+    except Exception:
+        pass
     
     try:
         audio.cleanup()
     except Exception:
         pass
     
-    release_lock()
+    # Force exit
     os._exit(0)
 
 
@@ -291,7 +335,7 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
-    print("🎵 Soundboard Pro")
+    print("🎵 Dalit")
     print(f"   Sounds: {sounds_dir}")
     
     # Check VB-Cable (REQUIRED)
@@ -306,10 +350,11 @@ def main():
     # Initialize API layers
     sound_api = SoundAPI(audio, sounds_dir)
     youtube_api = YouTubeAPI(audio, sounds_dir)
+    tiktok_api = TikTokAPI(audio, sounds_dir)
     settings_api = SettingsAPI(audio, update_global_hotkeys)
     
     # Initialize hotkeys
-    hotkey_service.initialize(play_sound_global, play_youtube_global, stop_all_global)
+    hotkey_service.initialize(play_sound_global, play_youtube_global, play_tiktok_global, stop_all_global)
     try:
         update_global_hotkeys()
         print("   Hotkeys: loaded")
