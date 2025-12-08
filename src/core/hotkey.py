@@ -27,6 +27,7 @@ class HotkeyManager:
         self._registered = {}
         self._lock = threading.Lock()
         self._initialized = False
+        self._last_trigger_times = {}  # Track last trigger time for each keybind
     
     def _ensure_init(self):
         if not self._initialized:
@@ -60,11 +61,27 @@ class HotkeyManager:
             
             try:
                 kb_format = self._convert_keybind(keybind)
-                self._hotkeys[keybind] = callback
-                keyboard.add_hotkey(kb_format, callback, suppress=False)
+                import time
+                
+                # Debounced callback using class-level tracking
+                def debounced_callback():
+                    current_time = time.time()
+                    last_time = self._last_trigger_times.get(keybind, 0)
+                    
+                    # 500ms debounce - aggressive to prevent any double triggers
+                    if current_time - last_time < 0.5:
+                        return
+                    
+                    self._last_trigger_times[keybind] = current_time
+                    callback()
+                
+                self._hotkeys[keybind] = debounced_callback
+                # suppress=True prevents the key from being passed to other applications
+                keyboard.add_hotkey(kb_format, debounced_callback, suppress=True)
                 self._registered[keybind] = kb_format
                 return True
-            except Exception:
+            except Exception as e:
+                print(f"Failed to register hotkey {keybind}: {e}")
                 return False
     
     def _unregister_internal(self, keybind: str):
@@ -81,6 +98,10 @@ class HotkeyManager:
         
         if keybind in self._hotkeys:
             del self._hotkeys[keybind]
+        
+        # Clean up trigger time tracking
+        if keybind in self._last_trigger_times:
+            del self._last_trigger_times[keybind]
     
     def unregister(self, keybind: str):
         """Unregister a hotkey"""
@@ -107,7 +128,8 @@ class HotkeyManager:
             self._hotkeys.clear()
     
     def update_all(self, keybinds: dict, play_callback, stop_callback, stop_keybind: str = None, 
-                   youtube_keybinds: dict = None, play_youtube_callback = None):
+                   youtube_keybinds: dict = None, play_youtube_callback = None,
+                   tiktok_keybinds: dict = None, play_tiktok_callback = None):
         """Update all hotkeys at once"""
         self._ensure_init()
         if not KEYBOARD_AVAILABLE:
@@ -125,6 +147,12 @@ class HotkeyManager:
             for url, keybind in youtube_keybinds.items():
                 if keybind:
                     self.register(keybind, lambda u=url: play_youtube_callback(u))
+        
+        # Register TikTok keybinds
+        if tiktok_keybinds and play_tiktok_callback:
+            for url, keybind in tiktok_keybinds.items():
+                if keybind:
+                    self.register(keybind, lambda u=url: play_tiktok_callback(u))
         
         if stop_keybind:
             self.register(stop_keybind, stop_callback)

@@ -51,6 +51,25 @@ const EventHandlers = {
     toggleYoutubePitchMode: (url) => YouTubeEvents.togglePitchMode(url),
     onYoutubeNameChange: (value) => YouTubeEvents.onNameChange(value),
 
+    // ==================== TikTok Handlers (delegated to TikTokEvents) ====================
+    playTikTok: () => TikTokEvents.play(),
+    stopTikTok: () => TikTokEvents.stop(),
+    saveTikTokAsSound: () => TikTokEvents.saveAsSound(),
+    refreshTikTokItems: () => TikTokEvents.refreshItems(),
+    setupTikTokCardEvents: (items) => TikTokEvents.setupCardEvents(items),
+    selectTikTokItem: (item) => TikTokEvents.selectItem(item),
+    showAddTikTokDialog: () => TikTokEvents.showAddDialog(),
+    playTikTokItem: (url) => TikTokEvents.playItem(url),
+    pauseTikTokItem: (url) => TikTokEvents.pauseItem(url),
+    deleteTikTokItem: (url) => TikTokEvents.deleteItem(url),
+    onTikTokVolumeChange: (value) => TikTokEvents.onVolumeChange(value),
+    startTikTokStatusCheck: () => TikTokEvents.startStatusCheck(),
+    startTikTokKeybindRecording: () => TikTokEvents.startKeybindRecording(),
+    saveTikTokKeybind: (url, keybind) => TikTokEvents.saveKeybind(url, keybind),
+    toggleTikTokScreamMode: (url) => TikTokEvents.toggleScreamMode(url),
+    toggleTikTokPitchMode: (url) => TikTokEvents.togglePitchMode(url),
+    onTikTokNameChange: (value) => TikTokEvents.onNameChange(value),
+
     // ==================== Combined Playback Monitoring ====================
 
     /**
@@ -82,7 +101,7 @@ const EventHandlers = {
                 const ytInfo = await API.getYoutubeInfo();
 
                 if (ytInfo.playing) {
-                    UI.updateYoutubeUI(true, ytInfo.title);
+                    UI.updateYoutubeUI(true, ytInfo.title, ytInfo.paused);
 
                     // Update YouTube grid indicators
                     document.querySelectorAll('.youtube-item').forEach(card => {
@@ -132,7 +151,129 @@ const EventHandlers = {
                 // Ignore errors
             }
 
+            // Check TikTok playback
+            try {
+                const ttInfo = await API.getTikTokInfo();
+
+                if (ttInfo.playing) {
+                    UI.updateTikTokUI(true, ttInfo.title, ttInfo.paused);
+
+                    // Update TikTok grid indicators
+                    document.querySelectorAll('.tiktok-item').forEach(card => {
+                        const cardUrl = card.getAttribute('data-url') || card.dataset.url;
+                        const isCardUrl = cardUrl === ttInfo.url;
+                        const isPaused = ttInfo.paused;
+
+                        if (isCardUrl) {
+                            if (!card.classList.contains('playing')) card.classList.add('playing');
+                            if (isPaused) {
+                                if (!card.classList.contains('paused')) card.classList.add('paused');
+                            } else {
+                                card.classList.remove('paused');
+                            }
+
+                            // Update indicator
+                            const thumb = card.querySelector('.sound-thumbnail');
+                            if (thumb) {
+                                let indicator = thumb.querySelector('.playing-indicator');
+                                if (!indicator) {
+                                    indicator = document.createElement('div');
+                                    indicator.className = 'playing-indicator';
+                                    thumb.appendChild(indicator);
+                                }
+                                const newIcon = isPaused ? IconManager.get('pauseCircle', { size: 32 }) : IconManager.get('playCircle', { size: 32 });
+                                if (indicator.innerHTML !== newIcon) {
+                                    indicator.innerHTML = newIcon;
+                                }
+                            }
+                        } else {
+                            if (card.classList.contains('playing')) card.classList.remove('playing');
+                            if (card.classList.contains('paused')) card.classList.remove('paused');
+                            const indicator = card.querySelector('.playing-indicator');
+                            if (indicator) indicator.remove();
+                        }
+                    });
+                } else {
+                    UI.updateTikTokUI(false);
+                    // Clear grid indicators
+                    document.querySelectorAll('.tiktok-item').forEach(card => {
+                        card.classList.remove('playing', 'paused');
+                        const indicator = card.querySelector('.playing-indicator');
+                        if (indicator) indicator.remove();
+                    });
+                }
+            } catch (e) {
+                // Ignore errors
+            }
+
         }, 200);
+    },
+    // ==================== Now Playing Bar Click ====================
+    async onNowPlayingClick() {
+        const type = UI.currentPlayingType;
+        if (!type) return;
+
+        // Get current playing item and show its detail panel
+        if (type === 'sound') {
+            const playingSound = AppState.currentPlayingSound;
+            if (playingSound) {
+                // Select and show sound panel
+                AppState.selectedSound = playingSound;
+                UI.selectSoundCard(playingSound);
+                UI.showSoundPanel(playingSound);
+            }
+        } else if (type === 'youtube') {
+            // Find the YouTube item that's currently playing
+            const ytInfo = await API.getYoutubeInfo();
+            if (ytInfo.url) {
+                const items = await API.getYoutubeItems();
+                const item = items.find(i => i.url === ytInfo.url);
+                if (item) {
+                    YouTubeEvents.selectItem(item);
+                }
+            }
+        } else if (type === 'tiktok') {
+            // Find the TikTok item that's currently playing
+            const ttInfo = await API.getTikTokInfo();
+            if (ttInfo.url) {
+                const items = await API.getTikTokItems();
+                const item = items.find(i => i.url === ttInfo.url);
+                if (item) {
+                    TikTokEvents.selectItem(item);
+                }
+            }
+        }
+    },
+
+    // ==================== Global Playback Toggle ====================
+    async togglePlayback() {
+        const type = UI.currentPlayingType;
+        if (!type) return;
+
+        if (type === 'sound') {
+            await this.stopAll();
+        } else if (type === 'youtube') {
+            const info = await API.getYoutubeInfo();
+            if (info.playing || info.paused) {
+                if (info.paused) {
+                    await API.resumeYoutube();
+                } else {
+                    await API.pauseYoutube();
+                }
+                // Check immediately
+                this.refreshYoutubeItems();
+            }
+        } else if (type === 'tiktok') {
+            const info = await API.getTikTokInfo();
+            if (info.playing || info.paused) {
+                if (info.paused) {
+                    await API.resumeTikTok();
+                } else {
+                    await API.pauseTikTok();
+                }
+                this.refreshTikTokItems();
+            }
+        }
     }
 };
 
@@ -158,6 +299,17 @@ window.refreshYoutubeItems = () => EventHandlers.refreshYoutubeItems();
 window.playYoutubeItem = (url) => EventHandlers.playYoutubeItem(url);
 window.pauseYoutubeItem = (url) => EventHandlers.pauseYoutubeItem(url);
 window.deleteYoutubeItem = (url) => EventHandlers.deleteYoutubeItem(url);
+window.playTikTok = () => EventHandlers.playTikTok();
+window.stopTikTok = () => EventHandlers.stopTikTok();
+window.saveTikTokAsSound = () => EventHandlers.saveTikTokAsSound();
+window.onTikTokVolumeChange = (v) => EventHandlers.onTikTokVolumeChange(v);
+window.showAddTikTokDialog = () => EventHandlers.showAddTikTokDialog();
+window.refreshTikTokItems = () => EventHandlers.refreshTikTokItems();
+window.playTikTokItem = (url) => EventHandlers.playTikTokItem(url);
+window.pauseTikTokItem = (url) => EventHandlers.pauseTikTokItem(url);
+window.deleteTikTokItem = (url) => EventHandlers.deleteTikTokItem(url);
+
+
 
 // ==================== Tab Switching ====================
 
@@ -173,5 +325,7 @@ window.switchTab = (tabName) => {
     // Refresh items when switching to YouTube tab
     if (tabName === 'youtube') {
         EventHandlers.refreshYoutubeItems();
+    } else if (tabName === 'tiktok') {
+        EventHandlers.refreshTikTokItems();
     }
 };

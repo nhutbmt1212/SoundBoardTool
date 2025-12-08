@@ -48,4 +48,8 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=['D:\\Workspace\\SoundBoardTool\\src\\web\\assets\\icon.ico'],
+    manifest='D:\\Workspace\\SoundBoardTool\\SoundboardPro.manifest',
+    uac_admin=True,
+    uac_uiaccess=False,
 )

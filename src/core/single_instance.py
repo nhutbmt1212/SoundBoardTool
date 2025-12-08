@@ -107,11 +107,11 @@ def kill_browser():
     try:
         import subprocess
         subprocess.run(
-            ['taskkill', '/F', '/IM', 'msedge.exe', '/FI', 'WINDOWTITLE eq Soundboard*'],
+            ['taskkill', '/F', '/IM', 'msedge.exe', '/FI', 'WINDOWTITLE eq Dalit*'],
             capture_output=True, timeout=2
         )
         subprocess.run(
-            ['taskkill', '/F', '/IM', 'chrome.exe', '/FI', 'WINDOWTITLE eq Soundboard*'],
+            ['taskkill', '/F', '/IM', 'chrome.exe', '/FI', 'WINDOWTITLE eq Dalit*'],
             capture_output=True, timeout=2
         )
     except Exception:
@@ -139,7 +139,7 @@ def show_existing_window():
             length = user32.GetWindowTextLengthW(hwnd) + 1
             buffer = ctypes.create_unicode_buffer(length)
             user32.GetWindowTextW(hwnd, buffer, length)
-            if 'Soundboard' in buffer.value:
+            if 'Dalit' in buffer.value:
                 results.append(hwnd)
             return True
         

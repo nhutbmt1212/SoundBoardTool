@@ -21,25 +21,36 @@ const SoundEvents = {
      * @returns {Promise<void>}
      */
     async playSound(name) {
-        // Track current playing sound
-        AppState.currentPlayingSound = name;
+        // Prevent rapid double-clicks (debounce)
+        if (this.isPlayProcessing) return;
+        this.isPlayProcessing = true;
 
-        // Immediately add playing class
-        document.querySelectorAll('.sound-card').forEach(card => {
-            if (card.dataset.name === name) {
-                card.classList.add('playing');
-            }
-        });
+        try {
+            // Track current playing sound
+            AppState.currentPlayingSound = name;
 
-        let volume = AppState.getVolume(name) / 100;
-        const isScream = AppState.isScreamMode(name);
-        const isPitch = AppState.isPitchMode(name);
-        const trimSettings = AppState.getTrimSettings(name);
+            // Immediately add playing class
+            document.querySelectorAll('.sound-card').forEach(card => {
+                if (card.dataset.name === name) {
+                    card.classList.add('playing');
+                }
+            });
 
-        if (isScream) volume = Math.min(volume * 50.0, 50.0);
-        const pitch = isPitch ? 1.5 : 1.0;
+            let volume = AppState.getVolume(name) / 100;
+            const isScream = AppState.isScreamMode(name);
+            const isPitch = AppState.isPitchMode(name);
+            const trimSettings = AppState.getTrimSettings(name);
 
-        await API.playSound(name, volume, pitch, trimSettings?.start || 0, trimSettings?.end || 0);
+            if (isScream) volume = Math.min(volume * 50.0, 50.0);
+            const pitch = isPitch ? 1.5 : 1.0;
+
+            await API.playSound(name, volume, pitch, trimSettings?.start || 0, trimSettings?.end || 0);
+        } finally {
+            // Release lock after a short delay
+            setTimeout(() => {
+                this.isPlayProcessing = false;
+            }, 300);
+        }
     },
 
     /**

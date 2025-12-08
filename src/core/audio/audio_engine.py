@@ -1,8 +1,11 @@
 """Audio Engine - Facade class combining all audio components"""
+import time
+import threading
 from .vb_cable_manager import VBCableManager
 from .sound_player import SoundPlayer
 from .mic_passthrough import MicPassthrough
 from .youtube_stream import YouTubeStream
+from .tiktok_stream import TikTokStream
 
 
 class AudioEngine:
@@ -12,6 +15,9 @@ class AudioEngine:
     - Sound playback
     - Microphone passthrough
     - YouTube streaming
+    - TikTok streaming
+    
+    Ensures only ONE audio source plays at a time using mutex lock.
     """
     
     def __init__(self, sounds_dir: str = "sounds"):
@@ -20,6 +26,11 @@ class AudioEngine:
         self.sound_player = SoundPlayer(sounds_dir, self.vb_manager)
         self.mic = MicPassthrough(self.vb_manager)
         self.youtube = YouTubeStream(self.vb_manager)
+        self.tiktok = TikTokStream(self.vb_manager)
+        
+        # Playback control
+        self._last_play_time = 0
+        self._playback_lock = threading.Lock()  # Mutex to prevent concurrent playback
     
     # === Sound Playback ===
     
@@ -59,14 +70,32 @@ class AudioEngine:
         """Set trim times for sound playback"""
         self.sound_player.set_trim(start, end)
     
-    def play(self, name: str) -> bool:
-        # Enforce priority: Stop YouTube if playing
-        self.youtube.stop()
-        return self.sound_player.play(name)
-    
-    def stop(self):
+    def _stop_all_internal(self):
+        """Internal method to stop all audio without lock (called within locked context)"""
         self.sound_player.stop()
         self.youtube.stop()
+        self.tiktok.stop()
+    
+    def play(self, name: str) -> bool:
+        """Play a local sound file - ensures exclusive playback"""
+        with self._playback_lock:
+            # Debounce check
+            current_time = time.time()
+            if current_time - self._last_play_time < 0.5:
+                return False
+            
+            self._last_play_time = current_time
+            
+            # Stop everything else
+            self._stop_all_internal()
+            
+            # Play the sound
+            return self.sound_player.play(name)
+    
+    def stop(self):
+        """Stop all audio playback"""
+        with self._playback_lock:
+            self._stop_all_internal()
     
     def add_sound(self, filepath: str, name: str = None) -> bool:
         return self.sound_player.add_sound(filepath, name)
@@ -129,9 +158,20 @@ class AudioEngine:
     # === YouTube ===
     
     def play_youtube(self, url: str, progress_callback=None) -> dict:
-        # Enforce priority: Stop Sound if playing
-        self.sound_player.stop()
-        return self.youtube.play(url, progress_callback)
+        """Play YouTube video - ensures exclusive playback"""
+        with self._playback_lock:
+            # Debounce check
+            current_time = time.time()
+            if current_time - self._last_play_time < 0.5:
+                return {'success': False, 'error': 'Too many requests'}
+            
+            self._last_play_time = current_time
+            
+            # Stop everything else
+            self._stop_all_internal()
+            
+            # Play YouTube
+            return self.youtube.play(url, progress_callback)
     
     def stop_youtube(self):
         self.youtube.stop()
@@ -157,10 +197,53 @@ class AudioEngine:
     def set_youtube_trim(self, start: float, end: float):
         self.youtube.set_trim(start, end)
     
+    # === TikTok ===
+    
+    def play_tiktok(self, url: str, progress_callback=None) -> dict:
+        """Play TikTok video - ensures exclusive playback"""
+        with self._playback_lock:
+            # Debounce check
+            current_time = time.time()
+            if current_time - self._last_play_time < 0.5:
+                return {'success': False, 'error': 'Too many requests'}
+            
+            self._last_play_time = current_time
+            
+            # Stop everything else
+            self._stop_all_internal()
+            
+            # Play TikTok
+            return self.tiktok.play(url, progress_callback)
+    
+    def stop_tiktok(self):
+        self.tiktok.stop()
+        
+    def pause_tiktok(self):
+        self.tiktok.pause()
+        
+    def resume_tiktok(self):
+        self.tiktok.resume()
+    
+    def is_tiktok_playing(self) -> bool:
+        return self.tiktok.is_playing()
+    
+    def get_tiktok_info(self) -> dict:
+        return self.tiktok.get_info()
+    
+    def set_tiktok_volume(self, vol: float):
+        self.tiktok.set_volume(vol)
+        
+    def set_tiktok_pitch(self, pitch: float):
+        self.tiktok.set_pitch(pitch)
+    
+    def set_tiktok_trim(self, start: float, end: float):
+        self.tiktok.set_trim(start, end)
+    
     # === Cleanup ===
     
     def cleanup(self):
         """Cleanup all resources"""
-        self.sound_player.cleanup()
-        self.mic.stop()
-        self.youtube.stop()
+        with self._playback_lock:
+            self._stop_all_internal()
+            self.mic.stop()
+

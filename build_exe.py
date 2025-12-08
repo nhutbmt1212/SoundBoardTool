@@ -72,6 +72,7 @@ def build():
         '--windowed',
         '--noconfirm',
         '--clean',
+        f'--icon={os.path.join(WEB, "assets", "icon.ico")}',
         # Add web folder
         f'--add-data={WEB}{os.pathsep}web',
         # Add VB-Cable installer

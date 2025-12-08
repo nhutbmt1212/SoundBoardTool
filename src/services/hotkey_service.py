@@ -9,6 +9,7 @@ class HotkeyService:
         self.manager = None
         self.sound_callback = None
         self.youtube_callback = None
+        self.tiktok_callback = None
         self.stop_callback = None
         
         # Settings cache
@@ -17,11 +18,14 @@ class HotkeyService:
         self.sound_pitch_mode = {}
         self.youtube_scream_mode = {}
         self.youtube_pitch_mode = {}
+        self.tiktok_scream_mode = {}
+        self.tiktok_pitch_mode = {}
     
-    def initialize(self, sound_callback, youtube_callback, stop_callback):
+    def initialize(self, sound_callback, youtube_callback, tiktok_callback, stop_callback):
         """Initialize hotkey service with callbacks"""
         self.sound_callback = sound_callback
         self.youtube_callback = youtube_callback
+        self.tiktok_callback = tiktok_callback
         self.stop_callback = stop_callback
         
         # Lazy import hotkey manager
@@ -40,7 +44,8 @@ class HotkeyService:
         self.sound_scream_mode = settings.get('screamMode', {})
         self.sound_pitch_mode = settings.get('pitchMode', {})
         self.youtube_scream_mode = settings.get('youtubeScreamMode', {})
-        self.youtube_pitch_mode = settings.get('youtubePitchMode', {})
+        self.tiktok_scream_mode = settings.get('tiktokScreamMode', {})
+        self.tiktok_pitch_mode = settings.get('tiktokPitchMode', {})
         
         # Backward compatibility
         if isinstance(self.youtube_scream_mode, bool):
@@ -52,6 +57,7 @@ class HotkeyService:
         if self.manager:
             keybinds = settings.get('keybinds', {})
             youtube_keybinds = settings.get('youtubeKeybinds', {})
+            tiktok_keybinds = settings.get('tiktokKeybinds', {})
             stop_keybind = settings.get('stopAllKeybind', '')
             
             self.manager.update_all(
@@ -60,7 +66,9 @@ class HotkeyService:
                 self.stop_callback,
                 stop_keybind,
                 youtube_keybinds,
-                self.youtube_callback
+                self.youtube_callback,
+                tiktok_keybinds,
+                self.tiktok_callback
             )
     
     def get_sound_settings(self, name: str):
@@ -76,6 +84,13 @@ class HotkeyService:
         return {
             'scream': self.youtube_scream_mode.get(url, False),
             'pitch': self.youtube_pitch_mode.get(url, False)
+        }
+    
+    def get_tiktok_settings(self, url: str):
+        """Get cached settings for a TikTok URL"""
+        return {
+            'scream': self.tiktok_scream_mode.get(url, False),
+            'pitch': self.tiktok_pitch_mode.get(url, False)
         }
     
     def cleanup(self):

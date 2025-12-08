@@ -34,6 +34,13 @@ def get_youtube_cache_dir():
     return cache_dir
 
 
+def get_tiktok_cache_dir():
+    """Get TikTok cache directory in AppData"""
+    cache_dir = os.path.join(get_app_data_dir(), 'tiktok_cache')
+    os.makedirs(cache_dir, exist_ok=True)
+    return cache_dir
+
+
 def migrate_old_configs():
     """Migrate old configs from exe directory to AppData"""
     # Get exe directory (where old configs might be)

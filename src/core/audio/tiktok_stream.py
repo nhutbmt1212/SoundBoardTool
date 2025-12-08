@@ -1,4 +1,4 @@
-"""YouTube Streaming - Stream YouTube audio to VB-Cable"""
+"""TikTok Streaming - Stream TikTok audio to VB-Cable"""
 import threading
 import subprocess
 import os
@@ -7,9 +7,10 @@ import hashlib
 import sys
 from pathlib import Path
 
-# Import AppData path helper
+# Import utils
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from core.config_paths import get_youtube_cache_dir
+from core.config_paths import get_tiktok_cache_dir
+from core.utils import find_ffmpeg
 
 try:
     import sounddevice as sd
@@ -28,35 +29,11 @@ except ImportError:
     yt_dlp = None
 
 
-def find_ffmpeg():
-    """Find ffmpeg executable"""
-    import shutil
-    
-    ffmpeg = shutil.which('ffmpeg')
-    if ffmpeg:
-        return ffmpeg
-    
-    common_paths = [
-        os.path.expandvars(r'%LOCALAPPDATA%\Microsoft\WinGet\Packages'),
-        r'C:\ffmpeg\bin',
-        r'C:\Program Files\ffmpeg\bin',
-        os.path.expandvars(r'%USERPROFILE%\ffmpeg\bin'),
-    ]
-    
-    for base in common_paths:
-        if os.path.exists(base):
-            for root, dirs, files in os.walk(base):
-                if 'ffmpeg.exe' in files:
-                    return os.path.join(root, 'ffmpeg.exe')
-    
-    return None
-
-
 FFMPEG_PATH = find_ffmpeg()
 
 
-class YouTubeStream:
-    """Handles YouTube audio streaming to VB-Cable with persistent cache"""
+class TikTokStream:
+    """Handles TikTok audio streaming to VB-Cable with persistent cache"""
     
     def __init__(self, vb_manager):
         self.vb_manager = vb_manager
@@ -74,7 +51,7 @@ class YouTubeStream:
         self._stop_event = threading.Event()
         
         # Cache directory - use AppData for proper permissions
-        self.cache_dir = Path(get_youtube_cache_dir())
+        self.cache_dir = Path(get_tiktok_cache_dir())
         self.cache_index_file = self.cache_dir / 'index.json'
         self._cache_index = self._load_cache_index()
     
@@ -125,8 +102,8 @@ class YouTubeStream:
         """Try to detect file format and add proper extension"""
         try:
             import shutil
-            # Try common audio extensions (m4a is most common from YouTube)
-            for ext in ['.m4a', '.webm', '.opus', '.mp3']:
+            # Try common audio extensions
+            for ext in ['.m4a', '.webm', '.opus', '.mp3', '.mp4']:
                 new_path = filepath.with_suffix(ext)
                 shutil.move(str(filepath), str(new_path))
                 return new_path
@@ -145,8 +122,8 @@ class YouTubeStream:
             hooks.append(progress_callback)
             
         ydl_opts = {
-            'format': 'bestaudio[ext=m4a]/bestaudio/best',
-            'outtmpl': str(output_template),  # Use %(ext)s to get extension
+            'format': 'bestaudio/best',  # Relaxed format for TikTok
+            'outtmpl': str(output_template),
             'quiet': True,
             'no_warnings': True,
             'progress_hooks': hooks,
@@ -157,7 +134,7 @@ class YouTubeStream:
                 info = ydl.extract_info(url, download=True)
                 title = info.get('title', 'Unknown')
                 
-                # Tìm file đã tải (yt-dlp sẽ thêm extension)
+                # Tìm file đã tải
                 output_file = None
                 for ext in ['.m4a', '.webm', '.opus', '.mp3', '.mp4', '']:
                     test_file = self.cache_dir / f"{cache_key}{ext}"
@@ -183,7 +160,7 @@ class YouTubeStream:
             return None, None
     
     def play(self, url: str, progress_callback=None) -> dict:
-        """Stream YouTube audio to VB-Cable (with persistent cache)"""
+        """Stream TikTok audio to VB-Cable (with persistent cache)"""
         if not YTDLP_AVAILABLE:
             return {'success': False, 'error': 'yt-dlp not installed'}
         
@@ -193,7 +170,7 @@ class YouTubeStream:
         self.stop()
         
         try:
-            # Kiểm tra cache trước - nếu có thì phát ngay (GẦN NHƯ TỨC THÌ!)
+            # Kiểm tra cache trước
             cached_file, title = self._get_cached_file(url)
             
             if cached_file:
@@ -224,21 +201,6 @@ class YouTubeStream:
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
-    def _extract_audio_url(self, info: dict) -> str:
-        """Extract audio URL from yt-dlp info"""
-        audio_url = info.get('url')
-        
-        if not audio_url:
-            for fmt in info.get('formats', []):
-                if fmt.get('acodec') != 'none' and fmt.get('vcodec') == 'none':
-                    return fmt.get('url')
-            
-            for fmt in info.get('formats', []):
-                if fmt.get('acodec') != 'none':
-                    return fmt.get('url')
-        
-        return audio_url
-    
     def _stream_loop(self, audio_source: str):
         """Background thread to stream audio via ffmpeg (from file or URL)"""
         try:
@@ -248,35 +210,16 @@ class YouTubeStream:
             blocksize = 8192
             bytes_per_sample = 2 * channels
             
-            # Kiểm tra xem là file local hay URL
-            is_local_file = os.path.exists(audio_source)
-            
             # Build FFmpeg command with filtering support
             filter_complex = []
             
-            # Volume is handled in python now, but let's keep it simple
             # Pitch shifting
             if abs(self.pitch - 1.0) > 0.01:
-                # asetrate method for simple resampling pitch shift (chipmunk effect)
-                # new_rate = sample_rate * pitch
                 new_rate = int(samplerate * self.pitch)
                 filter_complex.append(f"asetrate={new_rate}")
                 
-            # If we need to maintain standard sample rate output after asetrate,
-            # we might need resampling, but playing raw PCM usually dictates the rate
-            # However, VB-Cable expects specific rate. 
-            # If we change rate, we speed up/slow down.
-            # Wait, standard chipmunk is speed up.
-            
             # Construct command
             cmd = [ffmpeg_exe]
-            
-            if not is_local_file:
-                cmd.extend([
-                    '-reconnect', '1',
-                    '-reconnect_streamed', '1',
-                    '-reconnect_delay_max', '5'
-                ])
             
             # Add trim parameters if set
             if self.trim_start > 0:
@@ -333,7 +276,6 @@ class YouTubeStream:
             speaker_stream = self._open_speaker_stream(samplerate, channels, blocksize)
             
             try:
-                frame_count = 0
                 while not self._stop_event.is_set():
                     # Handle pause
                     if self.paused:
@@ -365,8 +307,7 @@ class YouTubeStream:
                     speaker_stream.close()
                     
         except Exception as e:
-            if not self._stop_event.is_set():
-                pass
+            pass
         finally:
             self._cleanup_process()
             self.playing = False
@@ -406,7 +347,7 @@ class YouTubeStream:
             self._process = None
     
     def stop(self):
-        """Stop YouTube streaming"""
+        """Stop TikTok streaming"""
         # Signal stop first
         self._stop_event.set()
         
@@ -463,7 +404,7 @@ class YouTubeStream:
         self.trim_end = max(0.0, end)
     
     def get_duration(self, url: str) -> float:
-        """Get duration of YouTube video in seconds"""
+        """Get duration of TikTok video in seconds"""
         # Check cache first
         cached_file, _ = self._get_cached_file(url)
         if cached_file:

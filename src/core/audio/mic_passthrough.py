@@ -247,7 +247,7 @@ class MicPassthrough:
         """Stop mic passthrough"""
         if self._input_stream is not None:
             try:
-                self._input_stream.stop()
+                self._input_stream.abort()
                 self._input_stream.close()
             except Exception:
                 pass
@@ -255,7 +255,7 @@ class MicPassthrough:
         
         if self._output_stream is not None:
             try:
-                self._output_stream.stop()
+                self._output_stream.abort()
                 self._output_stream.close()
             except Exception:
                 pass
