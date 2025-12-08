@@ -208,6 +208,43 @@ const EventHandlers = {
 
         }, 200);
     },
+    // ==================== Now Playing Bar Click ====================
+    async onNowPlayingClick() {
+        const type = UI.currentPlayingType;
+        if (!type) return;
+
+        // Get current playing item and show its detail panel
+        if (type === 'sound') {
+            const playingSound = AppState.currentPlayingSound;
+            if (playingSound) {
+                // Select and show sound panel
+                AppState.selectedSound = playingSound;
+                UI.selectSoundCard(playingSound);
+                UI.showSoundPanel(playingSound);
+            }
+        } else if (type === 'youtube') {
+            // Find the YouTube item that's currently playing
+            const ytInfo = await API.getYoutubeInfo();
+            if (ytInfo.url) {
+                const items = await API.getYoutubeItems();
+                const item = items.find(i => i.url === ytInfo.url);
+                if (item) {
+                    YouTubeEvents.selectItem(item);
+                }
+            }
+        } else if (type === 'tiktok') {
+            // Find the TikTok item that's currently playing
+            const ttInfo = await API.getTikTokInfo();
+            if (ttInfo.url) {
+                const items = await API.getTikTokItems();
+                const item = items.find(i => i.url === ttInfo.url);
+                if (item) {
+                    TikTokEvents.selectItem(item);
+                }
+            }
+        }
+    },
+
     // ==================== Global Playback Toggle ====================
     async togglePlayback() {
         const type = UI.currentPlayingType;

@@ -159,7 +159,6 @@ class SoundPlayer:
             start_sample = max(0, min(start_sample, len(audio)))
             end_sample = max(start_sample, min(end_sample, len(audio)))
             
-            print(f"[Audio Processing] Trimming: {self.trim_start}s to {self.trim_end}s")
             audio = audio[start_sample:end_sample]
             
         # Resample if needed

@@ -307,10 +307,11 @@ const UI = {
     // Update YouTube UI
     updateYoutubeUI(playing, title = '', paused = false) {
         if (playing && title) {
+            // Always update now-playing-bar when playing
             this.updateNowPlaying(title, 'youtube', true, paused);
-        } else if (!playing && title === '') {
-            // Stop
-            // this.updateNowPlaying(null, 'youtube', false);
+        } else if (!playing) {
+            // Clear now-playing-bar when stopped
+            this.updateNowPlaying(null, 'youtube', false);
         }
     },
 
@@ -539,9 +540,11 @@ const UI = {
     // Update TikTok UI
     updateTikTokUI(playing, title = '', paused = false) {
         if (playing && title) {
+            // Always update now-playing-bar when playing
             this.updateNowPlaying(title, 'tiktok', true, paused);
-        } else if (!playing && title === '') {
-            // Stop handled elsewhere or explicitly
+        } else if (!playing) {
+            // Clear now-playing-bar when stopped
+            this.updateNowPlaying(null, 'tiktok', false);
         }
     },
 
