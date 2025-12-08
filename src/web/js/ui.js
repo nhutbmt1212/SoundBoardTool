@@ -246,13 +246,22 @@ const UI = {
         iconContainer.innerHTML = IconManager.get(typeIcon, { size: 24 });
 
         // Update Playing Status
+        const btnHtml = `
+            <button class="btn-control-main" id="btn-now-playing-toggle" onclick="EventHandlers.togglePlayback()">
+                ${IconManager.get(isPlaying && !isPaused ? 'pause' : 'play', { size: 16 })}
+            </button>
+        `;
+
+        // Only update if changed to prevent flicker/event loss (though onclick is inline)
+        if (statusIcon.innerHTML !== btnHtml) {
+            statusIcon.innerHTML = btnHtml;
+        }
+
         if (isPlaying && !isPaused) {
             iconContainer.classList.add('playing');
-            statusIcon.innerHTML = IconManager.get('pause', { size: 20 });
             progressFill.style.width = '100%';
         } else {
             iconContainer.classList.remove('playing');
-            statusIcon.innerHTML = IconManager.get('play', { size: 20 });
             progressFill.style.width = '0%';
         }
     },
@@ -296,9 +305,9 @@ const UI = {
     },
 
     // Update YouTube UI
-    updateYoutubeUI(playing, title = '') {
+    updateYoutubeUI(playing, title = '', paused = false) {
         if (playing && title) {
-            this.updateNowPlaying(title, 'youtube', true);
+            this.updateNowPlaying(title, 'youtube', true, paused);
         } else if (!playing && title === '') {
             // Stop
             // this.updateNowPlaying(null, 'youtube', false);
@@ -528,9 +537,9 @@ const UI = {
     },
 
     // Update TikTok UI
-    updateTikTokUI(playing, title = '') {
+    updateTikTokUI(playing, title = '', paused = false) {
         if (playing && title) {
-            this.updateNowPlaying(title, 'tiktok', true);
+            this.updateNowPlaying(title, 'tiktok', true, paused);
         } else if (!playing && title === '') {
             // Stop handled elsewhere or explicitly
         }

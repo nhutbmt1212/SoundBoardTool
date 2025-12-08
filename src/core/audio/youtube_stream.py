@@ -407,16 +407,21 @@ class YouTubeStream:
     
     def stop(self):
         """Stop YouTube streaming"""
+        # Signal stop first
         self._stop_event.set()
+        
+        # Clean up process
         self._cleanup_process()
         
-        if self._thread:
+        # Wait for thread to finish with increased timeout
+        if self._thread and self._thread.is_alive():
             try:
-                self._thread.join(timeout=2)
+                self._thread.join(timeout=3)
             except Exception:
                 pass
             self._thread = None
         
+        # Reset state
         self.playing = False
         self.paused = False
         self.current_url = None

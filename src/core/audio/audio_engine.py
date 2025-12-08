@@ -1,4 +1,6 @@
 """Audio Engine - Facade class combining all audio components"""
+import time
+import threading
 from .vb_cable_manager import VBCableManager
 from .sound_player import SoundPlayer
 from .mic_passthrough import MicPassthrough
@@ -13,6 +15,9 @@ class AudioEngine:
     - Sound playback
     - Microphone passthrough
     - YouTube streaming
+    - TikTok streaming
+    
+    Ensures only ONE audio source plays at a time using mutex lock.
     """
     
     def __init__(self, sounds_dir: str = "sounds"):
@@ -22,6 +27,10 @@ class AudioEngine:
         self.mic = MicPassthrough(self.vb_manager)
         self.youtube = YouTubeStream(self.vb_manager)
         self.tiktok = TikTokStream(self.vb_manager)
+        
+        # Playback control
+        self._last_play_time = 0
+        self._playback_lock = threading.Lock()  # Mutex to prevent concurrent playback
     
     # === Sound Playback ===
     
@@ -61,34 +70,32 @@ class AudioEngine:
         """Set trim times for sound playback"""
         self.sound_player.set_trim(start, end)
     
-    def play(self, name: str) -> bool:
-        # Debounce: prevent playing same sound multiple times within 300ms
-        import time
-        current_time = time.time()
-        last_play_time = getattr(self, '_last_play_time', 0)
-        
-        # NOTE: We allow different sounds to interrupt freely, but same sound needs debounce?
-        # The user said "lặp sound" (repeating sound), implying the same sound triggers multiple times.
-        # But if they spam different sounds, that's maybe desired?
-        # Let's debounce ANY sound play call to safer side. 100ms is usually fast enough for human spam but slow enough for glitch.
-        # User said "keybind... lặp sound".
-        
-        if current_time - last_play_time < 0.2:  # 200ms global debounce for playback
-             return False
-        
-        self._last_play_time = current_time
-
-        # Enforce priority: Stop YouTube and TikTok if playing
-        # Wait for them to fully stop
-        self.youtube.stop()
-        self.tiktok.stop()
-        
-        return self.sound_player.play(name)
-    
-    def stop(self):
+    def _stop_all_internal(self):
+        """Internal method to stop all audio without lock (called within locked context)"""
         self.sound_player.stop()
         self.youtube.stop()
         self.tiktok.stop()
+    
+    def play(self, name: str) -> bool:
+        """Play a local sound file - ensures exclusive playback"""
+        with self._playback_lock:
+            # Debounce check
+            current_time = time.time()
+            if current_time - self._last_play_time < 0.5:
+                return False
+            
+            self._last_play_time = current_time
+            
+            # Stop everything else
+            self._stop_all_internal()
+            
+            # Play the sound
+            return self.sound_player.play(name)
+    
+    def stop(self):
+        """Stop all audio playback"""
+        with self._playback_lock:
+            self._stop_all_internal()
     
     def add_sound(self, filepath: str, name: str = None) -> bool:
         return self.sound_player.add_sound(filepath, name)
@@ -151,11 +158,20 @@ class AudioEngine:
     # === YouTube ===
     
     def play_youtube(self, url: str, progress_callback=None) -> dict:
-        # Enforce priority: Stop Sound and TikTok if playing
-        self.sound_player.stop()
-        self.tiktok.stop()
-        
-        return self.youtube.play(url, progress_callback)
+        """Play YouTube video - ensures exclusive playback"""
+        with self._playback_lock:
+            # Debounce check
+            current_time = time.time()
+            if current_time - self._last_play_time < 0.5:
+                return {'success': False, 'error': 'Too many requests'}
+            
+            self._last_play_time = current_time
+            
+            # Stop everything else
+            self._stop_all_internal()
+            
+            # Play YouTube
+            return self.youtube.play(url, progress_callback)
     
     def stop_youtube(self):
         self.youtube.stop()
@@ -184,12 +200,20 @@ class AudioEngine:
     # === TikTok ===
     
     def play_tiktok(self, url: str, progress_callback=None) -> dict:
-        # Enforce priority: Stop Sound and YouTube if playing
-        # Wait for them to fully stop to prevent overlap
-        self.sound_player.stop()
-        self.youtube.stop()
-        
-        return self.tiktok.play(url, progress_callback)
+        """Play TikTok video - ensures exclusive playback"""
+        with self._playback_lock:
+            # Debounce check
+            current_time = time.time()
+            if current_time - self._last_play_time < 0.5:
+                return {'success': False, 'error': 'Too many requests'}
+            
+            self._last_play_time = current_time
+            
+            # Stop everything else
+            self._stop_all_internal()
+            
+            # Play TikTok
+            return self.tiktok.play(url, progress_callback)
     
     def stop_tiktok(self):
         self.tiktok.stop()
@@ -219,7 +243,7 @@ class AudioEngine:
     
     def cleanup(self):
         """Cleanup all resources"""
-        self.sound_player.cleanup()
-        self.mic.stop()
-        self.youtube.stop()
-        self.tiktok.stop()
+        with self._playback_lock:
+            self._stop_all_internal()
+            self.mic.stop()
+
