@@ -228,6 +228,31 @@ const AppState = {
         delete this.soundScreamMode[name];
         delete this.soundPitchMode[name];
         delete this.soundNames[name];
+        delete this.soundTrimSettings[name];
+    },
+
+    /**
+     * Removes all data for a YouTube item
+     * @param {string} url - YouTube URL to remove
+     */
+    removeYoutubeItem(url) {
+        delete this.youtubeKeybinds[url];
+        delete this.youtubeScreamMode[url];
+        delete this.youtubePitchMode[url];
+        delete this.youtubeNames[url];
+        delete this.youtubeTrimSettings[url];
+    },
+
+    /**
+     * Removes all data for a TikTok item
+     * @param {string} url - TikTok URL to remove
+     */
+    removeTikTokItem(url) {
+        delete this.tiktokKeybinds[url];
+        delete this.tiktokScreamMode[url];
+        delete this.tiktokPitchMode[url];
+        delete this.tiktokNames[url];
+        delete this.tiktokTrimSettings[url];
     },
 
     // ==================== YouTube Getters ====================

@@ -191,6 +191,10 @@ const TikTokEvents = {
             onConfirm: async () => {
                 const result = await API.deleteTikTokItem(url);
                 if (result.success) {
+                    AppState.selectedTikTokItem = null;
+                    AppState.removeTikTokItem(url);
+                    SoundEvents.saveSettings();
+                    UI.showEmptyPanel();
                     await this.refreshItems();
                     Notifications.success('TikTok item deleted');
                 } else {

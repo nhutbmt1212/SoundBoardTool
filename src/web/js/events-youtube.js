@@ -190,6 +190,10 @@ const YouTubeEvents = {
             onConfirm: async () => {
                 const result = await API.deleteYoutubeItem(url);
                 if (result.success) {
+                    AppState.selectedYoutubeItem = null;
+                    AppState.removeYoutubeItem(url);
+                    await SoundEvents.saveSettings();
+                    UI.showEmptyPanel();
                     await this.refreshItems();
                     Notifications.success('YouTube item deleted');
                 } else {

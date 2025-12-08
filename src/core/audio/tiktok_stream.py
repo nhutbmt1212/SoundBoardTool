@@ -159,6 +159,16 @@ class TikTokStream:
             print(f"Download error: {e}")
             return None, None
     
+    def download(self, url: str, progress_callback=None) -> tuple:
+        """Download video to cache without playing. Return (filepath, title)"""
+        # Check cache first
+        cached_file, title = self._get_cached_file(url)
+        if cached_file:
+            return cached_file, title
+            
+        # Download
+        return self._download_and_cache(url, progress_callback)
+    
     def play(self, url: str, progress_callback=None) -> dict:
         """Stream TikTok audio to VB-Cable (with persistent cache)"""
         if not YTDLP_AVAILABLE:
