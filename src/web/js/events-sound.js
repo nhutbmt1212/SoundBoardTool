@@ -34,11 +34,12 @@ const SoundEvents = {
         let volume = AppState.getVolume(name) / 100;
         const isScream = AppState.isScreamMode(name);
         const isPitch = AppState.isPitchMode(name);
+        const trimSettings = AppState.getTrimSettings(name);
 
         if (isScream) volume = Math.min(volume * 50.0, 50.0);
         const pitch = isPitch ? 1.5 : 1.0;
 
-        await API.playSound(name, volume, pitch);
+        await API.playSound(name, volume, pitch, trimSettings?.start || 0, trimSettings?.end || 0);
     },
 
     /**
@@ -168,6 +169,21 @@ const SoundEvents = {
 
         // Update card
         this.refreshSounds().then(() => this.selectSound(AppState.selectedSound));
+    },
+
+    /**
+     * Handles trim settings change
+     */
+    onTrimChange() {
+        if (!AppState.selectedSound) return;
+        const startInput = document.getElementById('trim-start');
+        const endInput = document.getElementById('trim-end');
+
+        const start = parseFloat(startInput.value) || 0;
+        const end = parseFloat(endInput.value) || 0;
+
+        AppState.setTrimSettings(AppState.selectedSound, start, end);
+        this.saveSettings();
     }
 };
 

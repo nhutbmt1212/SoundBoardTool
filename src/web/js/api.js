@@ -66,11 +66,13 @@ const API = {
      * @param {string} name - Name of the sound to play
      * @param {number} volume - Volume level (0.0 to 1.0)
      * @param {number} pitch - Pitch multiplier (1.0 = normal)
+     * @param {number} startTime - Start time in seconds (0 = from beginning)
+     * @param {number} endTime - End time in seconds (0 = to end)
      * @returns {Promise<void>}
      */
-    async playSound(name, volume, pitch) {
+    async playSound(name, volume, pitch, startTime = 0, endTime = 0) {
         return this._handleApiCall(
-            () => eel.play_sound(name, volume, pitch)(),
+            () => eel.play_sound(name, volume, pitch, startTime, endTime)(),
             undefined,
             `playSound(${name})`
         );
@@ -136,6 +138,33 @@ const API = {
             () => eel.delete_sound(name)(),
             undefined,
             `deleteSound(${name})`
+        );
+    },
+
+    /**
+     * Gets audio file duration in seconds
+     * @param {string} name - Name of the sound
+     * @returns {Promise<number>} Duration in seconds
+     */
+    async getAudioDuration(name) {
+        return this._handleApiCall(
+            () => eel.get_audio_duration(name)(),
+            0,
+            `getAudioDuration(${name})`
+        );
+    },
+
+    /**
+     * Gets waveform data for visualization
+     * @param {string} name - Name of the sound
+     * @param {number} samples - Number of samples to return (default 200)
+     * @returns {Promise<Array<number>>} Array of amplitude values
+     */
+    async getWaveformData(name, samples = 200) {
+        return this._handleApiCall(
+            () => eel.get_waveform_data(name, samples)(),
+            [],
+            `getWaveformData(${name})`
         );
     },
 
@@ -305,6 +334,19 @@ const API = {
             () => eel.delete_youtube_item(url)(),
             { success: false, error: 'Failed to delete item' },
             `deleteYoutubeItem(${url})`
+        );
+    },
+
+    /**
+     * Gets YouTube video duration in seconds
+     * @param {string} url - YouTube video URL
+     * @returns {Promise<number>} Duration in seconds
+     */
+    async getYoutubeDuration(url) {
+        return this._handleApiCall(
+            () => eel.get_youtube_duration(url)(),
+            0,
+            `getYoutubeDuration(${url})`
         );
     }
 };

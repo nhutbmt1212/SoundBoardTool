@@ -55,11 +55,15 @@ eel.init(WEB_DIR)
 
 def play_sound_global(name: str):
     """Play sound from global hotkey (toggle behavior)"""
+    from core.config import load_sound_settings
+    
     if audio._current_playing_sound == name:
         audio.stop()
         return
     
     settings = hotkey_service.get_sound_settings(name)
+    all_settings = load_sound_settings()
+    
     vol = settings['volume'] / 100
     
     # Apply scream mode
@@ -69,33 +73,46 @@ def play_sound_global(name: str):
     # Apply pitch mode
     pitch = 1.5 if settings['pitch'] else 1.0
     
+    # Load trim settings
+    trim_settings = all_settings.get('trimSettings', {})
+    trim = trim_settings.get(name, {})
+    trim_start = trim.get('start', 0)
+    trim_end = trim.get('end', 0)
+    
     audio.set_volume(vol)
     audio.set_pitch(pitch)
+    audio.set_trim(trim_start, trim_end)
     audio.play(name)
 
 
 def play_youtube_global(url: str):
-    """Play YouTube from global hotkey (toggle play/pause)"""
+    """Play YouTube from global hotkey (toggle play/stop)"""
+    from core.config import load_sound_settings
+    
     settings = hotkey_service.get_youtube_settings(url)
+    all_settings = load_sound_settings()
     
     vol = 50.0 if settings['scream'] else 1.0
     pitch = 1.5 if settings['pitch'] else 1.0
     
+    # Load trim settings
+    trim_settings = all_settings.get('youtubeTrimSettings', {})
+    trim = trim_settings.get(url, {})
+    trim_start = trim.get('start', 0)
+    trim_end = trim.get('end', 0)
+    
     audio.set_youtube_volume(vol)
     audio.set_youtube_pitch(pitch)
+    audio.set_youtube_trim(trim_start, trim_end)
     
     info = audio.get_youtube_info()
     
-    # Toggle play/pause
-    if info.get('url') == url:
-        if info.get('playing'):
-            if info.get('paused'):
-                audio.resume_youtube()
-            else:
-                audio.pause_youtube()
-        else:
-            audio.play_youtube(url)
+    # Toggle play/stop (not pause)
+    if info.get('url') == url and info.get('playing'):
+        # If same video is playing, stop it
+        audio.stop_youtube()
     else:
+        # Otherwise play it
         audio.play_youtube(url)
 
 

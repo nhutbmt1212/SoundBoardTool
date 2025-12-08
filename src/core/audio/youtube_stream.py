@@ -62,6 +62,8 @@ class YouTubeStream:
         self.vb_manager = vb_manager
         self.volume = 1.0
         self.pitch = 1.0
+        self.trim_start = 0.0
+        self.trim_end = 0.0
         self.playing = False
         self.paused = False
         self.current_url = None
@@ -104,14 +106,39 @@ class YouTubeStream:
         if cache_key in self._cache_index:
             cached = self._cache_index[cache_key]
             filepath = Path(cached['file'])
+            
+            # Check if file exists
             if filepath.exists():
+                # If file has no extension, try to detect and rename it
+                if not filepath.suffix:
+                    new_path = self._fix_cached_file_extension(filepath)
+                    if new_path:
+                        # Update cache index
+                        self._cache_index[cache_key]['file'] = str(new_path)
+                        self._save_cache_index()
+                        return str(new_path), cached['title']
+                
                 return str(filepath), cached['title']
         return None, None
+    
+    def _fix_cached_file_extension(self, filepath: Path) -> Path:
+        """Try to detect file format and add proper extension"""
+        try:
+            import shutil
+            # Try common audio extensions (m4a is most common from YouTube)
+            for ext in ['.m4a', '.webm', '.opus', '.mp3']:
+                new_path = filepath.with_suffix(ext)
+                shutil.move(str(filepath), str(new_path))
+                return new_path
+        except Exception:
+            pass
+        
+        return None
     
     def _download_and_cache(self, url: str, progress_callback=None) -> tuple:
         """Tải video về cache. Return (filepath, title)"""
         cache_key = self._get_cache_key(url)
-        output_template = self.cache_dir / cache_key
+        output_template = self.cache_dir / f"{cache_key}.%(ext)s"
         
         hooks = []
         if progress_callback:
@@ -119,7 +146,7 @@ class YouTubeStream:
             
         ydl_opts = {
             'format': 'bestaudio[ext=m4a]/bestaudio/best',
-            'outtmpl': str(output_template),  # Không thêm extension, để yt-dlp tự động
+            'outtmpl': str(output_template),  # Use %(ext)s to get extension
             'quiet': True,
             'no_warnings': True,
             'progress_hooks': hooks,
@@ -130,9 +157,9 @@ class YouTubeStream:
                 info = ydl.extract_info(url, download=True)
                 title = info.get('title', 'Unknown')
                 
-                # Tìm file đã tải (yt-dlp có thể thêm extension hoặc không)
+                # Tìm file đã tải (yt-dlp sẽ thêm extension)
                 output_file = None
-                for ext in ['', '.m4a', '.webm', '.opus', '.mp3', '.mp4']:
+                for ext in ['.m4a', '.webm', '.opus', '.mp3', '.mp4', '']:
                     test_file = self.cache_dir / f"{cache_key}{ext}"
                     if test_file.exists():
                         output_file = test_file
@@ -250,8 +277,16 @@ class YouTubeStream:
                     '-reconnect_streamed', '1',
                     '-reconnect_delay_max', '5'
                 ])
+            
+            # Add trim parameters if set
+            if self.trim_start > 0:
+                cmd.extend(['-ss', str(self.trim_start)])
                 
             cmd.extend(['-i', audio_source])
+            
+            if self.trim_end > 0:
+                duration = self.trim_end - self.trim_start
+                cmd.extend(['-t', str(duration)])
             
             if filter_complex:
                 cmd.extend(['-af', ','.join(filter_complex)])
@@ -415,3 +450,84 @@ class YouTubeStream:
     def set_pitch(self, pitch: float):
         """Set pitch multiplier (1.0 = normal, 1.5 = chipmunk)"""
         self.pitch = pitch
+    
+    def set_trim(self, start: float, end: float):
+        """Set trim times in seconds"""
+        self.trim_start = max(0.0, start)
+        self.trim_end = max(0.0, end)
+    
+    def get_duration(self, url: str) -> float:
+        """Get duration of YouTube video in seconds"""
+        # Check cache first
+        cached_file, _ = self._get_cached_file(url)
+        if cached_file:
+            return self._get_file_duration(cached_file)
+        
+        # If not cached, extract info without downloading
+        if not YTDLP_AVAILABLE:
+            return 0.0
+        
+        try:
+            ydl_opts = {
+                'quiet': True,
+                'no_warnings': True,
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                return float(info.get('duration', 0))
+        except Exception:
+            return 0.0
+    
+    def _get_file_duration(self, filepath: str) -> float:
+        """Get duration of audio file using ffprobe or pygame"""
+        if not os.path.exists(filepath):
+            return 0.0
+        
+        # Try ffprobe first
+        try:
+            if FFMPEG_PATH:
+                ffmpeg_dir = os.path.dirname(FFMPEG_PATH)
+                ffprobe_exe = os.path.join(ffmpeg_dir, 'ffprobe.exe')
+                if not os.path.exists(ffprobe_exe):
+                    ffprobe_exe = os.path.join(ffmpeg_dir, 'ffprobe')
+            else:
+                ffprobe_exe = 'ffprobe'
+            
+            cmd = [
+                ffprobe_exe,
+                '-v', 'error',
+                '-show_entries', 'format=duration',
+                '-of', 'default=noprint_wrappers=1:nokey=1',
+                filepath
+            ]
+            
+            startupinfo = None
+            if os.name == 'nt':
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            
+            result = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                startupinfo=startupinfo,
+                timeout=5
+            )
+            
+            if result.returncode == 0:
+                output = result.stdout.decode().strip()
+                if output:
+                    return float(output)
+        except Exception:
+            pass
+        
+        # Fallback to pygame if available
+        try:
+            import pygame
+            if pygame.mixer.get_init():
+                sound = pygame.mixer.Sound(filepath)
+                return sound.get_length()
+        except Exception:
+            pass
+        
+        return 0.0

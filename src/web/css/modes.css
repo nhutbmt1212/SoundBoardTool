@@ -119,6 +119,68 @@
     color: var(--text-muted);
     margin-top: 4px;
     margin-left: 60px;
-    /* Align with text */
     opacity: 0.8;
+}
+
+/* Range Slider for Audio Trimming */
+.range-slider-wrapper {
+    width: 100%;
+    padding: 16px 0;
+}
+
+.range-slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    font-family: 'Courier New', monospace;
+}
+
+.range-slider-container {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    margin: 20px 0;
+}
+
+.range-slider-track {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.range-slider-range {
+    position: absolute;
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary) 0%, #00b8e6 100%);
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+}
+
+.range-slider-handle {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    background: white;
+    border: 3px solid var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+.range-slider-handle:hover {
+    transform: translate(-50%, -50%) scale(1.2);
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.6);
+}
+
+.range-slider-handle:active {
+    transform: translate(-50%, -50%) scale(1.1);
 }

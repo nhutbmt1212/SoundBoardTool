@@ -22,15 +22,18 @@ class SoundAPI:
         eel.expose(self.add_sound_dialog)
         eel.expose(self.add_sound_base64)
         eel.expose(self.delete_sound)
+        eel.expose(self.get_audio_duration)
+        eel.expose(self.get_waveform_data)
     
     def get_sounds(self):
         """Get list of available sounds"""
         return self.audio.get_sounds()
     
-    def play_sound(self, name: str, volume: float = 1.0, pitch: float = 1.0):
-        """Play sound with volume and pitch"""
+    def play_sound(self, name: str, volume: float = 1.0, pitch: float = 1.0, start_time: float = 0, end_time: float = 0):
+        """Play sound with volume, pitch, and optional trim"""
         self.audio.set_volume(volume)
         self.audio.set_pitch(pitch)
+        self.audio.set_trim(start_time, end_time)
         return self.audio.play(name)
     
     def stop_all(self):
@@ -102,3 +105,11 @@ class SoundAPI:
     def delete_sound(self, name: str):
         """Delete a sound"""
         return self.audio.delete_sound(name)
+    
+    def get_audio_duration(self, name: str):
+        """Get audio file duration in seconds"""
+        return self.audio.get_audio_duration(name)
+    
+    def get_waveform_data(self, name: str, samples: int = 200):
+        """Get waveform data for visualization"""
+        return self.audio.get_waveform_data(name, samples)

@@ -23,6 +23,7 @@ class YouTubeAPI:
         eel.expose(self.add_youtube_item)
         eel.expose(self.delete_youtube_item)
         eel.expose(self.save_youtube_as_sound)
+        eel.expose(self.get_youtube_duration)
     
     def play_youtube(self, url: str):
         """Play YouTube audio by URL"""
@@ -32,6 +33,7 @@ class YouTubeAPI:
         settings = load_sound_settings()
         pitch_mode_map = settings.get('youtubePitchMode', {})
         scream_mode_map = settings.get('youtubeScreamMode', {})
+        trim_settings = settings.get('youtubeTrimSettings', {})
         
         # Handle backward compatibility
         if isinstance(pitch_mode_map, bool):
@@ -43,8 +45,14 @@ class YouTubeAPI:
         pitch = 1.5 if pitch_mode_map.get(url, False) else 1.0
         vol = 50.0 if scream_mode_map.get(url, False) else 1.0
         
+        # Apply trim settings
+        trim = trim_settings.get(url, {})
+        trim_start = trim.get('start', 0)
+        trim_end = trim.get('end', 0)
+        
         self.audio.set_youtube_pitch(pitch)
         self.audio.set_youtube_volume(vol)
+        self.audio.set_youtube_trim(trim_start, trim_end)
         
         return self.audio.play_youtube(url)
     
@@ -163,3 +171,7 @@ class YouTubeAPI:
             return {'success': True, 'name': dest.stem}
         except Exception as e:
             return {'success': False, 'error': str(e)}
+    
+    def get_youtube_duration(self, url: str):
+        """Get YouTube video duration in seconds"""
+        return self.audio.youtube.get_duration(url)

@@ -55,6 +55,10 @@ class AudioEngine:
     def set_pitch(self, pitch: float):
         self.sound_player.set_pitch(pitch)
     
+    def set_trim(self, start: float, end: float):
+        """Set trim times for sound playback"""
+        self.sound_player.set_trim(start, end)
+    
     def play(self, name: str) -> bool:
         # Enforce priority: Stop YouTube if playing
         self.youtube.stop()
@@ -69,6 +73,14 @@ class AudioEngine:
     
     def delete_sound(self, name: str) -> bool:
         return self.sound_player.delete_sound(name)
+    
+    def get_audio_duration(self, name: str) -> float:
+        """Get audio file duration in seconds"""
+        return self.sound_player.get_audio_duration(name)
+    
+    def get_waveform_data(self, name: str, samples: int = 200) -> list:
+        """Get waveform data for visualization"""
+        return self.sound_player.get_waveform_data(name, samples)
     
     @property
     def _is_playing(self) -> bool:
@@ -141,6 +153,9 @@ class AudioEngine:
         
     def set_youtube_pitch(self, pitch: float):
         self.youtube.set_pitch(pitch)
+    
+    def set_youtube_trim(self, start: float, end: float):
+        self.youtube.set_trim(start, end)
     
     # === Cleanup ===
     
