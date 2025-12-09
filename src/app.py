@@ -3,6 +3,14 @@ import sys
 import os
 import signal
 import subprocess
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(levelname)s] %(name)s: %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Handle PyInstaller frozen app
 if getattr(sys, 'frozen', False):
@@ -52,6 +60,41 @@ hotkey_service = HotkeyService()
 # Initialize eel
 eel.init(WEB_DIR)
 
+# Constants
+MAX_SCREAM_MULTIPLIER = 50.0
+PITCH_MODE_MULTIPLIER = 1.5
+DEBOUNCE_SECONDS = 0.5
+
+
+def _apply_playback_settings(settings, all_settings, trim_key, identifier):
+    """Helper to apply common playback settings (volume, pitch, trim)
+    
+    Args:
+        settings: Individual item settings (volume, scream, pitch)
+        all_settings: All application settings
+        trim_key: Key for trim settings ('trimSettings', 'youtubeTrimSettings', etc.)
+        identifier: Sound name or URL for trim lookup
+    
+    Returns:
+        tuple: (volume, pitch, trim_start, trim_end)
+    """
+    vol = settings['volume'] / 100
+    
+    # Apply scream mode
+    if settings['scream']:
+        vol = min(vol * MAX_SCREAM_MULTIPLIER, MAX_SCREAM_MULTIPLIER)
+    
+    # Apply pitch mode
+    pitch = PITCH_MODE_MULTIPLIER if settings['pitch'] else 1.0
+    
+    # Load trim settings
+    trim_settings = all_settings.get(trim_key, {})
+    trim = trim_settings.get(identifier, {})
+    trim_start = trim.get('start', 0)
+    trim_end = trim.get('end', 0)
+    
+    return vol, pitch, trim_start, trim_end
+
 
 def play_sound_global(name: str):
     """Play sound from global hotkey (toggle behavior)"""
@@ -64,20 +107,9 @@ def play_sound_global(name: str):
     settings = hotkey_service.get_sound_settings(name)
     all_settings = load_sound_settings()
     
-    vol = settings['volume'] / 100
-    
-    # Apply scream mode
-    if settings['scream']:
-        vol = min(vol * 50.0, 50.0)
-    
-    # Apply pitch mode
-    pitch = 1.5 if settings['pitch'] else 1.0
-    
-    # Load trim settings
-    trim_settings = all_settings.get('trimSettings', {})
-    trim = trim_settings.get(name, {})
-    trim_start = trim.get('start', 0)
-    trim_end = trim.get('end', 0)
+    vol, pitch, trim_start, trim_end = _apply_playback_settings(
+        settings, all_settings, 'trimSettings', name
+    )
     
     audio.set_volume(vol)
     audio.set_pitch(pitch)
@@ -92,17 +124,9 @@ def play_youtube_global(url: str):
     settings = hotkey_service.get_youtube_settings(url)
     all_settings = load_sound_settings()
     
-    vol = settings['volume'] / 100
-    if settings['scream']:
-        vol = min(vol * 50.0, 50.0)
-        
-    pitch = 1.5 if settings['pitch'] else 1.0
-    
-    # Load trim settings
-    trim_settings = all_settings.get('youtubeTrimSettings', {})
-    trim = trim_settings.get(url, {})
-    trim_start = trim.get('start', 0)
-    trim_end = trim.get('end', 0)
+    vol, pitch, trim_start, trim_end = _apply_playback_settings(
+        settings, all_settings, 'youtubeTrimSettings', url
+    )
     
     audio.set_youtube_volume(vol)
     audio.set_youtube_pitch(pitch)
@@ -112,10 +136,8 @@ def play_youtube_global(url: str):
     
     # Toggle play/stop (not pause)
     if info.get('url') == url and info.get('playing'):
-        # If same video is playing, stop it
         audio.stop_youtube()
     else:
-        # Otherwise play it
         audio.play_youtube(url)
 
 
@@ -126,17 +148,9 @@ def play_tiktok_global(url: str):
     settings = hotkey_service.get_tiktok_settings(url)
     all_settings = load_sound_settings()
     
-    vol = settings['volume'] / 100
-    if settings['scream']:
-        vol = min(vol * 50.0, 50.0)
-
-    pitch = 1.5 if settings['pitch'] else 1.0
-    
-    # Load trim settings
-    trim_settings = all_settings.get('tiktokTrimSettings', {})
-    trim = trim_settings.get(url, {})
-    trim_start = trim.get('start', 0)
-    trim_end = trim.get('end', 0)
+    vol, pitch, trim_start, trim_end = _apply_playback_settings(
+        settings, all_settings, 'tiktokTrimSettings', url
+    )
     
     audio.set_tiktok_volume(vol)
     audio.set_tiktok_pitch(pitch)
@@ -146,10 +160,8 @@ def play_tiktok_global(url: str):
     
     # Toggle play/stop (not pause)
     if info.get('url') == url and info.get('playing'):
-        # If same video is playing, stop it
         audio.stop_tiktok()
     else:
-        # Otherwise play it
         audio.play_tiktok(url)
 
 
@@ -175,23 +187,23 @@ def cleanup_and_exit():
     # Release lock first so we can restart even if cleanup hangs
     try:
         release_lock()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"Failed to release lock: {e}")
 
     try:
         kill_browser()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"Failed to kill browser: {e}")
 
     try:
         hotkey_service.cleanup()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"Failed to cleanup hotkey service: {e}")
     
     try:
         audio.cleanup()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"Failed to cleanup audio: {e}")
     
     # Force exit
     os._exit(0)

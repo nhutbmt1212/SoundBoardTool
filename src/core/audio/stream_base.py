@@ -6,7 +6,11 @@ import json
 import hashlib
 import sys
 import time
+import logging
 from pathlib import Path
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Add project root to path for imports if needed
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -30,6 +34,13 @@ except ImportError:
 
 
 FFMPEG_PATH = find_ffmpeg()
+
+# Constants
+FFMPEG_STARTUP_DELAY = 0.5  # Seconds to wait for FFmpeg to start
+STREAM_BLOCKSIZE = 8192     # Audio buffer block size
+AUDIO_CLIP_MIN = -1.0       # Minimum audio sample value
+AUDIO_CLIP_MAX = 1.0        # Maximum audio sample value
+THREAD_JOIN_TIMEOUT = 3.0   # Seconds to wait for thread cleanup
 
 
 class BaseStream:
@@ -64,8 +75,8 @@ class BaseStream:
             try:
                 with open(self.cache_index_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Failed to load cache index: {e}")
         return {}
     
     def _save_cache_index(self):
@@ -74,7 +85,7 @@ class BaseStream:
             with open(self.cache_index_file, 'w', encoding='utf-8') as f:
                 json.dump(self._cache_index, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Failed to save cache index: {e}")
+            logger.error(f"Failed to save cache index: {e}")
     
     def _get_cache_key(self, url: str) -> str:
         """Create cache key from URL"""
@@ -110,8 +121,8 @@ class BaseStream:
                 new_path = filepath.with_suffix(ext)
                 shutil.move(str(filepath), str(new_path))
                 return new_path
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Failed to fix cached file extension: {e}")
         return None
     
     def _download_and_cache(self, url: str, progress_callback=None) -> tuple:
@@ -158,7 +169,7 @@ class BaseStream:
                 return str(output_file), title
                 
         except Exception as e:
-            print(f"Download error: {e}")
+            logger.error(f"Download error for {url}: {e}")
             return None, None
     
     def download(self, url: str, progress_callback=None) -> tuple:
@@ -213,7 +224,7 @@ class BaseStream:
             ffmpeg_exe = FFMPEG_PATH or 'ffmpeg'
             samplerate = self.vb_manager.get_samplerate()
             channels = self.vb_manager.get_channels()
-            blocksize = 8192
+            blocksize = STREAM_BLOCKSIZE
             bytes_per_sample = 2 * channels
             
             is_local_file = os.path.exists(audio_source)
@@ -266,7 +277,7 @@ class BaseStream:
                 startupinfo=startupinfo
             )
             
-            time.sleep(0.5)
+            time.sleep(FFMPEG_STARTUP_DELAY)
             
             if self._process.poll() is not None:
                 return
@@ -301,7 +312,7 @@ class BaseStream:
                     # Apply volume and clipping if needed
                     audio *= self.volume
                     if self.volume > 1.0:
-                         audio = np.clip(audio, -1.0, 1.0)
+                         audio = np.clip(audio, AUDIO_CLIP_MIN, AUDIO_CLIP_MAX)
                          
                     audio_out = np.ascontiguousarray(audio)
                     
@@ -319,9 +330,9 @@ class BaseStream:
                     speaker_stream.stop()
                     speaker_stream.close()
                     
-        except Exception:
+        except Exception as e:
             if not self._stop_event.is_set():
-                pass
+                logger.error(f"Stream loop error: {e}")
         finally:
             self._cleanup_process()
             self.playing = False
@@ -342,8 +353,8 @@ class BaseStream:
                 )
                 stream.start()
                 return stream
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Failed to open speaker stream: {e}")
         return None
     
     def _cleanup_process(self):
@@ -364,9 +375,9 @@ class BaseStream:
         self._cleanup_process()
         if self._thread and self._thread.is_alive():
             try:
-                self._thread.join(timeout=3)
-            except Exception:
-                pass
+                self._thread.join(timeout=THREAD_JOIN_TIMEOUT)
+            except Exception as e:
+                logger.debug(f"Thread join timeout: {e}")
             self._thread = None
         self.playing = False
         self.paused = False
@@ -419,7 +430,8 @@ class BaseStream:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 return float(info.get('duration', 0))
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Failed to get duration for {url}: {e}")
             return 0.0
 
     def _get_file_duration(self, filepath: str) -> float:

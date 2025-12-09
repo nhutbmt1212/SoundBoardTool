@@ -1,7 +1,11 @@
 """Sound Player - Core audio playback functionality"""
 import threading
 import time
+import logging
 from pathlib import Path
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 try:
     import pygame
@@ -32,6 +36,7 @@ class SoundPlayer:
     MAX_VOLUME = 50.0
     MIN_PITCH = 0.5
     MAX_PITCH = 2.0
+    PAUSE_CHECK_INTERVAL = 0.1  # Seconds between pause checks
     
     def __init__(self, sounds_dir: str, vb_manager):
         self.sounds_dir = Path(sounds_dir)
@@ -59,11 +64,12 @@ class SoundPlayer:
         if pygame:
             try:
                 pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
-            except Exception:
+            except Exception as e:
+                logger.debug(f"Failed to initialize pygame mixer with custom settings: {e}")
                 try:
                     pygame.mixer.init()
-                except Exception:
-                    pass
+                except Exception as e2:
+                    logger.error(f"Failed to initialize pygame mixer: {e2}")
     
     def load_sounds(self):
         """Load sounds from directory"""
@@ -130,7 +136,7 @@ class SoundPlayer:
                 snd.set_volume(min(self.volume, 1.0))
                 snd.play()
             except Exception as e:
-                print(f"Audio error: {e}")
+                logger.error(f"Audio playback error: {e}")
                 return False
         
         return True
@@ -171,7 +177,7 @@ class SoundPlayer:
                 
             return audio, freq
         except Exception as e:
-            print(f"Error loading audio: {e}")
+            logger.error(f"Error loading audio file {path}: {e}")
             return None, 0
 
     def _process_audio(self, audio, freq, target_samplerate=None):
@@ -252,7 +258,7 @@ class SoundPlayer:
             # Suppress specific transient errors to avoid spamming log
             msg = str(e)
             if "AUDCLNT_E_DEVICE_INVALIDATED" not in msg and "There is no driver installed" not in msg:
-                 print(f"Error streaming audio: {e}")
+                 logger.error(f"Error streaming audio: {e}")
 
     def _play_speaker(self, path: str, tid: int, name: str):
         """Play to speaker in background thread with trim support"""
@@ -323,8 +329,8 @@ class SoundPlayer:
         if pygame and pygame.mixer.get_init():
             try:
                 pygame.mixer.stop()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Failed to stop pygame mixer: {e}")
         
         threading.Timer(0.2, self._stop_flag.clear).start()
     
@@ -349,8 +355,8 @@ class SoundPlayer:
                 shutil.copy(src, dest)
             self.sounds[dest_name] = str(dest)
             return True
-        except Exception:
-            return False
+        except Exception as e:
+            logger.debug(f"Failed to add sound {filepath}: {e}")
     
     def delete_sound(self, name: str) -> bool:
         """Delete sound from library"""
@@ -360,8 +366,8 @@ class SoundPlayer:
             Path(self.sounds[name]).unlink(missing_ok=True)
             del self.sounds[name]
             return True
-        except Exception:
-            return False
+        except Exception as e:
+            logger.debug(f"Failed to delete sound {name}: {e}")
     
     def get_audio_duration(self, name: str) -> float:
         """Get audio file duration in seconds"""
@@ -377,7 +383,7 @@ class SoundPlayer:
                 return length
             return 0.0
         except Exception as e:
-            print(f"Error getting duration: {e}")
+            logger.error(f"Error getting duration for {name}: {e}")
             return 0.0
     
     def get_waveform_data(self, name: str, samples: int = 200) -> list:
@@ -414,7 +420,7 @@ class SoundPlayer:
             
             return waveform
         except Exception as e:
-            print(f"Error generating waveform: {e}")
+            logger.error(f"Error generating waveform for {name}: {e}")
             return []
     
     def cleanup(self):
@@ -423,5 +429,5 @@ class SoundPlayer:
         if pygame and pygame.mixer.get_init():
             try:
                 pygame.mixer.quit()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Failed to quit pygame mixer: {e}")

@@ -1,14 +1,13 @@
 """API Layer - YouTube Endpoints"""
 import eel
+from .base_stream_api import BaseStreamAPI
 
 
-class YouTubeAPI:
+class YouTubeAPI(BaseStreamAPI):
     """YouTube-related API endpoints"""
     
     def __init__(self, audio_engine, sounds_dir):
-        self.audio = audio_engine
-        self.sounds_dir = sounds_dir
-        self._register_endpoints()
+        super().__init__(audio_engine, sounds_dir, stream_type='youtube')
     
     def _register_endpoints(self):
         """Register all YouTube endpoints with Eel"""
@@ -25,131 +24,61 @@ class YouTubeAPI:
         eel.expose(self.save_youtube_as_sound)
         eel.expose(self.get_youtube_duration)
     
-    def play_youtube(self, url: str, volume: float = 1.0, pitch: float = 1.0, start_time: float = 0, end_time: float = 0):
+    def _get_stream_object(self):
+        """Get YouTube stream object from audio engine"""
+        return self.audio.youtube
+    
+    def _get_keybinds_key(self) -> str:
+        """Get settings key for YouTube keybinds"""
+        return 'youtubeKeybinds'
+    
+    # Public API methods - delegate to base class
+    
+    def play_youtube(self, url: str, volume: float = 1.0, pitch: float = 1.0, 
+                     start_time: float = 0, end_time: float = 0):
         """Play YouTube audio by URL with specific settings"""
-        
-        self.audio.set_youtube_pitch(pitch)
-        self.audio.set_youtube_volume(volume)
-        self.audio.set_youtube_trim(start_time, end_time)
-        
-        return self.audio.play_youtube(url)
+        return self._play(url, volume, pitch, start_time, end_time)
     
     def stop_youtube(self):
         """Stop YouTube streaming"""
-        self.audio.stop_youtube()
+        self._stop()
     
     def pause_youtube(self):
         """Pause YouTube streaming"""
-        self.audio.pause_youtube()
+        self._pause()
     
     def resume_youtube(self):
         """Resume YouTube streaming"""
-        self.audio.resume_youtube()
+        self._resume()
     
     def get_youtube_info(self):
         """Get YouTube playback info"""
-        return self.audio.get_youtube_info()
+        return self._get_info()
     
     def is_youtube_playing(self):
         """Check if YouTube is playing"""
-        return self.audio.is_youtube_playing()
+        return self._is_playing()
     
     def set_youtube_volume(self, vol: float):
         """Set YouTube volume"""
-        self.audio.set_youtube_volume(vol)
-        return True
+        return self._set_volume(vol)
     
     def get_youtube_items(self):
         """Get all YouTube cached items"""
-        from core.config import load_sound_settings
-        
-        yt_stream = self.audio.youtube
-        items = []
-        
-        settings = load_sound_settings()
-        youtube_keybinds = settings.get('youtubeKeybinds', {})
-        
-        for key, data in yt_stream._cache_index.items():
-            items.append({
-                'url': data['url'],
-                'title': data['title'],
-                'file': data['file'],
-                'keybind': youtube_keybinds.get(data['url'], '')
-            })
-        
-        return items
+        return self._get_items()
     
     def add_youtube_item(self, url: str):
         """Add YouTube item (download and cache)"""
-        def on_progress(d):
-            if d['status'] == 'downloading':
-                try:
-                    percent_str = d.get('_percent_str', '').strip()
-                    # Remove ANSI color codes
-                    import re
-                    percent_str = re.sub(r'\x1b\[[0-9;]*m', '', percent_str)
-                    
-                    percent = 0
-                    if '%' in percent_str:
-                        percent = float(percent_str.replace('%', ''))
-                    
-                    # Send to frontend
-                    eel.onYoutubeProgress(url, percent)
-                    eel.sleep(0.01)
-                except Exception:
-                    pass
-        
-        result = self.audio.play_youtube(url, on_progress)
-        if result['success']:
-            self.audio.stop_youtube()  # Stop after caching
-        return result
+        return self._add_item(url)
     
     def delete_youtube_item(self, url: str):
         """Delete YouTube cached item"""
-        import os
-        
-        yt_stream = self.audio.youtube
-        cached_file, title = yt_stream._get_cached_file(url)
-        
-        if not cached_file:
-            return {'success': False, 'error': 'Not found'}
-        
-        try:
-            # Delete file
-            os.remove(cached_file)
-            
-            # Remove from index
-            cache_key = yt_stream._get_cache_key(url)
-            if cache_key in yt_stream._cache_index:
-                del yt_stream._cache_index[cache_key]
-                yt_stream._save_cache_index()
-            
-            return {'success': True}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
+        return self._delete_item(url)
     
     def save_youtube_as_sound(self, url: str):
         """Save YouTube cache as a sound item"""
-        import shutil
-        from pathlib import Path
-        
-        yt_stream = self.audio.youtube
-        cached_file, title = yt_stream._get_cached_file(url)
-        
-        if not cached_file:
-            return {'success': False, 'error': 'Not cached yet'}
-        
-        # Copy to sounds directory
-        src = Path(cached_file)
-        dest = Path(self.sounds_dir) / f"{title[:50]}{src.suffix}"
-        
-        try:
-            shutil.copy(src, dest)
-            self.audio.load_sounds()
-            return {'success': True, 'name': dest.stem}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
+        return self._save_as_sound(url)
     
     def get_youtube_duration(self, url: str):
         """Get YouTube video duration in seconds"""
-        return self.audio.youtube.get_duration(url)
+        return self._get_duration(url)
