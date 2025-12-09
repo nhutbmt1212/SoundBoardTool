@@ -24,7 +24,7 @@ class SoundAPI:
         eel.expose(self.get_playing_sound)
         eel.expose(self.add_sound_dialog)
         eel.expose(self.add_sound_base64)
-        eel.expose(self.delete_sound)   ()
+        eel.expose(self.delete_sound)
         eel.expose(self.get_audio_duration)
         eel.expose(self.get_waveform_data)
     

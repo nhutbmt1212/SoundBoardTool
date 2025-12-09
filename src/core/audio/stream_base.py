@@ -412,7 +412,10 @@ class BaseStream:
             return 0.0
         
         try:
-            ydl_opts = {'quiet': True, 'no_warnings': True}
+            ydl_opts = {
+                'quiet': True,
+                'no_warnings': True,
+            }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 return float(info.get('duration', 0))
