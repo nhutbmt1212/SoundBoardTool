@@ -25,34 +25,12 @@ class TikTokAPI:
         eel.expose(self.save_tiktok_as_sound)
         eel.expose(self.get_tiktok_duration)
     
-    def play_tiktok(self, url: str):
-        """Play TikTok audio by URL"""
-        from core.config import load_sound_settings
-        
-        # Load pitch and scream mode settings
-        settings = load_sound_settings()
-        pitch_mode_map = settings.get('tiktokPitchMode', {})
-        scream_mode_map = settings.get('tiktokScreamMode', {})
-        trim_settings = settings.get('tiktokTrimSettings', {})
-        
-        # Handle backward compatibility (generic check)
-        if isinstance(pitch_mode_map, bool):
-            pitch_mode_map = {}
-        if isinstance(scream_mode_map, bool):
-            scream_mode_map = {}
-        
-        # Apply settings
-        pitch = 1.5 if pitch_mode_map.get(url, False) else 1.0
-        vol = 50.0 if scream_mode_map.get(url, False) else 1.0
-        
-        # Apply trim settings
-        trim = trim_settings.get(url, {})
-        trim_start = trim.get('start', 0)
-        trim_end = trim.get('end', 0)
+    def play_tiktok(self, url: str, volume: float = 1.0, pitch: float = 1.0, start_time: float = 0, end_time: float = 0):
+        """Play TikTok audio by URL with specific settings"""
         
         self.audio.set_tiktok_pitch(pitch)
-        self.audio.set_tiktok_volume(vol)
-        self.audio.set_tiktok_trim(trim_start, trim_end)
+        self.audio.set_tiktok_volume(volume)
+        self.audio.set_tiktok_trim(start_time, end_time)
         
         return self.audio.play_tiktok(url)
     

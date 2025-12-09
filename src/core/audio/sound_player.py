@@ -1,5 +1,6 @@
 """Sound Player - Core audio playback functionality"""
 import threading
+import time
 from pathlib import Path
 
 try:
@@ -42,9 +43,12 @@ class SoundPlayer:
         self.trim_end = 0.0
         
         self._stop_flag = threading.Event()
+        self._pause_event = threading.Event()
+        self._pause_event.set()  # Start unpaused
         self._thread_id = 0
         self._vb_lock = threading.Lock()
         self._is_playing = False
+        self._is_paused = False
         self._current_sound = None
         
         self._init_pygame()
@@ -96,7 +100,9 @@ class SoundPlayer:
         
         path = self.sounds[name]
         self._stop_flag.clear()
+        self._pause_event.set() # Reset pause state on new play
         self._current_sound = name
+        self._is_paused = False
         
         # Play to both speaker and VB-Cable using sounddevice (supports trim)
         if SD_AVAILABLE and pygame and pygame.mixer.get_init():
@@ -128,6 +134,25 @@ class SoundPlayer:
                 return False
         
         return True
+
+    def pause(self):
+        """Pause current playback"""
+        if self._is_playing and not self._is_paused:
+            self._is_paused = True
+            self._pause_event.clear()
+            return True
+        return False
+        
+    def resume(self):
+        """Resume current playback"""
+        if self._is_playing and self._is_paused:
+            self._is_paused = False
+            self._pause_event.set()
+            return True
+        return False
+
+    def is_paused(self) -> bool:
+        return self._is_paused
 
     def _load_and_convert_audio(self, path: str):
         """Load audio file and convert to float32 array"""
@@ -177,8 +202,8 @@ class SoundPlayer:
                     resampled.append(np.interp(indices, np.arange(len(audio)), audio[:, ch]))
                 audio = np.column_stack(resampled).astype(np.float32)
         
-        # Apply volume
-        audio *= self.volume
+        # Apply volume - MOVED TO STREAMING LOOP FOR LIVE UPDATES
+        # audio *= self.volume
         return audio
 
     def _stream_audio_to_device(self, audio, samplerate, device_id, tid):
@@ -201,8 +226,25 @@ class SoundPlayer:
                     if self._stop_flag.is_set() or tid != self._thread_id:
                         stream.abort()
                         return
+
+                    # Handle Pause
+                    if not self._pause_event.is_set():
+                        # Wait until resumed or stopped
+                        while not self._pause_event.is_set():
+                             if self._stop_flag.is_set() or tid != self._thread_id:
+                                stream.abort()
+                                return
+                             time.sleep(0.1)
                     
                     chunk = audio[i:i + self.STREAM_CHUNK_SIZE]
+                    
+                    # Apply CURRENT volume setting dynamically
+                    # Clip data to range [-1.0, 1.0] to ensure consistent distortion (Scream Mode)
+                    # and prevent driver-side normalization/artifacts on some devices (VB-Cable)
+                    chunk = chunk * self.volume
+                    if self.volume > 1.0:
+                        chunk = np.clip(chunk, -1.0, 1.0)
+                    
                     if chunk.ndim == 1:
                         chunk = chunk.reshape(-1, 1)
                     stream.write(chunk)
@@ -272,8 +314,11 @@ class SoundPlayer:
     def stop(self):
         """Stop all sounds"""
         self._stop_flag.set()
+        self._pause_event.set() # Unblock any paused threads so they can see stop flag
         self._thread_id += 1
         self._current_sound = None
+        self._is_playing = False
+        self._is_paused = False
         
         if pygame and pygame.mixer.get_init():
             try:

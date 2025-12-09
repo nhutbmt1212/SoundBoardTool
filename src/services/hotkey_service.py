@@ -16,8 +16,10 @@ class HotkeyService:
         self.sound_volumes = {}
         self.sound_scream_mode = {}
         self.sound_pitch_mode = {}
+        self.youtube_volumes = {}
         self.youtube_scream_mode = {}
         self.youtube_pitch_mode = {}
+        self.tiktok_volumes = {}
         self.tiktok_scream_mode = {}
         self.tiktok_pitch_mode = {}
     
@@ -43,7 +45,10 @@ class HotkeyService:
         self.sound_volumes = settings.get('volumes', {})
         self.sound_scream_mode = settings.get('screamMode', {})
         self.sound_pitch_mode = settings.get('pitchMode', {})
+        self.youtube_volumes = settings.get('youtubeVolumes', {})
         self.youtube_scream_mode = settings.get('youtubeScreamMode', {})
+        self.youtube_pitch_mode = settings.get('youtubePitchMode', {})
+        self.tiktok_volumes = settings.get('tiktokVolumes', {})
         self.tiktok_scream_mode = settings.get('tiktokScreamMode', {})
         self.tiktok_pitch_mode = settings.get('tiktokPitchMode', {})
         
@@ -82,6 +87,7 @@ class HotkeyService:
     def get_youtube_settings(self, url: str):
         """Get cached settings for a YouTube URL"""
         return {
+            'volume': self.youtube_volumes.get(url, 100),
             'scream': self.youtube_scream_mode.get(url, False),
             'pitch': self.youtube_pitch_mode.get(url, False)
         }
@@ -89,6 +95,7 @@ class HotkeyService:
     def get_tiktok_settings(self, url: str):
         """Get cached settings for a TikTok URL"""
         return {
+            'volume': self.tiktok_volumes.get(url, 100),
             'scream': self.tiktok_scream_mode.get(url, False),
             'pitch': self.tiktok_pitch_mode.get(url, False)
         }

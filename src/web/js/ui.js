@@ -149,7 +149,8 @@ const UI = {
                 <div class="volume-control">
                     <input type="range" class="volume-slider" id="sound-volume" 
                            min="0" max="100" value="${volume}"
-                           oninput="EventHandlers.onSoundVolumeChange(this.value)">
+                           oninput="SoundEvents.onVolumeLive(this.value)"
+                           onchange="SoundEvents.onVolumeSave(this.value)">
                     <span class="volume-value" id="volume-value">${volume}</span>
                 </div>
             </div>
@@ -246,9 +247,15 @@ const UI = {
         iconContainer.innerHTML = IconManager.get(typeIcon, { size: 24 });
 
         // Update Playing Status
+        // Determine control icon
+        let controlIcon = 'play';
+        if (isPlaying && !isPaused) {
+            controlIcon = 'pause';
+        }
+
         const btnHtml = `
             <button class="btn-control-main" id="btn-now-playing-toggle" onclick="EventHandlers.togglePlayback()">
-                ${IconManager.get(isPlaying && !isPaused ? 'pause' : 'play', { size: 16 })}
+                ${IconManager.get(controlIcon, { size: 16 })}
             </button>
         `;
 
@@ -267,7 +274,7 @@ const UI = {
     },
 
     // Update playing state on cards (Local Sounds)
-    updatePlayingState(playingSound) {
+    updatePlayingState(playingSound, isPaused = false) {
         document.querySelectorAll('.sound-card').forEach(card => {
             // Only add playing class if playingSound matches, otherwise remove
             if (playingSound && card.dataset.name === playingSound) {
@@ -279,7 +286,7 @@ const UI = {
 
         if (playingSound) {
             const displayName = AppState.getDisplayName(playingSound);
-            this.updateNowPlaying(displayName, 'sound', true);
+            this.updateNowPlaying(displayName, 'sound', true, isPaused);
         } else {
             this.updateNowPlaying(null, 'sound', false);
         }
@@ -383,9 +390,10 @@ const UI = {
                 <div class="panel-section-title">${icon('volume', 16)} Global YouTube Volume</div>
                 <div class="volume-control">
                     <input type="range" class="volume-slider" id="youtube-volume" 
-                           min="0" max="100" value="100"
-                           oninput="onYoutubeVolumeChange(this.value)">
-                    <span class="volume-value" id="youtube-volume-value">100%</span>
+                           min="0" max="100" value="${AppState.getYoutubeVolume(item.url)}"
+                           oninput="YouTubeEvents.onVolumeLive(this.value)"
+                           onchange="YouTubeEvents.onVolumeSave(this.value)">
+                    <span class="volume-value" id="youtube-volume-value">${AppState.getYoutubeVolume(item.url)}%</span>
                 </div>
             </div>
             
@@ -613,9 +621,10 @@ const UI = {
                 <div class="panel-section-title">${icon('volume', 16)} TikTok Volume</div>
                 <div class="volume-control">
                     <input type="range" class="volume-slider" id="tiktok-volume" 
-                           min="0" max="100" value="100"
-                           oninput="TikTokEvents.onVolumeChange(this.value)">
-                    <span class="volume-value" id="tiktok-volume-value">100%</span>
+                           min="0" max="100" value="${AppState.getTikTokVolume(item.url)}"
+                           oninput="TikTokEvents.onVolumeLive(this.value)"
+                           onchange="TikTokEvents.onVolumeSave(this.value)">
+                    <span class="volume-value" id="tiktok-volume-value">${AppState.getTikTokVolume(item.url)}%</span>
                 </div>
             </div>
             

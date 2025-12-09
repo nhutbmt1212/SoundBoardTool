@@ -16,12 +16,15 @@ class SoundAPI:
         eel.expose(self.get_sounds)
         eel.expose(self.play_sound)
         eel.expose(self.stop_all)
+        eel.expose(self.pause_sound)
+        eel.expose(self.resume_sound)
+        eel.expose(self.is_sound_paused)
         eel.expose(self.set_volume)
         eel.expose(self.get_volume)
         eel.expose(self.get_playing_sound)
         eel.expose(self.add_sound_dialog)
         eel.expose(self.add_sound_base64)
-        eel.expose(self.delete_sound)
+        eel.expose(self.delete_sound)   ()
         eel.expose(self.get_audio_duration)
         eel.expose(self.get_waveform_data)
     
@@ -37,10 +40,20 @@ class SoundAPI:
         return self.audio.play(name)
     
     def stop_all(self):
-        """Stop all playing sounds"""
-        self.audio.stop()
         return True
     
+    def pause_sound(self):
+        """Pause current sound"""
+        self.audio.pause_sound()
+        
+    def resume_sound(self):
+        """Resume current sound"""
+        self.audio.resume_sound()
+
+    def is_sound_paused(self):
+        """Check if sound playback is paused"""
+        return self.audio._is_paused
+
     def set_volume(self, vol: float):
         """Set playback volume"""
         self.audio.set_volume(vol)
