@@ -121,13 +121,30 @@ const SoundEvents = {
     },
 
     /**
-     * Handles sound volume slider change
+     * Handles sound volume live update
      * @param {number} value - New volume value (0-100)
      */
-    onVolumeChange(value) {
+    async onVolumeLive(value) {
         if (!AppState.selectedSound) return;
         document.getElementById('volume-value').textContent = value;
+
+        // Update state
         AppState.setVolume(AppState.selectedSound, value);
+
+        // Calculate effective volume (including scream mode)
+        let vol = parseInt(value) / 100;
+        const isScream = AppState.isScreamMode(AppState.selectedSound);
+        if (isScream) vol = Math.min(vol * 50.0, 50.0);
+
+        // Send to backend
+        await API.setSoundVolume(vol);
+    },
+
+    /**
+     * Handles sound volume save (on release)
+     * @param {number} value - New volume value
+     */
+    async onVolumeSave(value) {
         this.saveSettings();
     },
 

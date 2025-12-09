@@ -46,8 +46,14 @@ const AppState = {
     /** @type {Object<string, {start: number, end: number}>} YouTube trim settings (start/end in seconds) */
     youtubeTrimSettings: {},
 
-    /** @type {Object<string, {start: number, end: number}>} TikTok trim settings (start/end in seconds) */
+    /** @type {Object<string, {start: number, end: number}>} Tiktok trim settings (start/end in seconds) */
     tiktokTrimSettings: {},
+
+    /** @type {Object<string, number>} YouTube volume levels (0-100) */
+    youtubeVolumes: {},
+
+    /** @type {Object<string, number>} TikTok volume levels (0-100) */
+    tiktokVolumes: {},
 
     /** @type {Object|null} Currently selected TikTok item */
     selectedTikTokItem: null,
@@ -241,6 +247,7 @@ const AppState = {
         delete this.youtubePitchMode[url];
         delete this.youtubeNames[url];
         delete this.youtubeTrimSettings[url];
+        delete this.youtubeVolumes[url];
     },
 
     /**
@@ -253,6 +260,7 @@ const AppState = {
         delete this.tiktokPitchMode[url];
         delete this.tiktokNames[url];
         delete this.tiktokTrimSettings[url];
+        delete this.tiktokVolumes[url];
     },
 
     // ==================== YouTube Getters ====================
@@ -360,6 +368,26 @@ const AppState = {
         }
     },
 
+    // ==================== YouTube Volume ====================
+
+    /**
+     * Gets volume level for a YouTube item
+     * @param {string} url - YouTube URL
+     * @returns {number} Volume level (0-100), defaults to 100
+     */
+    getYoutubeVolume(url) {
+        return this.youtubeVolumes[url] !== undefined ? this.youtubeVolumes[url] : 100;
+    },
+
+    /**
+     * Sets volume level for a YouTube item
+     * @param {string} url - YouTube URL
+     * @param {number} value - Volume level (0-100)
+     */
+    setYoutubeVolume(url, value) {
+        this.youtubeVolumes[url] = parseInt(value);
+    },
+
     // ==================== TikTok Getters ====================
 
     /**
@@ -465,6 +493,26 @@ const AppState = {
         }
     },
 
+    // ==================== TikTok Volume ====================
+
+    /**
+     * Gets volume level for a TikTok item
+     * @param {string} url - TikTok URL
+     * @returns {number} Volume level (0-100), defaults to 100
+     */
+    getTikTokVolume(url) {
+        return this.tiktokVolumes[url] !== undefined ? this.tiktokVolumes[url] : 100;
+    },
+
+    /**
+     * Sets volume level for a TikTok item
+     * @param {string} url - TikTok URL
+     * @param {number} value - Volume level (0-100)
+     */
+    setTikTokVolume(url, value) {
+        this.tiktokVolumes[url] = parseInt(value);
+    },
+
     // ==================== Persistence ====================
 
     /**
@@ -484,6 +532,8 @@ const AppState = {
         this.tiktokKeybinds = settings.tiktokKeybinds || {};
         this.tiktokNames = settings.tiktokNames || {};
         this.tiktokTrimSettings = settings.tiktokTrimSettings || {};
+        this.youtubeVolumes = settings.youtubeVolumes || {};
+        this.tiktokVolumes = settings.tiktokVolumes || {};
         this.stopAllKeybind = settings.stopAllKeybind || '';
 
         // Backwards compatibility check - if boolean, reset to empty object
@@ -520,7 +570,9 @@ const AppState = {
             tiktokScreamMode: this.tiktokScreamMode,
             tiktokPitchMode: this.tiktokPitchMode,
             tiktokNames: this.tiktokNames,
-            tiktokTrimSettings: this.tiktokTrimSettings
+            tiktokTrimSettings: this.tiktokTrimSettings,
+            youtubeVolumes: this.youtubeVolumes,
+            tiktokVolumes: this.tiktokVolumes
         };
     }
 };

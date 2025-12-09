@@ -14,7 +14,8 @@ const EventHandlers = {
     deleteSound: (name) => SoundEvents.deleteSound(name),
     refreshSounds: () => SoundEvents.refreshSounds(),
     saveSettings: () => SoundEvents.saveSettings(),
-    onSoundVolumeChange: (value) => SoundEvents.onVolumeChange(value),
+    onSoundVolumeLive: (value) => SoundEvents.onVolumeLive(value),
+    onSoundVolumeSave: (value) => SoundEvents.onVolumeSave(value),
     onSoundNameChange: (value) => SoundEvents.onNameChange(value),
     toggleScreamMode: () => SoundEvents.toggleScreamMode(),
     togglePitchMode: () => SoundEvents.togglePitchMode(),
@@ -43,7 +44,8 @@ const EventHandlers = {
     playYoutubeItem: (url) => YouTubeEvents.playItem(url),
     pauseYoutubeItem: (url) => YouTubeEvents.pauseItem(url),
     deleteYoutubeItem: (url) => YouTubeEvents.deleteItem(url),
-    onYoutubeVolumeChange: (value) => YouTubeEvents.onVolumeChange(value),
+    onYoutubeVolumeLive: (value) => YouTubeEvents.onVolumeLive(value),
+    onYoutubeVolumeSave: (value) => YouTubeEvents.onVolumeSave(value),
     startYoutubeStatusCheck: () => YouTubeEvents.startStatusCheck(),
     startYoutubeKeybindRecording: () => YouTubeEvents.startKeybindRecording(),
     saveYoutubeKeybind: (url, keybind) => YouTubeEvents.saveKeybind(url, keybind),
@@ -62,7 +64,8 @@ const EventHandlers = {
     playTikTokItem: (url) => TikTokEvents.playItem(url),
     pauseTikTokItem: (url) => TikTokEvents.pauseItem(url),
     deleteTikTokItem: (url) => TikTokEvents.deleteItem(url),
-    onTikTokVolumeChange: (value) => TikTokEvents.onVolumeChange(value),
+    onTikTokVolumeLive: (value) => TikTokEvents.onVolumeLive(value),
+    onTikTokVolumeSave: (value) => TikTokEvents.onVolumeSave(value),
     startTikTokStatusCheck: () => TikTokEvents.startStatusCheck(),
     startTikTokKeybindRecording: () => TikTokEvents.startKeybindRecording(),
     saveTikTokKeybind: (url, keybind) => TikTokEvents.saveKeybind(url, keybind),
@@ -92,8 +95,12 @@ const EventHandlers = {
             if (!AppState.forceStopped) {
                 if (!playingSound) {
                     AppState.currentPlayingSound = null;
+                    UI.updatePlayingState(null);
+                } else {
+                    AppState.currentPlayingSound = playingSound;
+                    const isPaused = await API.isSoundPaused();
+                    UI.updatePlayingState(playingSound, isPaused);
                 }
-                UI.updatePlayingState(playingSound);
             }
 
             // Check YouTube playback
@@ -251,7 +258,12 @@ const EventHandlers = {
         if (!type) return;
 
         if (type === 'sound') {
-            await this.stopAll();
+            const isPaused = await API.isSoundPaused();
+            if (isPaused) {
+                await API.resumeSound();
+            } else {
+                await API.pauseSound();
+            }
         } else if (type === 'youtube') {
             const info = await API.getYoutubeInfo();
             if (info.playing || info.paused) {
@@ -292,7 +304,8 @@ window.onMicVolumeChange = (v) => EventHandlers.onMicVolumeChange(v);
 window.playYoutube = () => EventHandlers.playYoutube();
 window.stopYoutube = () => EventHandlers.stopYoutube();
 window.saveYoutubeAsSound = () => EventHandlers.saveYoutubeAsSound();
-window.onYoutubeVolumeChange = (v) => EventHandlers.onYoutubeVolumeChange(v);
+window.onYoutubeVolumeLive = (v) => EventHandlers.onYoutubeVolumeLive(v);
+window.onYoutubeVolumeSave = (v) => EventHandlers.onYoutubeVolumeSave(v);
 window.saveYoutubeAsSound = (url) => EventHandlers.saveYoutubeAsSound(url);
 window.showAddYoutubeDialog = () => EventHandlers.showAddYoutubeDialog();
 window.refreshYoutubeItems = () => EventHandlers.refreshYoutubeItems();
@@ -302,7 +315,8 @@ window.deleteYoutubeItem = (url) => EventHandlers.deleteYoutubeItem(url);
 window.playTikTok = () => EventHandlers.playTikTok();
 window.stopTikTok = () => EventHandlers.stopTikTok();
 window.saveTikTokAsSound = () => EventHandlers.saveTikTokAsSound();
-window.onTikTokVolumeChange = (v) => EventHandlers.onTikTokVolumeChange(v);
+window.onTikTokVolumeLive = (v) => EventHandlers.onTikTokVolumeLive(v);
+window.onTikTokVolumeSave = (v) => EventHandlers.onTikTokVolumeSave(v);
 window.showAddTikTokDialog = () => EventHandlers.showAddTikTokDialog();
 window.refreshTikTokItems = () => EventHandlers.refreshTikTokItems();
 window.playTikTokItem = (url) => EventHandlers.playTikTokItem(url);

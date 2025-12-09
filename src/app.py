@@ -92,7 +92,10 @@ def play_youtube_global(url: str):
     settings = hotkey_service.get_youtube_settings(url)
     all_settings = load_sound_settings()
     
-    vol = 50.0 if settings['scream'] else 1.0
+    vol = settings['volume'] / 100
+    if settings['scream']:
+        vol = min(vol * 50.0, 50.0)
+        
     pitch = 1.5 if settings['pitch'] else 1.0
     
     # Load trim settings
@@ -123,7 +126,10 @@ def play_tiktok_global(url: str):
     settings = hotkey_service.get_tiktok_settings(url)
     all_settings = load_sound_settings()
     
-    vol = 50.0 if settings['scream'] else 1.0
+    vol = settings['volume'] / 100
+    if settings['scream']:
+        vol = min(vol * 50.0, 50.0)
+
     pitch = 1.5 if settings['pitch'] else 1.0
     
     # Load trim settings

@@ -69,6 +69,14 @@ class AudioEngine:
     def set_trim(self, start: float, end: float):
         """Set trim times for sound playback"""
         self.sound_player.set_trim(start, end)
+
+    def pause_sound(self):
+        """Pause sound playback"""
+        self.sound_player.pause()
+        
+    def resume_sound(self):
+        """Resume sound playback"""
+        self.sound_player.resume()
     
     def _stop_all_internal(self):
         """Internal method to stop all audio without lock (called within locked context)"""
@@ -114,6 +122,10 @@ class AudioEngine:
     @property
     def _is_playing(self) -> bool:
         return self.sound_player.is_playing()
+
+    @property
+    def _is_paused(self) -> bool:
+        return self.sound_player.is_paused()
     
     @property
     def _current_playing_sound(self) -> str:

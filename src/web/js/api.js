@@ -79,6 +79,19 @@ const API = {
     },
 
     /**
+     * Sets sound playback volume (for live updates)
+     * @param {number} volume - Volume level (0.0 to 1.0) or higher for scream
+     * @returns {Promise<void>}
+     */
+    async setSoundVolume(volume) {
+        return this._handleApiCall(
+            () => eel.set_volume(volume)(),
+            undefined,
+            `setSoundVolume(${volume})`
+        );
+    },
+
+    /**
      * Stops all currently playing sounds
      * @returns {Promise<void>}
      */
@@ -87,6 +100,30 @@ const API = {
             () => eel.stop_all()(),
             undefined,
             'stopAll'
+        );
+    },
+
+    async pauseSound() {
+        return this._handleApiCall(
+            () => eel.pause_sound()(),
+            undefined,
+            'pauseSound'
+        );
+    },
+
+    async resumeSound() {
+        return this._handleApiCall(
+            () => eel.resume_sound()(),
+            undefined,
+            'resumeSound'
+        );
+    },
+
+    async isSoundPaused() {
+        return this._handleApiCall(
+            () => eel.is_sound_paused()(),
+            false,
+            'isSoundPaused'
         );
     },
 
@@ -215,11 +252,15 @@ const API = {
     /**
      * Plays a YouTube video by URL
      * @param {string} url - YouTube video URL
+     * @param {number} volume - Volume level (0.0 to 1.0)
+     * @param {number} pitch - Pitch multiplier (1.0 = normal)
+     * @param {number} startTime - Start time/trim in seconds
+     * @param {number} endTime - End time/trim in seconds
      * @returns {Promise<Object>} Result object with success status and title/error
      */
-    async playYoutube(url) {
+    async playYoutube(url, volume = 1.0, pitch = 1.0, startTime = 0, endTime = 0) {
         return this._handleApiCall(
-            () => eel.play_youtube(url)(),
+            () => eel.play_youtube(url, volume, pitch, startTime, endTime)(),
             { success: false, error: 'Failed to connect to backend' },
             `playYoutube(${url})`
         );
@@ -355,11 +396,15 @@ const API = {
     /**
      * Plays a TikTok video by URL
      * @param {string} url - TikTok video URL
+     * @param {number} volume - Volume level (0.0 to 1.0)
+     * @param {number} pitch - Pitch multiplier (1.0 = normal)
+     * @param {number} startTime - Start time/trim in seconds
+     * @param {number} endTime - End time/trim in seconds
      * @returns {Promise<Object>} Result object with success status and title/error
      */
-    async playTikTok(url) {
+    async playTikTok(url, volume = 1.0, pitch = 1.0, startTime = 0, endTime = 0) {
         return this._handleApiCall(
-            () => eel.play_tiktok(url)(),
+            () => eel.play_tiktok(url, volume, pitch, startTime, endTime)(),
             { success: false, error: 'Failed to connect to backend' },
             `playTikTok(${url})`
         );

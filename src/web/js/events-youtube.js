@@ -144,15 +144,25 @@ const YouTubeEvents = {
         this.isPlayProcessing = true;
 
         try {
-            // Check if resuming
             const info = await API.getYoutubeInfo();
+
+            // Check if resuming
             if (info.url === url && info.paused) {
                 await API.resumeYoutube();
                 this.refreshItems();
                 return;
             }
 
-            const result = await API.playYoutube(url);
+            // Get settings from state
+            let volume = AppState.getYoutubeVolume(url) / 100;
+            const isScream = AppState.isYoutubeScreamMode(url);
+            const isPitch = AppState.isYoutubePitchMode(url);
+            const trimSettings = AppState.getYoutubeTrimSettings(url);
+
+            if (isScream) volume = Math.min(volume * 50.0, 50.0);
+            const pitch = isPitch ? 1.5 : 1.0;
+
+            const result = await API.playYoutube(url, volume, pitch, trimSettings?.start || 0, trimSettings?.end || 0);
             if (result.success) {
                 this.refreshItems();
             }
@@ -206,17 +216,33 @@ const YouTubeEvents = {
     // ==================== Settings & Controls ====================
 
     /**
-     * Handles YouTube volume slider change
+     * Handles YouTube volume live update
      * @param {number} value - New volume value (0-100)
-     * @returns {Promise<void>}
      */
-    async onVolumeChange(value) {
+    async onVolumeLive(value) {
+        if (!AppState.selectedYoutubeItem) return;
+        const item = AppState.selectedYoutubeItem;
+
+        // Update state but DO NOT save to disk yet
+        AppState.setYoutubeVolume(item.url, value);
+
+        // Update live volume
         await API.setYoutubeVolume(parseInt(value) / 100);
+
         // Update volume display
         const volumeValue = document.getElementById('youtube-volume-value');
         if (volumeValue) {
             volumeValue.textContent = `${value}%`;
         }
+    },
+
+    /**
+     * Handles YouTube volume save (on release)
+     * @param {number} value - New volume value
+     */
+    async onVolumeSave(value) {
+        // Persist to disk
+        SoundEvents.saveSettings();
     },
 
     /**

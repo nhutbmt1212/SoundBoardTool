@@ -25,34 +25,12 @@ class YouTubeAPI:
         eel.expose(self.save_youtube_as_sound)
         eel.expose(self.get_youtube_duration)
     
-    def play_youtube(self, url: str):
-        """Play YouTube audio by URL"""
-        from core.config import load_sound_settings
-        
-        # Load pitch and scream mode settings
-        settings = load_sound_settings()
-        pitch_mode_map = settings.get('youtubePitchMode', {})
-        scream_mode_map = settings.get('youtubeScreamMode', {})
-        trim_settings = settings.get('youtubeTrimSettings', {})
-        
-        # Handle backward compatibility
-        if isinstance(pitch_mode_map, bool):
-            pitch_mode_map = {}
-        if isinstance(scream_mode_map, bool):
-            scream_mode_map = {}
-        
-        # Apply settings
-        pitch = 1.5 if pitch_mode_map.get(url, False) else 1.0
-        vol = 50.0 if scream_mode_map.get(url, False) else 1.0
-        
-        # Apply trim settings
-        trim = trim_settings.get(url, {})
-        trim_start = trim.get('start', 0)
-        trim_end = trim.get('end', 0)
+    def play_youtube(self, url: str, volume: float = 1.0, pitch: float = 1.0, start_time: float = 0, end_time: float = 0):
+        """Play YouTube audio by URL with specific settings"""
         
         self.audio.set_youtube_pitch(pitch)
-        self.audio.set_youtube_volume(vol)
-        self.audio.set_youtube_trim(trim_start, trim_end)
+        self.audio.set_youtube_volume(volume)
+        self.audio.set_youtube_trim(start_time, end_time)
         
         return self.audio.play_youtube(url)
     
