@@ -1,4 +1,7 @@
 """VB-Cable Device Manager - Detection and management"""
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     import sounddevice as sd
@@ -6,6 +9,10 @@ try:
 except ImportError:
     SD_AVAILABLE = False
     sd = None
+
+# Constants
+DEFAULT_SAMPLERATE = 48000  # Standard audio sample rate
+PREFERRED_CHANNELS = 2      # Stereo output
 
 
 class VBCableManager:
@@ -35,7 +42,7 @@ class VBCableManager:
             
             # Prefer device with exactly 2 channels (MME/DirectSound) - more stable
             for i, dev in vb_devices:
-                if dev['max_output_channels'] == 2:
+                if dev['max_output_channels'] == PREFERRED_CHANNELS:
                     self._set_device(i, dev)
                     return
             
@@ -44,7 +51,7 @@ class VBCableManager:
             self._set_device(i, dev)
             
         except Exception as e:
-            print(f"VB-Cable detection error: {e}")
+            logger.error(f"VB-Cable detection error: {e}")
     
     def _set_device(self, device_id: int, dev: dict):
         """Set the VB-Cable device"""
@@ -55,8 +62,9 @@ class VBCableManager:
         # Cache sample rate
         try:
             self.samplerate = int(dev['default_samplerate'])
-        except Exception:
-            self.samplerate = 48000
+        except Exception as e:
+            logger.debug(f"Failed to get sample rate: {e}, using default")
+            self.samplerate = DEFAULT_SAMPLERATE
     
     def is_connected(self) -> bool:
         """Check if VB-Cable is available"""
@@ -74,9 +82,9 @@ class VBCableManager:
     
     def get_samplerate(self) -> int:
         """Get VB-Cable sample rate"""
-        return self.samplerate or 48000
+        return self.samplerate or DEFAULT_SAMPLERATE
     
     def get_channels(self) -> int:
         """Get VB-Cable channel count"""
         info = self.get_device_info()
-        return min(2, info.get('max_output_channels', 2))
+        return min(PREFERRED_CHANNELS, info.get('max_output_channels', PREFERRED_CHANNELS))

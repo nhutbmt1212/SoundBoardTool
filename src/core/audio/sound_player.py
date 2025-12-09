@@ -272,23 +272,8 @@ class SoundPlayer:
         if audio is None:
             return
 
-        # Process audio (trim, volume) - no resampling for speaker usually needed unless pitch changed
-        # If pitch change is desired on speaker too, we could pass freq as target, but logic implies pitch only for VB?
-        # Looking at original code: Pitch was only applied in _play_vb logic. Speaker logic just played.
-        # However, new requirement implies we want consistency.
-        # But for now, let's keep consistency with previous behavior:
-        # Actually, previous implementation of _play_speaker DID NOT have pitch/resample logic.
-        # BUT, the user MIGHT expect pitch on speaker if they see a pitch slider.
-        # The prompt didn't strictly say Add Pitch to Speaker, but "Clean Code".
-        # Let's keep it safe: Resample only if pitch != 1.0, otherwise keep native freq.
-        
-        # NOTE: Original _play_vb logic had pitch support. Original _play_speaker (my manual addition) did NOT. 
-        # I will add pitch support to speaker playback as well for consistency.
-        
+        # Process audio with trim, volume, and pitch
         audio = self._process_audio(audio, freq, target_samplerate=freq) 
-        
-        # Wait... _process_audio uses target_samplerate logic for pitch too.
-        # If I pass target_samplerate=freq, and pitch != 1.0, it WILL resample. Use freq as target.
         
         self._stream_audio_to_device(audio, freq, None, tid)
 

@@ -32,6 +32,9 @@ class AudioEngine:
         self._last_play_time = 0
         self._playback_lock = threading.Lock()  # Mutex to prevent concurrent playback
     
+    # Constants
+    DEBOUNCE_SECONDS = 0.5  # Minimum time between playback commands
+    
     # === Sound Playback ===
     
     @property
@@ -89,7 +92,7 @@ class AudioEngine:
         with self._playback_lock:
             # Debounce check
             current_time = time.time()
-            if current_time - self._last_play_time < 0.5:
+            if current_time - self._last_play_time < self.DEBOUNCE_SECONDS:
                 return False
             
             self._last_play_time = current_time
@@ -169,35 +172,36 @@ class AudioEngine:
     
     # === YouTube ===
     
-    # === YouTube ===
-    
-    def play_youtube(self, url: str, progress_callback=None) -> dict:
-        """Play YouTube video - ensures exclusive playback"""
+    def _play_stream(self, stream_obj, url: str, progress_callback=None) -> dict:
+        """Generic stream playback with download and exclusive lock
+        
+        Args:
+            stream_obj: Stream object (youtube or tiktok)
+            url: Video URL
+            progress_callback: Optional progress callback
+            
+        Returns:
+            dict: {'success': bool, 'error': str (optional), 'title': str (optional)}
+        """
         # Step 1: Download/Cache OUTSIDE the lock to allow concurrency
-        # This prevents blocking other operations while downloading
-        filepath, title = self.youtube.download(url, progress_callback)
+        filepath, title = stream_obj.download(url, progress_callback)
         if not filepath:
             return {'success': False, 'error': 'Failed to download video'}
-            
+        
         # Step 2: Playback INSIDE the lock (exclusive access)
         with self._playback_lock:
-            # Debounce check
             current_time = time.time()
-            if current_time - self._last_play_time < 0.5:
-                # If we just played something else, we still proceed if it's the same URL request?
-                # Actually standard debounce might block rapid clicks. 
-                # But since we spent time downloading, we should probably allow it?
-                # Let's keep debounce for safety but reduce it or ignore if needed.
-                # For now keeping it safety.
-                pass
-            
             self._last_play_time = current_time
             
             # Stop everything else
             self._stop_all_internal()
             
-            # Play YouTube (now instant as it hits cache)
-            return self.youtube.play(url, None)
+            # Play stream (instant as it hits cache)
+            return stream_obj.play(url, None)
+    
+    def play_youtube(self, url: str, progress_callback=None) -> dict:
+        """Play YouTube video - ensures exclusive playback"""
+        return self._play_stream(self.youtube, url, progress_callback)
     
     def stop_youtube(self):
         self.youtube.stop()
@@ -227,21 +231,7 @@ class AudioEngine:
     
     def play_tiktok(self, url: str, progress_callback=None) -> dict:
         """Play TikTok video - ensures exclusive playback"""
-        # Step 1: Download/Cache OUTSIDE the lock
-        filepath, title = self.tiktok.download(url, progress_callback)
-        if not filepath:
-            return {'success': False, 'error': 'Failed to download video'}
-            
-        # Step 2: Playback INSIDE the lock
-        with self._playback_lock:
-            current_time = time.time()
-            self._last_play_time = current_time
-            
-            # Stop everything else
-            self._stop_all_internal()
-            
-            # Play TikTok
-            return self.tiktok.play(url, None)
+        return self._play_stream(self.tiktok, url, progress_callback)
     
     def stop_tiktok(self):
         self.tiktok.stop()
