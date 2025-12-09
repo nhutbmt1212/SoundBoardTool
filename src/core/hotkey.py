@@ -76,8 +76,8 @@ class HotkeyManager:
                     callback()
                 
                 self._hotkeys[keybind] = debounced_callback
-                # suppress=True prevents the key from being passed to other applications
-                keyboard.add_hotkey(kb_format, debounced_callback, suppress=True)
+                # suppress=False allows the key to be passed to other applications/OS
+                keyboard.add_hotkey(kb_format, debounced_callback, suppress=False)
                 self._registered[keybind] = kb_format
                 return True
             except Exception as e:
