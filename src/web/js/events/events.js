@@ -1,6 +1,10 @@
 // Event Handlers for Soundboard Pro - Main Orchestrator
 // This file delegates to specialized event modules
 
+// Constants
+const PLAYBACK_CHECK_INTERVAL_MS = 200; // Milliseconds between playback status checks
+const PLAYING_INDICATOR_ICON_SIZE = 32; // Size of play/pause indicator icons
+
 /**
  * Main event handlers object
  * Delegates to specialized modules: SoundEvents, YouTubeEvents, KeybindEvents, UIEvents
@@ -73,20 +77,127 @@ const EventHandlers = {
     toggleTikTokPitchMode: (url) => TikTokEvents.togglePitchMode(url),
     onTikTokNameChange: (value) => TikTokEvents.onNameChange(value),
 
+    // ==================== Helper Functions ====================
+
+    /**
+     * Updates playing indicator for a card
+     * @private
+     */
+    _updateCardPlayingIndicator(card, thumbSelector, isPaused) {
+        const thumb = card.querySelector(thumbSelector);
+        if (!thumb) return;
+
+        let indicator = thumb.querySelector('.playing-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.className = 'playing-indicator';
+            thumb.appendChild(indicator);
+        }
+
+        const iconName = isPaused ? 'pauseCircle' : 'playCircle';
+        const newIcon = IconManager.get(iconName, { size: PLAYING_INDICATOR_ICON_SIZE });
+        if (indicator.innerHTML !== newIcon) {
+            indicator.innerHTML = newIcon;
+        }
+    },
+
+    /**
+     * Updates card playing state (playing/paused classes and indicator)
+     * @private
+     */
+    _updateCardPlayingState(card, isPlaying, isPaused, thumbSelector) {
+        if (isPlaying) {
+            if (!card.classList.contains('playing')) card.classList.add('playing');
+            if (isPaused) {
+                if (!card.classList.contains('paused')) card.classList.add('paused');
+            } else {
+                card.classList.remove('paused');
+            }
+            this._updateCardPlayingIndicator(card, thumbSelector, isPaused);
+        } else {
+            card.classList.remove('playing', 'paused');
+            const indicator = card.querySelector('.playing-indicator');
+            if (indicator) indicator.remove();
+        }
+    },
+
+    /**
+     * Clears all playing indicators from cards
+     * @private
+     */
+    _clearAllCardIndicators(itemSelector) {
+        document.querySelectorAll(itemSelector).forEach(card => {
+            card.classList.remove('playing', 'paused');
+            const indicator = card.querySelector('.playing-indicator');
+            if (indicator) indicator.remove();
+        });
+    },
+
+    /**
+     * Updates stream playback UI (YouTube or TikTok)
+     * @private
+     */
+    async _updateStreamPlayback(type, getInfoFn, updateUIFn) {
+        try {
+            const info = await getInfoFn();
+            console.log(`[${type.toUpperCase()}] Info:`, JSON.stringify(info));
+
+            const itemSelector = `.${type}-item`;
+            const thumbSelector = type === 'youtube' ? '.youtube-thumbnail' : '.sound-thumbnail';
+
+            if (info.playing) {
+                console.log(`[${type.toUpperCase()}] Calling updateUIFn(true, '${info.title}', ${info.paused})`);
+                updateUIFn(true, info.title, info.paused);
+
+                // Update grid indicators
+                document.querySelectorAll(itemSelector).forEach(card => {
+                    const cardUrl = card.getAttribute('data-url') || card.dataset.url;
+                    const isPlaying = cardUrl === info.url;
+                    this._updateCardPlayingState(card, isPlaying, info.paused, thumbSelector);
+                });
+            } else {
+                updateUIFn(false);
+                this._clearAllCardIndicators(itemSelector);
+            }
+        } catch (e) {
+            console.error(`[${type.toUpperCase()}] Error:`, e);
+        }
+    },
+
+    /**
+     * Toggles stream playback (pause/resume)
+     * @private
+     */
+    async _toggleStreamPlayback(getInfoFn, pauseFn, resumeFn, refreshFn) {
+        const info = await getInfoFn();
+        if (info.playing || info.paused) {
+            if (info.paused) {
+                await resumeFn();
+            } else {
+                await pauseFn();
+            }
+            refreshFn();
+        }
+    },
+
     // ==================== Combined Playback Monitoring ====================
 
     /**
-     * Starts periodic playback state checking for both sounds and YouTube
-     * This is kept in main file as it monitors both sound and YouTube modules
+     * Starts periodic playback state checking for sounds, YouTube, and TikTok
      */
     startPlayingCheck() {
         if (AppState.playingCheckInterval) {
             clearInterval(AppState.playingCheckInterval);
         }
 
+        console.log('🚀 Starting playback check interval...');
+
         AppState.playingCheckInterval = setInterval(async () => {
+            console.log('⏰ Playback check tick...');
+
             // Skip update completely if force stopped
             if (AppState.forceStopped) {
+                console.log('⏭️ Skipped (force stopped)');
                 return;
             }
 
@@ -103,118 +214,17 @@ const EventHandlers = {
                 }
             }
 
+            console.log('🎬 Checking YouTube playback...');
             // Check YouTube playback
-            try {
-                const ytInfo = await API.getYoutubeInfo();
+            await EventHandlers._updateStreamPlayback('youtube', API.getYoutubeInfo.bind(API), UI.updateYoutubeUI.bind(UI));
 
-                if (ytInfo.playing) {
-                    UI.updateYoutubeUI(true, ytInfo.title, ytInfo.paused);
-
-                    // Update YouTube grid indicators
-                    document.querySelectorAll('.youtube-item').forEach(card => {
-                        const cardUrl = card.getAttribute('data-url') || card.dataset.url;
-                        const isCardUrl = cardUrl === ytInfo.url;
-                        const isPaused = ytInfo.paused;
-
-                        if (isCardUrl) {
-                            if (!card.classList.contains('playing')) card.classList.add('playing');
-                            if (isPaused) {
-                                if (!card.classList.contains('paused')) card.classList.add('paused');
-                            } else {
-                                card.classList.remove('paused');
-                            }
-
-                            // Update indicator
-                            const thumb = card.querySelector('.youtube-thumbnail');
-                            if (thumb) {
-                                let indicator = thumb.querySelector('.playing-indicator');
-                                if (!indicator) {
-                                    indicator = document.createElement('div');
-                                    indicator.className = 'playing-indicator';
-                                    thumb.appendChild(indicator);
-                                }
-                                const newIcon = isPaused ? IconManager.get('pauseCircle', { size: 32 }) : IconManager.get('playCircle', { size: 32 });
-                                if (indicator.innerHTML !== newIcon) {
-                                    indicator.innerHTML = newIcon;
-                                }
-                            }
-                        } else {
-                            if (card.classList.contains('playing')) card.classList.remove('playing');
-                            if (card.classList.contains('paused')) card.classList.remove('paused');
-                            const indicator = card.querySelector('.playing-indicator');
-                            if (indicator) indicator.remove();
-                        }
-                    });
-                } else {
-                    UI.updateYoutubeUI(false);
-                    // Clear grid indicators
-                    document.querySelectorAll('.youtube-item').forEach(card => {
-                        card.classList.remove('playing', 'paused');
-                        const indicator = card.querySelector('.playing-indicator');
-                        if (indicator) indicator.remove();
-                    });
-                }
-            } catch (e) {
-                // Ignore errors
-            }
-
+            console.log('🎵 Checking TikTok playback...');
             // Check TikTok playback
-            try {
-                const ttInfo = await API.getTikTokInfo();
+            await EventHandlers._updateStreamPlayback('tiktok', API.getTikTokInfo.bind(API), UI.updateTikTokUI.bind(UI));
 
-                if (ttInfo.playing) {
-                    UI.updateTikTokUI(true, ttInfo.title, ttInfo.paused);
-
-                    // Update TikTok grid indicators
-                    document.querySelectorAll('.tiktok-item').forEach(card => {
-                        const cardUrl = card.getAttribute('data-url') || card.dataset.url;
-                        const isCardUrl = cardUrl === ttInfo.url;
-                        const isPaused = ttInfo.paused;
-
-                        if (isCardUrl) {
-                            if (!card.classList.contains('playing')) card.classList.add('playing');
-                            if (isPaused) {
-                                if (!card.classList.contains('paused')) card.classList.add('paused');
-                            } else {
-                                card.classList.remove('paused');
-                            }
-
-                            // Update indicator
-                            const thumb = card.querySelector('.sound-thumbnail');
-                            if (thumb) {
-                                let indicator = thumb.querySelector('.playing-indicator');
-                                if (!indicator) {
-                                    indicator = document.createElement('div');
-                                    indicator.className = 'playing-indicator';
-                                    thumb.appendChild(indicator);
-                                }
-                                const newIcon = isPaused ? IconManager.get('pauseCircle', { size: 32 }) : IconManager.get('playCircle', { size: 32 });
-                                if (indicator.innerHTML !== newIcon) {
-                                    indicator.innerHTML = newIcon;
-                                }
-                            }
-                        } else {
-                            if (card.classList.contains('playing')) card.classList.remove('playing');
-                            if (card.classList.contains('paused')) card.classList.remove('paused');
-                            const indicator = card.querySelector('.playing-indicator');
-                            if (indicator) indicator.remove();
-                        }
-                    });
-                } else {
-                    UI.updateTikTokUI(false);
-                    // Clear grid indicators
-                    document.querySelectorAll('.tiktok-item').forEach(card => {
-                        card.classList.remove('playing', 'paused');
-                        const indicator = card.querySelector('.playing-indicator');
-                        if (indicator) indicator.remove();
-                    });
-                }
-            } catch (e) {
-                // Ignore errors
-            }
-
-        }, 200);
+        }, PLAYBACK_CHECK_INTERVAL_MS);
     },
+
     // ==================== Now Playing Bar Click ====================
     async onNowPlayingClick() {
         const type = UI.currentPlayingType;
@@ -224,13 +234,11 @@ const EventHandlers = {
         if (type === 'sound') {
             const playingSound = AppState.currentPlayingSound;
             if (playingSound) {
-                // Select and show sound panel
                 AppState.selectedSound = playingSound;
                 UI.selectSoundCard(playingSound);
                 UI.showSoundPanel(playingSound);
             }
         } else if (type === 'youtube') {
-            // Find the YouTube item that's currently playing
             const ytInfo = await API.getYoutubeInfo();
             if (ytInfo.url) {
                 const items = await API.getYoutubeItems();
@@ -240,7 +248,6 @@ const EventHandlers = {
                 }
             }
         } else if (type === 'tiktok') {
-            // Find the TikTok item that's currently playing
             const ttInfo = await API.getTikTokInfo();
             if (ttInfo.url) {
                 const items = await API.getTikTokItems();
@@ -265,26 +272,19 @@ const EventHandlers = {
                 await API.pauseSound();
             }
         } else if (type === 'youtube') {
-            const info = await API.getYoutubeInfo();
-            if (info.playing || info.paused) {
-                if (info.paused) {
-                    await API.resumeYoutube();
-                } else {
-                    await API.pauseYoutube();
-                }
-                // Check immediately
-                this.refreshYoutubeItems();
-            }
+            await this._toggleStreamPlayback(
+                API.getYoutubeInfo.bind(API),
+                API.pauseYoutube.bind(API),
+                API.resumeYoutube.bind(API),
+                this.refreshYoutubeItems
+            );
         } else if (type === 'tiktok') {
-            const info = await API.getTikTokInfo();
-            if (info.playing || info.paused) {
-                if (info.paused) {
-                    await API.resumeTikTok();
-                } else {
-                    await API.pauseTikTok();
-                }
-                this.refreshTikTokItems();
-            }
+            await this._toggleStreamPlayback(
+                API.getTikTokInfo.bind(API),
+                API.pauseTikTok.bind(API),
+                API.resumeTikTok.bind(API),
+                this.refreshTikTokItems
+            );
         }
     }
 };
@@ -306,7 +306,6 @@ window.stopYoutube = () => EventHandlers.stopYoutube();
 window.saveYoutubeAsSound = () => EventHandlers.saveYoutubeAsSound();
 window.onYoutubeVolumeLive = (v) => EventHandlers.onYoutubeVolumeLive(v);
 window.onYoutubeVolumeSave = (v) => EventHandlers.onYoutubeVolumeSave(v);
-window.saveYoutubeAsSound = (url) => EventHandlers.saveYoutubeAsSound(url);
 window.showAddYoutubeDialog = () => EventHandlers.showAddYoutubeDialog();
 window.refreshYoutubeItems = () => EventHandlers.refreshYoutubeItems();
 window.playYoutubeItem = (url) => EventHandlers.playYoutubeItem(url);
@@ -322,8 +321,6 @@ window.refreshTikTokItems = () => EventHandlers.refreshTikTokItems();
 window.playTikTokItem = (url) => EventHandlers.playTikTokItem(url);
 window.pauseTikTokItem = (url) => EventHandlers.pauseTikTokItem(url);
 window.deleteTikTokItem = (url) => EventHandlers.deleteTikTokItem(url);
-
-
 
 // ==================== Tab Switching ====================
 

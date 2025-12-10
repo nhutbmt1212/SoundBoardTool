@@ -40,6 +40,8 @@ class SoundAPI:
         return self.audio.play(name)
     
     def stop_all(self):
+        """Stop all audio playback"""
+        self.audio.stop()
         return True
     
     def pause_sound(self):
