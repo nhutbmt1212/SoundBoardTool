@@ -46,6 +46,139 @@ const KeybindEvents = {
     },
 
     /**
+     * Checks if a keybind is already in use
+     * @param {string} keybind - The keybind string to check
+     * @param {string} currentType - Type of current item ('sound', 'youtube', 'tiktok', 'stop')
+     * @param {string} currentId - ID of current item (name or url)
+     * @returns {Object|null} Duplicate info or null
+     */
+    checkDuplicate(keybind, currentType, currentId) {
+        if (!keybind) return null;
+
+        // Check Stop All
+        if (AppState.stopAllKeybind === keybind && (currentType !== 'stop' || currentId !== 'stop')) {
+            return { type: 'Action', name: 'Stop All' };
+        }
+
+        // Check Sounds
+        for (const [name, bind] of Object.entries(AppState.soundKeybinds)) {
+            if (bind === keybind && (currentType !== 'sound' || currentId !== name)) {
+                return { type: 'Sound', name: AppState.getDisplayName(name) };
+            }
+        }
+
+        // Check YouTube
+        for (const [url, bind] of Object.entries(AppState.youtubeKeybinds)) {
+            if (bind === keybind && (currentType !== 'youtube' || currentId !== url)) {
+                return { type: 'YouTube', name: AppState.getYoutubeDisplayName(url, 'YouTube Item') };
+            }
+        }
+
+        // Check TikTok
+        for (const [url, bind] of Object.entries(AppState.tiktokKeybinds)) {
+            if (bind === keybind && (currentType !== 'tiktok' || currentId !== url)) {
+                return { type: 'TikTok', name: AppState.getTikTokDisplayName(url, 'TikTok Item') };
+            }
+        }
+
+        return null;
+    },
+
+    /**
+     * Saves the stop keybind
+     * @param {string} keybind 
+     */
+    saveStopKeybind(keybind) {
+        AppState.stopAllKeybind = keybind;
+        SoundEvents.saveSettings();
+
+        const el = document.getElementById('stop-keybind');
+        if (el) el.classList.remove('recording');
+        UI.updateStopKeybindUI();
+
+        AppState.isRecordingStopKeybind = false;
+    },
+
+    /**
+     * Saves a sound keybind
+     * @param {string} name 
+     * @param {string} keybind 
+     */
+    saveSoundKeybind(name, keybind) {
+        AppState.setKeybind(name, keybind);
+        SoundEvents.saveSettings();
+
+        const input = document.getElementById('keybind-input');
+        if (input) {
+            input.value = keybind;
+            input.classList.remove('recording');
+        }
+
+        SoundEvents.refreshSounds().then(() => SoundEvents.selectSound(name));
+        AppState.isRecordingKeybind = false;
+    },
+
+    /**
+     * Global keyboard event handler
+     * Handles keybind recording and keybind triggers
+     * @param {KeyboardEvent} e - Keyboard event
+     */
+    /**
+     * Removes keybind from a specific item
+     * @param {string} type - 'sound', 'youtube', 'tiktok', 'stop'
+     * @param {string} id - Name or URL
+     */
+    removeKeybind(type, id) {
+        if (type === 'stop') {
+            this.saveStopKeybind('');
+        } else if (type === 'sound') {
+            AppState.setKeybind(id, '');
+            // Refresh UI if the removed one is not the currently selected one?
+            // Actually saveSoundKeybind refreshes sounds.
+            // But we might be recording for Sound A, and removing from Sound B.
+            // We need to save settings.
+            SoundEvents.saveSettings();
+            // If the sound panel for Sound B is open (unlikely if we are recording A), we'd need to update it.
+            // If Sound B is in the grid, we need to update the grid.
+            SoundEvents.refreshSounds();
+        } else if (type === 'youtube') {
+            AppState.setYoutubeKeybind(id, '');
+            SoundEvents.saveSettings();
+            YouTubeEvents.refreshItems();
+        } else if (type === 'tiktok') {
+            AppState.setTikTokKeybind(id, '');
+            SoundEvents.saveSettings();
+            TikTokEvents.refreshItems();
+        }
+    },
+
+    /**
+     * Removes keybind based on input ID (from UI click)
+     * @param {string} inputId 
+     */
+    removeCurrentKeybind(inputId) {
+        if (inputId === 'keybind-input') {
+            // Sound
+            if (AppState.selectedSound) {
+                this.saveSoundKeybind(AppState.selectedSound, '');
+            }
+        } else if (inputId === 'yt-keybind-input') {
+            // YouTube
+            if (AppState.selectedYoutubeItem) {
+                YouTubeEvents.saveKeybind(AppState.selectedYoutubeItem.url, '');
+            }
+        } else if (inputId === 'tt-keybind-input') {
+            // TikTok
+            if (AppState.selectedTikTokItem) {
+                TikTokEvents.saveKeybind(AppState.selectedTikTokItem.url, '');
+            }
+        } else if (inputId === 'stop-keybind') { // Although this is usually a div, checking just in case
+            this.saveStopKeybind('');
+        }
+    },
+
+
+    /**
      * Global keyboard event handler
      * Handles keybind recording and keybind triggers
      * @param {KeyboardEvent} e - Keyboard event
@@ -56,14 +189,42 @@ const KeybindEvents = {
             e.preventDefault();
             if (Utils.isModifierKey(e.code)) return;
 
-            AppState.stopAllKeybind = Utils.buildKeybindString(e);
-            SoundEvents.saveSettings();
+            const keybind = Utils.buildKeybindString(e);
 
-            const el = document.getElementById('stop-keybind');
-            if (el) el.classList.remove('recording');
-            UI.updateStopKeybindUI();
+            if (keybind === 'Escape') {
+                this.saveStopKeybind('');
+                return;
+            }
 
-            AppState.isRecordingStopKeybind = false;
+            const duplicate = this.checkDuplicate(keybind, 'stop', 'stop');
+            if (duplicate) {
+                UI.showModal({
+                    title: 'Duplicate Keybind',
+                    body: `Keybind <b>${keybind}</b> is already used by <b>${duplicate.type}: ${duplicate.name}</b>.<br>Do you want to transfer it to <b>Stop All</b>?`,
+                    confirmText: 'Transfer',
+                    onConfirm: () => {
+                        // Remove from old owner
+                        // We need the ID of the duplicate.
+                        // Wait, checkDuplicate returns { type, name }. It doesn't return the ID/URL needed for removal.
+                        // We need to fix checkDuplicate to return the ID.
+                        // Assuming checkDuplicate is updated to return ID.
+
+                        // For now let's implement the logic assuming we can find it.
+                        // Re-find to get ID? Or update checkDuplicate first.
+                        // Using a helper to find ID again is safe.
+                        this._transferKeybind(keybind, 'stop', 'stop');
+                    },
+                    onCancel: () => {
+                        AppState.isRecordingStopKeybind = false;
+                        UI.updateStopKeybindUI();
+                        const el = document.getElementById('stop-keybind');
+                        if (el) el.classList.remove('recording');
+                    }
+                });
+                return;
+            }
+
+            this.saveStopKeybind(keybind);
             return;
         }
 
@@ -73,17 +234,34 @@ const KeybindEvents = {
             if (Utils.isModifierKey(e.code)) return;
 
             const keybind = Utils.buildKeybindString(e);
-            AppState.setKeybind(AppState.selectedSound, keybind);
-            SoundEvents.saveSettings();
 
-            const input = document.getElementById('keybind-input');
-            if (input) {
-                input.value = keybind;
-                input.classList.remove('recording');
+            if (keybind === 'Escape') {
+                this.saveSoundKeybind(AppState.selectedSound, '');
+                return;
             }
 
-            SoundEvents.refreshSounds().then(() => SoundEvents.selectSound(AppState.selectedSound));
-            AppState.isRecordingKeybind = false;
+            const duplicate = this.checkDuplicate(keybind, 'sound', AppState.selectedSound);
+            if (duplicate) {
+                UI.showModal({
+                    title: 'Duplicate Keybind',
+                    body: `Keybind <b>${keybind}</b> is already used by <b>${duplicate.type}: ${duplicate.name}</b>.<br>Do you want to transfer it to <b>${AppState.getDisplayName(AppState.selectedSound)}</b>?`,
+                    confirmText: 'Transfer',
+                    onConfirm: () => {
+                        this._transferKeybind(keybind, 'sound', AppState.selectedSound);
+                    },
+                    onCancel: () => {
+                        AppState.isRecordingKeybind = false;
+                        const input = document.getElementById('keybind-input');
+                        if (input) {
+                            input.classList.remove('recording');
+                            input.value = AppState.getKeybind(AppState.selectedSound);
+                        }
+                    }
+                });
+                return;
+            }
+
+            this.saveSoundKeybind(AppState.selectedSound, keybind);
             return;
         }
 
@@ -96,6 +274,56 @@ const KeybindEvents = {
 
         // Check sound keybinds
         this._matchSoundKeybinds(e);
+    },
+
+    /**
+     * Helper to transfer keybind from old owner to new owner
+     * @private
+     */
+    _transferKeybind(keybind, newType, newId) {
+        // Find who has it
+        // We need to iterate again to find the ID to remove.
+        // STOP ALL
+        if (AppState.stopAllKeybind === keybind) {
+            this.saveStopKeybind('');
+        }
+
+        // SOUNDS
+        for (const [name, bind] of Object.entries(AppState.soundKeybinds)) {
+            if (bind === keybind) {
+                AppState.setKeybind(name, '');
+            }
+        }
+
+        // YOUTUBE
+        for (const [url, bind] of Object.entries(AppState.youtubeKeybinds)) {
+            if (bind === keybind) {
+                AppState.setYoutubeKeybind(url, '');
+            }
+        }
+
+        // TIKTOK
+        for (const [url, bind] of Object.entries(AppState.tiktokKeybinds)) {
+            if (bind === keybind) {
+                AppState.setTikTokKeybind(url, '');
+            }
+        }
+
+        // Now save to new owner
+        if (newType === 'stop') {
+            this.saveStopKeybind(keybind);
+        } else if (newType === 'sound') {
+            this.saveSoundKeybind(newId, keybind);
+        } else if (newType === 'youtube') {
+            YouTubeEvents.saveKeybind(newId, keybind);
+        } else if (newType === 'tiktok') {
+            TikTokEvents.saveKeybind(newId, keybind);
+        }
+
+        // Force refresh all grids/UIs since we might have touched anything
+        SoundEvents.refreshSounds();
+        YouTubeEvents.refreshItems();
+        TikTokEvents.refreshItems();
     },
 
     /**

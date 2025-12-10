@@ -318,7 +318,7 @@ const TikTokEvents = {
         const checkbox = document.getElementById('tt-loop-checkbox');
         const isLoop = checkbox.checked;
 
-        console.log(`[LOOP_DEBUG] TikTokEvents.toggleLoop: Toggling loop to ${isLoop} for ${url}`);
+
 
         AppState.setTikTokLoop(url, isLoop);
         SoundEvents.saveSettings();
@@ -355,13 +355,34 @@ const TikTokEvents = {
             let key = e.key;
             if (key === 'Escape') {
                 this.saveKeybind(item.url, '');
+                document.removeEventListener('keydown', handler);
+                input.classList.remove('recording');
             } else {
                 const keybind = Utils.buildKeybindString(e);
-                this.saveKeybind(item.url, keybind);
-            }
 
-            document.removeEventListener('keydown', handler);
-            input.classList.remove('recording');
+                const duplicate = KeybindEvents.checkDuplicate(keybind, 'tiktok', item.url);
+                if (duplicate) {
+                    UI.showModal({
+                        title: 'Duplicate Keybind',
+                        body: `Keybind <b>${keybind}</b> is already used by <b>${duplicate.type}: ${duplicate.name}</b>.<br>Do you want to transfer it to this item?`,
+                        confirmText: 'Transfer',
+                        onConfirm: () => {
+                            KeybindEvents._transferKeybind(keybind, 'tiktok', item.url);
+                        },
+                        onCancel: () => {
+                            input.classList.remove('recording');
+                            input.value = AppState.getTikTokKeybind(item.url);
+                        }
+                    });
+                    document.removeEventListener('keydown', handler);
+                    input.classList.remove('recording');
+                    return;
+                }
+
+                this.saveKeybind(item.url, keybind);
+                document.removeEventListener('keydown', handler);
+                input.classList.remove('recording');
+            }
         };
 
         document.addEventListener('keydown', handler);

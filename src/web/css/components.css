@@ -194,6 +194,27 @@ button {
     border-color: var(--border-light);
 }
 
+/* Icon Only Button */
+.btn-icon {
+    width: 40px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-light);
+    color: var(--text-muted);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.btn-icon:hover {
+    background: rgba(255, 71, 87, 0.1);
+    border-color: var(--danger);
+    color: var(--danger);
+    box-shadow: 0 0 10px rgba(255, 71, 87, 0.2);
+}
+
 /* Stop All Button */
 .btn-stop-all {
     background: #FF4757;
