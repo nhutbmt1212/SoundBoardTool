@@ -22,7 +22,8 @@ const YouTubeEvents = {
 
         UI.setYoutubeLoading();
 
-        const result = await API.playYoutube(url);
+        const isLoop = AppState.isYoutubeLoop(url);
+        const result = await API.playYoutube(url, 1.0, 1.0, 0, 0, isLoop);
 
         if (result.success) {
             UI.updateYoutubeUI(true, result.title);
@@ -144,6 +145,7 @@ const YouTubeEvents = {
         this.isPlayProcessing = true;
 
         try {
+            console.log(`[DEBUG] YouTubeEvents.playItem: ${url}, Loop: ${AppState.isYoutubeLoop(url)}`);
             const info = await API.getYoutubeInfo();
 
             // Check if resuming
@@ -158,11 +160,12 @@ const YouTubeEvents = {
             const isScream = AppState.isYoutubeScreamMode(url);
             const isPitch = AppState.isYoutubePitchMode(url);
             const trimSettings = AppState.getYoutubeTrimSettings(url);
+            const isLoop = AppState.isYoutubeLoop(url);
 
             if (isScream) volume = Math.min(volume * 50.0, 50.0);
             const pitch = isPitch ? 1.5 : 1.0;
 
-            const result = await API.playYoutube(url, volume, pitch, trimSettings?.start || 0, trimSettings?.end || 0);
+            const result = await API.playYoutube(url, volume, pitch, trimSettings?.start || 0, trimSettings?.end || 0, isLoop);
             if (result.success) {
                 this.refreshItems();
             }
@@ -300,6 +303,29 @@ const YouTubeEvents = {
         // Update label
         const label = checkbox.parentElement.querySelector('.pitch-label');
         if (label) label.textContent = isPitch ? 'ON - HIGH PITCH!' : 'OFF';
+    },
+
+    /**
+     * Toggles loop mode for a YouTube item
+     * @param {string} url - YouTube video URL
+     */
+    async toggleLoop(url) {
+        if (!url) {
+            if (AppState.selectedYoutubeItem) url = AppState.selectedYoutubeItem.url;
+            else return;
+        }
+
+        const checkbox = document.getElementById('yt-loop-checkbox');
+        const isLoop = checkbox.checked;
+
+        AppState.setYoutubeLoop(url, isLoop);
+        SoundEvents.saveSettings();
+
+        await API.setYoutubeLoop(isLoop);
+
+        // Update label
+        const label = checkbox.parentElement.querySelector('.pitch-label');
+        if (label) label.textContent = isLoop ? 'ON - INFINITY!' : 'OFF';
     },
 
     // ==================== Keybind Management ====================

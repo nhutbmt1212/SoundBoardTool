@@ -11,6 +11,7 @@ const Icons = {
     // Actions
     add: 'fa-solid fa-plus',
     refresh: 'fa-solid fa-rotate',
+    loop: 'fa-solid fa-repeat',
     trash: 'fa-solid fa-trash',
 
     // Audio

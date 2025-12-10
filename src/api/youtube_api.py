@@ -25,6 +25,8 @@ class YouTubeAPI(BaseStreamAPI):
         eel.expose(self.get_youtube_duration)
         eel.expose(self.set_youtube_effects)
         eel.expose(self.get_youtube_effects)
+        eel.expose(self.set_youtube_loop)
+        eel.expose(self.get_youtube_loop)
     
     def _get_stream_object(self):
         """Get YouTube stream object from audio engine"""
@@ -37,9 +39,12 @@ class YouTubeAPI(BaseStreamAPI):
     # Public API methods - delegate to base class
     
     def play_youtube(self, url: str, volume: float = 1.0, pitch: float = 1.0, 
-                     start_time: float = 0, end_time: float = 0):
+                     start_time: float = 0, end_time: float = 0, loop: bool = False):
         """Play YouTube audio by URL with specific settings"""
-        return self._play(url, volume, pitch, start_time, end_time)
+        print(f"[DEBUG_PYTHON] YouTubeAPI.play_youtube called | URL={url} | Loop={loop}", flush=True)
+        from core.logging.debug_logger import log_loop_action
+        log_loop_action("YouTubeAPI.play_youtube", f"URL={url} | Loop={loop}")
+        return self._play(url, volume, pitch, start_time, end_time, loop)
     
     def stop_youtube(self):
         """Stop YouTube streaming"""
@@ -93,3 +98,13 @@ class YouTubeAPI(BaseStreamAPI):
     def get_youtube_effects(self):
         """Get current YouTube effects"""
         return self.audio.get_youtube_effects()
+
+    def set_youtube_loop(self, enabled: bool):
+        """Enable/disable loop for YouTube playback"""
+        from core.logging.debug_logger import log_loop_action
+        log_loop_action("YouTubeAPI.set_youtube_loop", f"Enabled={enabled}")
+        return self._set_loop(enabled)
+
+    def get_youtube_loop(self):
+        """Get YouTube loop state"""
+        return self._get_loop()

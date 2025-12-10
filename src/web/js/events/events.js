@@ -23,6 +23,7 @@ const EventHandlers = {
     onSoundNameChange: (value) => SoundEvents.onNameChange(value),
     toggleScreamMode: () => SoundEvents.toggleScreamMode(),
     togglePitchMode: () => SoundEvents.togglePitchMode(),
+    toggleLoop: () => SoundEvents.toggleLoop(),
     onTrimChange: () => SoundEvents.onTrimChange(),
 
     // ==================== Keybind Handlers (delegated to KeybindEvents) ====================
@@ -55,6 +56,7 @@ const EventHandlers = {
     saveYoutubeKeybind: (url, keybind) => YouTubeEvents.saveKeybind(url, keybind),
     toggleYoutubeScreamMode: (url) => YouTubeEvents.toggleScreamMode(url),
     toggleYoutubePitchMode: (url) => YouTubeEvents.togglePitchMode(url),
+    toggleYoutubeLoop: (url) => YouTubeEvents.toggleLoop(url),
     onYoutubeNameChange: (value) => YouTubeEvents.onNameChange(value),
 
     // ==================== TikTok Handlers (delegated to TikTokEvents) ====================
@@ -75,6 +77,7 @@ const EventHandlers = {
     saveTikTokKeybind: (url, keybind) => TikTokEvents.saveKeybind(url, keybind),
     toggleTikTokScreamMode: (url) => TikTokEvents.toggleScreamMode(url),
     toggleTikTokPitchMode: (url) => TikTokEvents.togglePitchMode(url),
+    toggleTikTokLoop: (url) => TikTokEvents.toggleLoop(url),
     onTikTokNameChange: (value) => TikTokEvents.onNameChange(value),
 
     // ==================== Helper Functions ====================

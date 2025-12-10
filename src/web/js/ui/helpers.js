@@ -135,6 +135,28 @@ const UIHelpers = {
     },
 
     /**
+     * Build loop infinity toggle
+     * @param {Object} config - {checkboxId, isActive, onChangeHandler, url (optional)}
+     */
+    buildLoopToggle(config) {
+        const onChangeAttr = config.url
+            ? `onchange="${config.onChangeHandler}('${Utils.escapeAttr(config.url)}')"`
+            : `onchange="${config.onChangeHandler}()"`;
+
+        return `
+            <div class="panel-section">
+                <div class="panel-section-title">${IconManager.get('loop', { size: 16 })} Loop Infinity</div>
+                <label class="loop-toggle">
+                    <input type="checkbox" id="${config.checkboxId}" ${config.isActive ? 'checked' : ''} ${onChangeAttr}>
+                    <span class="loop-slider"></span>
+                    <span class="loop-label">${config.isActive ? 'ON - INFINITY!' : 'OFF'}</span>
+                </label>
+                <div class="loop-hint">Repeat playback indefinitely</div>
+            </div>
+        `;
+    },
+
+    /**
      * Build empty state placeholder
      * @param {Object} config - {iconName, title, message}
      */

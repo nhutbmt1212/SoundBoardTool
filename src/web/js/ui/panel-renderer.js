@@ -54,6 +54,12 @@ const PanelRenderer = {
             isActive: isPitch,
             onChangeHandler: 'EventHandlers.togglePitchMode'
         })}
+
+            ${UIHelpers.buildLoopToggle({
+            checkboxId: 'loop-checkbox',
+            isActive: AppState.isSoundLoop(name),
+            onChangeHandler: 'EventHandlers.toggleLoop'
+        })}
             
             ${EffectsHelpers.renderEffectsSection(AppState.getSoundEffects(name))}
             
@@ -124,6 +130,13 @@ const PanelRenderer = {
             checkboxId: 'yt-pitch-checkbox',
             isActive: AppState.isYoutubePitchMode(item.url),
             onChangeHandler: 'EventHandlers.toggleYoutubePitchMode',
+            url: item.url
+        })}
+
+            ${UIHelpers.buildLoopToggle({
+            checkboxId: 'yt-loop-checkbox',
+            isActive: AppState.isYoutubeLoop(item.url),
+            onChangeHandler: 'EventHandlers.toggleYoutubeLoop',
             url: item.url
         })}
             
@@ -204,6 +217,13 @@ const PanelRenderer = {
             checkboxId: 'tt-pitch-checkbox',
             isActive: AppState.isTikTokPitchMode(item.url),
             onChangeHandler: 'TikTokEvents.togglePitchMode',
+            url: item.url
+        })}
+
+            ${UIHelpers.buildLoopToggle({
+            checkboxId: 'tt-loop-checkbox',
+            isActive: AppState.isTikTokLoop(item.url),
+            onChangeHandler: 'TikTokEvents.toggleLoop',
             url: item.url
         })}
             

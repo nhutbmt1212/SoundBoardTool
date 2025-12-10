@@ -81,6 +81,14 @@ class AudioEngine:
         """Resume sound playback"""
         self.sound_player.resume()
     
+    def set_sound_loop(self, enabled: bool):
+        """Enable/disable loop for sound playback"""
+        self.sound_player.set_loop(enabled)
+    
+    def get_sound_loop(self) -> bool:
+        """Get sound loop state"""
+        return self.sound_player.get_loop()
+    
     def _stop_all_internal(self):
         """Internal method to stop all audio without lock (called within locked context)"""
         self.sound_player.stop()
@@ -172,13 +180,16 @@ class AudioEngine:
     
     # === YouTube ===
     
-    def _play_stream(self, stream_obj, url: str, progress_callback=None) -> dict:
+    # === YouTube ===
+    
+    def _play_stream(self, stream_obj, url: str, progress_callback=None, loop: bool = False) -> dict:
         """Generic stream playback with download and exclusive lock
         
         Args:
             stream_obj: Stream object (youtube or tiktok)
             url: Video URL
             progress_callback: Optional progress callback
+            loop: Loop enabled flag
             
         Returns:
             dict: {'success': bool, 'error': str (optional), 'title': str (optional)}
@@ -197,11 +208,11 @@ class AudioEngine:
             self._stop_all_internal()
             
             # Play stream (instant as it hits cache)
-            return stream_obj.play(url, None)
+            return stream_obj.play(url, None, loop)
     
-    def play_youtube(self, url: str, progress_callback=None) -> dict:
+    def play_youtube(self, url: str, progress_callback=None, loop: bool = False) -> dict:
         """Play YouTube video - ensures exclusive playback"""
-        return self._play_stream(self.youtube, url, progress_callback)
+        return self._play_stream(self.youtube, url, progress_callback, loop)
     
     def stop_youtube(self):
         self.youtube.stop()
@@ -227,11 +238,19 @@ class AudioEngine:
     def set_youtube_trim(self, start: float, end: float):
         self.youtube.set_trim(start, end)
     
+    def set_youtube_loop(self, enabled: bool):
+        """Enable/disable loop for YouTube playback"""
+        self.youtube.set_loop(enabled)
+    
+    def get_youtube_loop(self) -> bool:
+        """Get YouTube loop state"""
+        return self.youtube.get_loop()
+    
     # === TikTok ===
     
-    def play_tiktok(self, url: str, progress_callback=None) -> dict:
+    def play_tiktok(self, url: str, progress_callback=None, loop: bool = False) -> dict:
         """Play TikTok video - ensures exclusive playback"""
-        return self._play_stream(self.tiktok, url, progress_callback)
+        return self._play_stream(self.tiktok, url, progress_callback, loop)
     
     def stop_tiktok(self):
         self.tiktok.stop()
@@ -256,6 +275,14 @@ class AudioEngine:
     
     def set_tiktok_trim(self, start: float, end: float):
         self.tiktok.set_trim(start, end)
+    
+    def set_tiktok_loop(self, enabled: bool):
+        """Enable/disable loop for TikTok playback"""
+        self.tiktok.set_loop(enabled)
+    
+    def get_tiktok_loop(self) -> bool:
+        """Get TikTok loop state"""
+        return self.tiktok.get_loop()
     
     # === Audio Effects ===
     

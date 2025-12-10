@@ -40,11 +40,12 @@ const SoundEvents = {
             const isScream = AppState.isScreamMode(name);
             const isPitch = AppState.isPitchMode(name);
             const trimSettings = AppState.getTrimSettings(name);
+            const isLoop = AppState.isSoundLoop(name);
 
             if (isScream) volume = Math.min(volume * 50.0, 50.0);
             const pitch = isPitch ? 1.5 : 1.0;
 
-            await API.playSound(name, volume, pitch, trimSettings?.start || 0, trimSettings?.end || 0);
+            await API.playSound(name, volume, pitch, trimSettings?.start || 0, trimSettings?.end || 0, isLoop);
         } finally {
             // Release lock after a short delay
             setTimeout(() => {
@@ -197,6 +198,27 @@ const SoundEvents = {
 
         // Update card
         this.refreshSounds().then(() => this.selectSound(AppState.selectedSound));
+    },
+
+    /**
+     * Toggles loop mode for selected sound
+     */
+    async toggleLoop() {
+        if (!AppState.selectedSound) return;
+        const checkbox = document.getElementById('loop-checkbox');
+        const isLoop = checkbox.checked;
+
+        console.log(`[LOOP_DEBUG] SoundEvents.toggleLoop: Toggling loop to ${isLoop} for ${AppState.selectedSound}`);
+
+        AppState.setSoundLoop(AppState.selectedSound, isLoop);
+        await this.saveSettings();
+
+        // Send to backend
+        await API.setSoundLoop(isLoop);
+
+        // Update label
+        const label = checkbox.parentElement.querySelector('.pitch-label');
+        if (label) label.textContent = isLoop ? 'ON - INFINITY!' : 'OFF';
     },
 
     /**

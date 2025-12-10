@@ -70,9 +70,9 @@ const API = {
      * @param {number} endTime - End time in seconds (0 = to end)
      * @returns {Promise<void>}
      */
-    async playSound(name, volume, pitch, startTime = 0, endTime = 0) {
+    async playSound(name, volume, pitch, startTime = 0, endTime = 0, loop = false) {
         return this._handleApiCall(
-            () => eel.play_sound(name, volume, pitch, startTime, endTime)(),
+            () => eel.play_sound(name, volume, pitch, startTime, endTime, loop)(),
             undefined,
             `playSound(${name})`
         );
@@ -205,6 +205,30 @@ const API = {
         );
     },
 
+    /**
+     * Set sound loop state
+     * @param {boolean} enabled - Loop state
+     */
+    async setSoundLoop(enabled) {
+        return this._handleApiCall(
+            () => eel.set_sound_loop(enabled)(),
+            undefined,
+            `setSoundLoop(${enabled})`
+        );
+    },
+
+    /**
+     * Get sound loop state
+     * @returns {Promise<boolean>} Loop state
+     */
+    async getSoundLoop() {
+        return this._handleApiCall(
+            () => eel.get_sound_loop()(),
+            false,
+            'getSoundLoop'
+        );
+    },
+
     // ==================== Microphone ====================
 
     /**
@@ -258,9 +282,9 @@ const API = {
      * @param {number} endTime - End time/trim in seconds
      * @returns {Promise<Object>} Result object with success status and title/error
      */
-    async playYoutube(url, volume = 1.0, pitch = 1.0, startTime = 0, endTime = 0) {
+    async playYoutube(url, volume = 1.0, pitch = 1.0, startTime = 0, endTime = 0, loop = false) {
         return this._handleApiCall(
-            () => eel.play_youtube(url, volume, pitch, startTime, endTime)(),
+            () => eel.play_youtube(url, volume, pitch, startTime, endTime, loop)(),
             { success: false, error: 'Failed to connect to backend' },
             `playYoutube(${url})`
         );
@@ -391,6 +415,30 @@ const API = {
         );
     },
 
+    /**
+     * Set YouTube loop state
+     * @param {boolean} enabled - Loop state
+     */
+    async setYoutubeLoop(enabled) {
+        return this._handleApiCall(
+            () => eel.set_youtube_loop(enabled)(),
+            undefined,
+            `setYoutubeLoop(${enabled})`
+        );
+    },
+
+    /**
+     * Get YouTube loop state
+     * @returns {Promise<boolean>} Loop state
+     */
+    async getYoutubeLoop() {
+        return this._handleApiCall(
+            () => eel.get_youtube_loop()(),
+            false,
+            'getYoutubeLoop'
+        );
+    },
+
     // ==================== TikTok ====================
 
     /**
@@ -402,9 +450,9 @@ const API = {
      * @param {number} endTime - End time/trim in seconds
      * @returns {Promise<Object>} Result object with success status and title/error
      */
-    async playTikTok(url, volume = 1.0, pitch = 1.0, startTime = 0, endTime = 0) {
+    async playTikTok(url, volume = 1.0, pitch = 1.0, startTime = 0, endTime = 0, loop = false) {
         return this._handleApiCall(
-            () => eel.play_tiktok(url, volume, pitch, startTime, endTime)(),
+            () => eel.play_tiktok(url, volume, pitch, startTime, endTime, loop)(),
             { success: false, error: 'Failed to connect to backend' },
             `playTikTok(${url})`
         );
@@ -532,6 +580,29 @@ const API = {
             () => eel.get_tiktok_duration(url)(),
             0,
             `getTikTokDuration(${url})`
+        );
+    },
+    /**
+     * Set TikTok loop state
+     * @param {boolean} enabled - Loop state
+     */
+    async setTikTokLoop(enabled) {
+        return this._handleApiCall(
+            () => eel.set_tiktok_loop(enabled)(),
+            undefined,
+            `setTikTokLoop(${enabled})`
+        );
+    },
+
+    /**
+     * Get TikTok loop state
+     * @returns {Promise<boolean>} Loop state
+     */
+    async getTikTokLoop() {
+        return this._handleApiCall(
+            () => eel.get_tiktok_loop()(),
+            false,
+            'getTikTokLoop'
         );
     }
 };

@@ -43,18 +43,20 @@ class BaseStreamAPI(ABC):
         pass
     
     def _play(self, url: str, volume: float = 1.0, pitch: float = 1.0, 
-              start_time: float = 0, end_time: float = 0):
+              start_time: float = 0, end_time: float = 0, loop: bool = False):
         """Play stream with specific settings"""
-        # Use getattr to dynamically call the correct audio engine method
+        print(f"[DEBUG_PYTHON] BaseStreamAPI._play called | Stream={self.stream_type} | Loop={loop}", flush=True)
+        from core.logging.debug_logger import log_loop_action
+        log_loop_action("BaseStreamAPI._play", f"StreamType={self.stream_type} | URL={url} | Loop={loop}")
+        
+        # Set stream settings
         getattr(self.audio, f'set_{self.stream_type}_pitch')(pitch)
         getattr(self.audio, f'set_{self.stream_type}_volume')(volume)
         getattr(self.audio, f'set_{self.stream_type}_trim')(start_time, end_time)
+        getattr(self.audio, f'set_{self.stream_type}_loop')(loop)
         
-        return getattr(self.audio, f'play_{self.stream_type}')(url)
-    
-    def _stop(self):
-        """Stop streaming"""
-        getattr(self.audio, f'stop_{self.stream_type}')()
+        # Play current stream
+        return getattr(self.audio, f'play_{self.stream_type}')(url, None, loop)
     
     def _pause(self):
         """Pause streaming"""
@@ -76,6 +78,17 @@ class BaseStreamAPI(ABC):
         """Set volume"""
         getattr(self.audio, f'set_{self.stream_type}_volume')(vol)
         return True
+    
+    def _set_loop(self, enabled: bool):
+        """Enable/disable loop"""
+        from core.logging.debug_logger import log_loop_action
+        log_loop_action("BaseStreamAPI._set_loop", f"StreamType={self.stream_type} | Enabled={enabled}")
+        getattr(self.audio, f'set_{self.stream_type}_loop')(enabled)
+        return True
+    
+    def _get_loop(self):
+        """Get loop state"""
+        return getattr(self.audio, f'get_{self.stream_type}_loop')()
     
     def _get_items(self):
         """Get all cached items"""

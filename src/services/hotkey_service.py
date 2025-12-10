@@ -16,12 +16,15 @@ class HotkeyService:
         self.sound_volumes = {}
         self.sound_scream_mode = {}
         self.sound_pitch_mode = {}
+        self.sound_loop_state = {}
         self.youtube_volumes = {}
         self.youtube_scream_mode = {}
         self.youtube_pitch_mode = {}
+        self.youtube_loop_state = {}
         self.tiktok_volumes = {}
         self.tiktok_scream_mode = {}
         self.tiktok_pitch_mode = {}
+        self.tiktok_loop_state = {}
     
     def initialize(self, sound_callback, youtube_callback, tiktok_callback, stop_callback):
         """Initialize hotkey service with callbacks"""
@@ -49,12 +52,15 @@ class HotkeyService:
         self.sound_volumes = settings.get('volumes', {})
         self.sound_scream_mode = settings.get('screamMode', {})
         self.sound_pitch_mode = settings.get('pitchMode', {})
+        self.sound_loop_state = settings.get('soundLoopState', {})
         self.youtube_volumes = settings.get('youtubeVolumes', {})
         self.youtube_scream_mode = settings.get('youtubeScreamMode', {})
         self.youtube_pitch_mode = settings.get('youtubePitchMode', {})
+        self.youtube_loop_state = settings.get('youtubeLoopState', {})
         self.tiktok_volumes = settings.get('tiktokVolumes', {})
         self.tiktok_scream_mode = settings.get('tiktokScreamMode', {})
         self.tiktok_pitch_mode = settings.get('tiktokPitchMode', {})
+        self.tiktok_loop_state = settings.get('tiktokLoopState', {})
         
         # Backward compatibility
         if isinstance(self.youtube_scream_mode, bool):
@@ -85,7 +91,8 @@ class HotkeyService:
         return {
             'volume': self.sound_volumes.get(name, 100),
             'scream': self.sound_scream_mode.get(name, False),
-            'pitch': self.sound_pitch_mode.get(name, False)
+            'pitch': self.sound_pitch_mode.get(name, False),
+            'loop': self.sound_loop_state.get(name, False)
         }
     
     def get_youtube_settings(self, url: str):
@@ -93,7 +100,8 @@ class HotkeyService:
         return {
             'volume': self.youtube_volumes.get(url, 100),
             'scream': self.youtube_scream_mode.get(url, False),
-            'pitch': self.youtube_pitch_mode.get(url, False)
+            'pitch': self.youtube_pitch_mode.get(url, False),
+            'loop': self.youtube_loop_state.get(url, False)
         }
     
     def get_tiktok_settings(self, url: str):
@@ -101,7 +109,8 @@ class HotkeyService:
         return {
             'volume': self.tiktok_volumes.get(url, 100),
             'scream': self.tiktok_scream_mode.get(url, False),
-            'pitch': self.tiktok_pitch_mode.get(url, False)
+            'pitch': self.tiktok_pitch_mode.get(url, False),
+            'loop': self.tiktok_loop_state.get(url, False)
         }
     
     def cleanup(self):

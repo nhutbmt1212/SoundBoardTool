@@ -138,7 +138,8 @@ def play_youtube_global(url: str):
     if info.get('url') == url and info.get('playing'):
         audio.stop_youtube()
     else:
-        audio.play_youtube(url)
+        loop = settings.get('loop', False)
+        audio.play_youtube(url, loop=loop)
 
 
 def play_tiktok_global(url: str):
@@ -162,7 +163,8 @@ def play_tiktok_global(url: str):
     if info.get('url') == url and info.get('playing'):
         audio.stop_tiktok()
     else:
-        audio.play_tiktok(url)
+        loop = settings.get('loop', False)
+        audio.play_tiktok(url, loop=loop)
 
 
 def stop_all_global():

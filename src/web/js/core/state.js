@@ -70,6 +70,15 @@ const AppState = {
     /** @type {Object<string, string>} Custom TikTok display names */
     tiktokNames: {},
 
+    /** @type {Object<string, boolean>} Sound loop states */
+    soundLoopState: {},
+
+    /** @type {Object<string, boolean>} YouTube loop states */
+    youtubeLoopState: {},
+
+    /** @type {Object<string, boolean>} TikTok loop states */
+    tiktokLoopState: {},
+
     /** @type {string} Global stop all keybind */
     stopAllKeybind: '',
 
@@ -592,6 +601,62 @@ const AppState = {
         this.tiktokEffects[url] = effects;
     },
 
+    // ==================== Loop State Methods ====================
+
+    /**
+     * Checks if loop is enabled for a sound
+     * @param {string} name - Sound name
+     * @returns {boolean} True if loop enabled
+     */
+    isSoundLoop(name) {
+        return this.soundLoopState[name] || false;
+    },
+
+    /**
+     * Sets loop state for a sound
+     * @param {string} name - Sound name
+     * @param {boolean} enabled - True to enable loop
+     */
+    setSoundLoop(name, enabled) {
+        this.soundLoopState[name] = enabled;
+    },
+
+    /**
+     * Checks if loop is enabled for a YouTube item
+     * @param {string} url - YouTube URL
+     * @returns {boolean} True if loop enabled
+     */
+    isYoutubeLoop(url) {
+        return this.youtubeLoopState[url] || false;
+    },
+
+    /**
+     * Sets loop state for a YouTube item
+     * @param {string} url - YouTube URL
+     * @param {boolean} enabled - True to enable loop
+     */
+    setYoutubeLoop(url, enabled) {
+        this.youtubeLoopState[url] = enabled;
+    },
+
+    /**
+     * Checks if loop is enabled for a TikTok item
+     * @param {string} url - TikTok URL
+     * @returns {boolean} True if loop enabled
+     */
+    isTikTokLoop(url) {
+        return this.tiktokLoopState[url] || false;
+    },
+
+    /**
+     * Sets loop state for a TikTok item
+     * @param {string} url - TikTok URL
+     * @param {boolean} enabled - True to enable loop
+     */
+    setTikTokLoop(url, enabled) {
+        this.tiktokLoopState[url] = enabled;
+    },
+
     // ==================== Persistence ====================
 
     /**
@@ -619,6 +684,11 @@ const AppState = {
         this.youtubeVolumes = settings.youtubeVolumes || {};
         this.tiktokVolumes = settings.tiktokVolumes || {};
         this.stopAllKeybind = settings.stopAllKeybind || '';
+
+        // Load loop states
+        this.soundLoopState = settings.soundLoopState || {};
+        this.youtubeLoopState = settings.youtubeLoopState || {};
+        this.tiktokLoopState = settings.tiktokLoopState || {};
 
         // Load effects configurations
         this.soundEffects = settings.soundEffects || {};
@@ -662,6 +732,10 @@ const AppState = {
             tiktokTrimSettings: this.tiktokTrimSettings,
             youtubeVolumes: this.youtubeVolumes,
             tiktokVolumes: this.tiktokVolumes,
+            // Loop states
+            soundLoopState: this.soundLoopState,
+            youtubeLoopState: this.youtubeLoopState,
+            tiktokLoopState: this.tiktokLoopState,
             // Effects configurations
             soundEffects: this.soundEffects,
             youtubeEffects: this.youtubeEffects,
