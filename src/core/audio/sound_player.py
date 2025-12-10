@@ -2,7 +2,9 @@ import threading
 import time
 import logging
 from pathlib import Path
-from ..logging.debug_logger import log_loop_action  # Import debug logger
+from ..logging.debug_logger import log_loop_action
+from .sound_library import SoundLibrary
+from .audio_utils import AudioUtils
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -29,28 +31,28 @@ class SoundPlayer:
     """Handles sound file playback to speakers and VB-Cable"""
     
     # Constants
-    INT16_NORMALIZATION = 32768.0
-    INT32_NORMALIZATION = 2147483648.0
     STREAM_CHUNK_SIZE = 2048
     DEFAULT_VOLUME = 0.7
     MAX_VOLUME = 50.0
     MIN_PITCH = 0.5
     MAX_PITCH = 2.0
-    PAUSE_CHECK_INTERVAL = 0.1  # Seconds between pause checks
+    PAUSE_CHECK_INTERVAL = 0.1
     
     def __init__(self, sounds_dir: str, vb_manager):
-        self.sounds_dir = Path(sounds_dir)
+        self.library = SoundLibrary(sounds_dir)
         self.vb_manager = vb_manager
-        self.sounds: dict[str, str] = {}
+        
+        # Playback configuration
         self.volume = self.DEFAULT_VOLUME
         self.pitch = 1.0
         self.trim_start = 0.0
         self.trim_end = 0.0
-        self.loop_enabled = False  # Loop infinity flag
+        self.loop_enabled = False
         
+        # State
         self._stop_flag = threading.Event()
         self._pause_event = threading.Event()
-        self._pause_event.set()  # Start unpaused
+        self._pause_event.set()
         self._thread_id = 0
         self._vb_lock = threading.Lock()
         self._is_playing = False
@@ -63,8 +65,12 @@ class SoundPlayer:
         self.effects_config = {}
         
         self._init_pygame()
-        self.load_sounds()
     
+    @property
+    def sounds(self) -> dict:
+        """Facade for library sounds, kept for compatibility"""
+        return self.library.sounds
+
     def _init_pygame(self):
         """Initialize pygame mixer"""
         if pygame:
@@ -77,20 +83,38 @@ class SoundPlayer:
                 except Exception as e2:
                     logger.error(f"Failed to initialize pygame mixer: {e2}")
     
+    # --- Delegation to SoundLibrary ---
+    
     def load_sounds(self):
-        """Load sounds from directory"""
-        self.sounds.clear()
-        if not self.sounds_dir.exists():
-            self.sounds_dir.mkdir(parents=True, exist_ok=True)
-            return
-        
-        for ext in ('*.wav', '*.mp3', '*.ogg', '*.flac'):
-            for f in self.sounds_dir.glob(ext):
-                self.sounds[f.stem] = str(f)
+        self.library.load_sounds()
     
     def get_sounds(self) -> list[str]:
-        """Get list of sound names"""
-        return sorted(self.sounds.keys())
+        return self.library.get_sounds()
+        
+    def add_sound(self, filepath: str, name: str = None) -> bool:
+        return self.library.add_sound(filepath, name)
+        
+    def add_sound_from_data(self, filename: str, data: bytes) -> bool:
+        return self.library.add_sound_from_data(filename, data)
+    
+    def delete_sound(self, name: str) -> bool:
+        return self.library.delete_sound(name)
+
+    # --- Delegation to AudioUtils ---
+
+    def get_audio_duration(self, name: str) -> float:
+        path = self.library.get_path(name)
+        if not path:
+            return 0.0
+        return AudioUtils.get_audio_duration(path)
+    
+    def get_waveform_data(self, name: str, samples: int = 200) -> list:
+        path = self.library.get_path(name)
+        if not path:
+            return []
+        return AudioUtils.get_waveform_data(path, samples)
+
+    # --- Playback Logic ---
     
     def set_volume(self, vol: float):
         """Set volume (0.0 - 50.0 for scream mode)"""
@@ -116,18 +140,18 @@ class SoundPlayer:
     
     def play(self, name: str) -> bool:
         """Play sound by name"""
-        if name not in self.sounds:
+        path = self.library.get_path(name)
+        if not path:
             return False
         
-        path = self.sounds[name]
         self._stop_flag.clear()
-        self._pause_event.set() # Reset pause state on new play
+        self._pause_event.set()
         self._current_sound = name
         self._is_paused = False
         
         log_loop_action("SoundPlayer.play", f"Name={name}, LoopEnabled={self.loop_enabled}")
 
-        # Play to both speaker and VB-Cable using sounddevice (supports trim)
+        # Play to both speaker and VB-Cable using sounddevice
         if SD_AVAILABLE and pygame and pygame.mixer.get_init():
             self._thread_id += 1
             
@@ -146,7 +170,7 @@ class SoundPlayer:
                     daemon=True
                 ).start()
         elif pygame and pygame.mixer.get_init():
-            # Fallback to pygame if sounddevice not available (no trim support)
+            # Fallback to pure pygame
             try:
                 pygame.mixer.stop()
                 snd = pygame.mixer.Sound(path)
@@ -176,58 +200,46 @@ class SoundPlayer:
 
     def is_paused(self) -> bool:
         return self._is_paused
-
-    def _load_and_convert_audio(self, path: str):
-        """Load audio file and convert to float32 array"""
-        try:
-            snd = pygame.mixer.Sound(path)
-            arr = pygame.sndarray.array(snd)
-            freq = pygame.mixer.get_init()[0]
-            
-            # Convert to float32
-            if arr.dtype == np.int16:
-                audio = arr.astype(np.float32) / self.INT16_NORMALIZATION
-            elif arr.dtype == np.int32:
-                audio = arr.astype(np.float32) / self.INT32_NORMALIZATION
-            else:
-                audio = arr.astype(np.float32)
-                
-            return audio, freq
-        except Exception as e:
-            logger.error(f"Error loading audio file {path}: {e}")
-            return None, 0
-
-    def _process_audio(self, audio, freq, target_samplerate=None):
-        """Apply trim, volume, and resampling to audio"""
-        # Apply trim
-        if self.trim_start > 0 or self.trim_end > 0:
-            start_sample = int(self.trim_start * freq)
-            end_sample = int(self.trim_end * freq) if self.trim_end > 0 else len(audio)
-            
-            start_sample = max(0, min(start_sample, len(audio)))
-            end_sample = max(start_sample, min(end_sample, len(audio)))
-            
-            audio = audio[start_sample:end_sample]
-            
-        # Resample if needed
-        if target_samplerate and (self.pitch != 1.0 or freq != target_samplerate):
-             pitch_factor = 1.0 / self.pitch if self.pitch != 1.0 else 1.0
-             rate_factor = target_samplerate / freq if freq != target_samplerate else 1.0
-             final_length = int(len(audio) * pitch_factor * rate_factor)
-
-             if audio.ndim == 1:
-                indices = np.linspace(0, len(audio) - 1, final_length)
-                audio = np.interp(indices, np.arange(len(audio)), audio).astype(np.float32)
-             else:
-                indices = np.linspace(0, len(audio) - 1, final_length)
-                resampled = []
-                for ch in range(audio.shape[1]):
-                    resampled.append(np.interp(indices, np.arange(len(audio)), audio[:, ch]))
-                audio = np.column_stack(resampled).astype(np.float32)
         
-        # Apply volume - MOVED TO STREAMING LOOP FOR LIVE UPDATES
-        # audio *= self.volume
-        return audio
+    def is_playing(self) -> bool:
+        return self._is_playing
+    
+    def get_current_sound(self) -> str:
+        return self._current_sound
+
+    def stop(self):
+        """Stop all sounds"""
+        self._stop_flag.set()
+        self._pause_event.set()
+        self._thread_id += 1
+        self._current_sound = None
+        self._is_playing = False
+        self._is_paused = False
+        
+        if pygame and pygame.mixer.get_init():
+            try:
+                pygame.mixer.stop()
+            except Exception as e:
+                logger.debug(f"Failed to stop pygame mixer: {e}")
+        
+        threading.Timer(0.2, self._stop_flag.clear).start()
+
+    def set_effects(self, effects_config: dict):
+        self.effects_config = effects_config
+    
+    def get_effects(self) -> dict:
+        return self.effects_config
+    
+    def cleanup(self):
+        """Cleanup resources"""
+        self.stop()
+        if pygame and pygame.mixer.get_init():
+            try:
+                pygame.mixer.quit()
+            except Exception as e:
+                logger.debug(f"Failed to quit pygame mixer: {e}")
+
+    # --- Internal Streaming Logic ---
 
     def _stream_audio_to_device(self, audio, samplerate, device_id, tid):
         """Stream audio data to the specified output device"""
@@ -252,7 +264,6 @@ class SoundPlayer:
 
                     # Handle Pause
                     if not self._pause_event.is_set():
-                        # Wait until resumed or stopped
                         while not self._pause_event.is_set():
                              if self._stop_flag.is_set() or tid != self._thread_id:
                                 stream.abort()
@@ -261,14 +272,12 @@ class SoundPlayer:
                     
                     chunk = audio[i:i + self.STREAM_CHUNK_SIZE]
                     
-                    # Apply CURRENT volume setting dynamically
-                    # Clip data to range [-1.0, 1.0] to ensure consistent distortion (Scream Mode)
-                    # and prevent driver-side normalization/artifacts on some devices (VB-Cable)
+                    # Apply volume
                     chunk = chunk * self.volume
                     if self.volume > 1.0:
                         chunk = np.clip(chunk, -1.0, 1.0)
                     
-                    # Apply audio effects
+                    # Apply effects
                     if self.effects_config:
                         chunk = self.effects_processor.apply_effects(chunk, self.effects_config)
                     
@@ -276,37 +285,42 @@ class SoundPlayer:
                         chunk = chunk.reshape(-1, 1)
                     stream.write(chunk)
         except Exception as e:
-            # Suppress specific transient errors to avoid spamming log
             msg = str(e)
             if "AUDCLNT_E_DEVICE_INVALIDATED" not in msg and "There is no driver installed" not in msg:
                  logger.error(f"Error streaming audio: {e}")
 
     def _play_speaker(self, path: str, tid: int, name: str):
-        """Play to speaker in background thread with trim support"""
+        """Play to speaker in background thread"""
         if not SD_AVAILABLE or not pygame or not pygame.mixer.get_init():
             return
         
         if tid != self._thread_id:
             return
             
-        audio, freq = self._load_and_convert_audio(path)
+        audio, freq = AudioUtils.load_and_convert_audio(path)
         if audio is None:
             return
 
         while tid == self._thread_id and not self._stop_flag.is_set():
             log_loop_action("SoundPlayer._play_speaker", f"Loop Start | Local Playback | Name={name} | LoopEnabled={self.loop_enabled}")
-            # Process audio with trim, volume, and pitch
-            processed_audio = self._process_audio(audio, freq, target_samplerate=freq) 
+            
+            # Process audio
+            processed_audio = AudioUtils.process_audio(
+                audio, freq, 
+                trim_start=self.trim_start, 
+                trim_end=self.trim_end, 
+                pitch=self.pitch, 
+                target_samplerate=freq
+            )
+            
             self._stream_audio_to_device(processed_audio, freq, None, tid)
             
-            # If loop is disabled or stop was requested, exit
             if not self.loop_enabled or self._stop_flag.is_set() or tid != self._thread_id:
                 log_loop_action("SoundPlayer._play_speaker", f"Loop Exit | Name={name} | LoopEnabled={self.loop_enabled} | StopFlag={self._stop_flag.is_set()}")
                 break
             
-            # Small delay before restarting
             log_loop_action("SoundPlayer._play_speaker", f"Loop Restarting | Name={name}")
-            time.sleep(0.1)
+            time.sleep(0.005)
 
     def _play_vb(self, path: str, tid: int, sound_name: str):
         """Play to VB-Cable in background thread"""
@@ -319,160 +333,33 @@ class SoundPlayer:
             
             self._is_playing = True
             try:
-                # Outer loop for infinite repeat
                 while tid == self._thread_id and not self._stop_flag.is_set():
                     log_loop_action("SoundPlayer._play_vb", f"Loop Start | VB Playback | Name={sound_name} | LoopEnabled={self.loop_enabled}")
-                    audio, freq = self._load_and_convert_audio(path)
+                    
+                    audio, freq = AudioUtils.load_and_convert_audio(path)
                     if audio is None:
                         break
 
                     vb_samplerate = self.vb_manager.get_samplerate()
-                    audio = self._process_audio(audio, freq, target_samplerate=vb_samplerate)
-
-                    self._stream_audio_to_device(audio, vb_samplerate, self.vb_manager.device_id, tid)
                     
-                    # If loop is disabled or stop was requested, exit
+                    processed_audio = AudioUtils.process_audio(
+                        audio, freq,
+                        trim_start=self.trim_start,
+                        trim_end=self.trim_end,
+                        pitch=self.pitch,
+                        target_samplerate=vb_samplerate
+                    )
+
+                    self._stream_audio_to_device(processed_audio, vb_samplerate, self.vb_manager.device_id, tid)
+                    
                     if not self.loop_enabled or self._stop_flag.is_set() or tid != self._thread_id:
                         log_loop_action("SoundPlayer._play_vb", f"Loop Exit | Name={sound_name} | LoopEnabled={self.loop_enabled} | StopFlag={self._stop_flag.is_set()}")
                         break
                     
-                    # Small delay before restarting
                     log_loop_action("SoundPlayer._play_vb", f"Loop Restarting | Name={sound_name}")
-                    time.sleep(0.1)
+                    time.sleep(0.005)
                         
             finally:
                 if tid == self._thread_id:
                     self._is_playing = False
                     self._current_sound = None
-    
-    def stop(self):
-        """Stop all sounds"""
-        self._stop_flag.set()
-        self._pause_event.set() # Unblock any paused threads so they can see stop flag
-        self._thread_id += 1
-        self._current_sound = None
-        self._is_playing = False
-        self._is_paused = False
-        
-        if pygame and pygame.mixer.get_init():
-            try:
-                pygame.mixer.stop()
-            except Exception as e:
-                logger.debug(f"Failed to stop pygame mixer: {e}")
-        
-        threading.Timer(0.2, self._stop_flag.clear).start()
-    
-    def is_playing(self) -> bool:
-        return self._is_playing
-    
-    def get_current_sound(self) -> str:
-        return self._current_sound
-    
-    def add_sound(self, filepath: str, name: str = None) -> bool:
-        """Add sound file to library"""
-        import shutil
-        src = Path(filepath)
-        if not src.exists():
-            return False
-        
-        dest_name = name or src.stem
-        dest = self.sounds_dir / f"{dest_name}{src.suffix}"
-        
-        try:
-            if src != dest:
-                shutil.copy(src, dest)
-            self.sounds[dest_name] = str(dest)
-            return True
-        except Exception as e:
-            logger.debug(f"Failed to add sound {filepath}: {e}")
-    
-    def delete_sound(self, name: str) -> bool:
-        """Delete sound from library"""
-        if name not in self.sounds:
-            return False
-        try:
-            Path(self.sounds[name]).unlink(missing_ok=True)
-            del self.sounds[name]
-            return True
-        except Exception as e:
-            logger.debug(f"Failed to delete sound {name}: {e}")
-    
-    def get_audio_duration(self, name: str) -> float:
-        """Get audio file duration in seconds"""
-        if name not in self.sounds:
-            return 0.0
-        
-        try:
-            path = self.sounds[name]
-            if pygame and pygame.mixer.get_init():
-                snd = pygame.mixer.Sound(path)
-                # Duration = length in samples / sample rate
-                length = snd.get_length()
-                return length
-            return 0.0
-        except Exception as e:
-            logger.error(f"Error getting duration for {name}: {e}")
-            return 0.0
-    
-    def get_waveform_data(self, name: str, samples: int = 200) -> list:
-        """Generate waveform data for visualization"""
-        if name not in self.sounds:
-            return []
-        
-        if not pygame or not pygame.mixer.get_init():
-            return []
-            
-        path = self.sounds[name]
-        audio, _ = self._load_and_convert_audio(path)
-        
-        if audio is None:
-            return []
-            
-        try:
-            # Convert to mono if stereo
-            if audio.ndim > 1:
-                audio = audio.mean(axis=1)
-            
-            # Downsample to requested number of samples
-            chunk_size = max(1, len(audio) // samples)
-            waveform = []
-            
-            for i in range(0, len(audio), chunk_size):
-                chunk = audio[i:i+chunk_size]
-                if len(chunk) > 0:
-                    # Get peak amplitude in this chunk
-                    peak = float(np.max(np.abs(chunk)))
-                    waveform.append(peak)
-                    if len(waveform) >= samples:
-                        break
-            
-            return waveform
-        except Exception as e:
-            logger.error(f"Error generating waveform for {name}: {e}")
-            return []
-    
-    def set_effects(self, effects_config: dict):
-        """Set effects configuration
-        
-        Args:
-            effects_config: Dictionary of effect settings
-        """
-        self.effects_config = effects_config
-    
-    def get_effects(self) -> dict:
-        """Get current effects configuration
-        
-        Returns:
-            Dictionary of effect settings
-        """
-        return self.effects_config
-    
-    def cleanup(self):
-        """Cleanup resources"""
-        self.stop()
-        if pygame and pygame.mixer.get_init():
-            try:
-                pygame.mixer.quit()
-            except Exception as e:
-                logger.debug(f"Failed to quit pygame mixer: {e}")
-

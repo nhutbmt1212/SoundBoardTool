@@ -49,11 +49,17 @@ const UIHelpers = {
         return `
             <div class="panel-section">
                 <div class="panel-section-title">${icon('keyboard', 16)} Keybind</div>
-                <input type="text" class="keybind-input" id="${config.inputId}" 
-                       value="${config.value}" 
-                       placeholder="Click to set keybind"
-                       readonly
-                       onclick="${config.onClickHandler}()">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="keybind-input" id="${config.inputId}" 
+                           value="${config.value}" 
+                           placeholder="Click to set keybind"
+                           readonly
+                           onclick="${config.onClickHandler}()"
+                           style="flex: 1;">
+                    <button class="btn-icon" onclick="KeybindEvents.removeCurrentKeybind('${config.inputId}')" title="Clear Keybind">
+                        ${icon('trash', 16)}
+                    </button>
+                </div>
             </div>
         `;
     },

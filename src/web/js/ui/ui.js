@@ -262,9 +262,7 @@ const UI = {
         infoEl.className = 'tiktok-info error';
     },
 
-    // Enable TikTok play button
-    enableTikTokPlayBtn() {
-    },
+
 
     // Select TikTok card visually
     selectTikTokCard(url) {
@@ -293,9 +291,7 @@ const UI = {
         CardRenderer.addLoadingCard('tiktok', url);
     },
 
-    updateTikTokProgress(url, percent) {
-        CardRenderer.updateProgress('tiktok', url, percent);
-    },
+
 
     removeLoadingTikTokCard(url) {
         CardRenderer.removeLoadingCard('tiktok', url);
@@ -304,12 +300,13 @@ const UI = {
     // Modal
     closeModalCallback: null,
 
-    showModal({ title, body, onConfirm, confirmText = 'Confirm', showCancel = true }) {
+    showModal({ title, body, onConfirm, onCancel, confirmText = 'Confirm', showCancel = true }) {
         const overlay = document.getElementById('modal-overlay');
         const titleEl = document.getElementById('modal-title');
         const bodyEl = document.getElementById('modal-body');
         const confirmBtn = document.getElementById('modal-confirm-btn');
         const footer = document.getElementById('modal-footer');
+        const cancelBtn = footer.querySelector('.btn-secondary');
 
         if (!overlay) return;
 
@@ -320,17 +317,22 @@ const UI = {
         // Reset footer
         footer.style.display = 'flex';
 
-        // Hide cancel button if needed? Using CSS might be better but let's leave it for now
-        // For simple prompts we want Cancel.
-
-        // Clean previous listeners
+        // Clean previous listeners for confirm
         const newConfirmBtn = confirmBtn.cloneNode(true);
         confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
 
         newConfirmBtn.onclick = () => {
             if (onConfirm) onConfirm();
+            // Prevent onCancel from firing since we confirmed
+            this.closeModalCallback = null;
             this.closeModal();
         };
+
+        // Handle Cancel button explicitly to map to onCancel
+        // We need to update the onclick for the cancel button and the close 'X' button too ideally,
+        // but currently closeModal() is called directly in HTML onclick attributes.
+        // We will assign this.closeModalCallback to onCancel.
+        this.closeModalCallback = onCancel;
 
         // Handle Enter key in inputs
         const inputs = bodyEl.querySelectorAll('input');
@@ -346,7 +348,6 @@ const UI = {
         }
 
         overlay.classList.add('active');
-        this.closeModalCallback = null; // Reset callback
     },
 
     closeModal() {

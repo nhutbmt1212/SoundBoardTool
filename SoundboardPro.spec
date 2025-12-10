@@ -3,14 +3,18 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = [('D:\\Workspace\\SoundBoardTool\\src\\web', 'web'), ('D:\\Workspace\\SoundBoardTool\\vbcable', 'vbcable')]
 binaries = []
-hiddenimports = ['eel', 'bottle', 'gevent', 'geventwebsocket', 'gevent.ssl', 'gevent._ssl3', 'pygame', 'pygame.mixer', 'pygame.sndarray', 'pygame.base', 'sounddevice', 'scipy', 'scipy.io', 'scipy.io.wavfile', 'numpy', 'keyboard', 'psutil', 'tkinter', 'tkinter.filedialog']
+hiddenimports = ['eel', 'bottle', 'gevent', 'geventwebsocket', 'gevent.ssl', 'gevent._ssl3', 'pygame', 'pygame.mixer', 'pygame.sndarray', 'pygame.base', 'sounddevice', 'scipy', 'scipy.io', 'scipy.io.wavfile', 'scipy.io.wavfile', 'numpy', 'pyrnnoise', 'keyboard', 'psutil', 'tkinter', 'tkinter.filedialog']
 tmp_ret = collect_all('eel')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('pygame')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('sounddevice')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('sounddevice')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('yt_dlp')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('pyrnnoise')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
@@ -23,7 +27,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['matplotlib', 'PIL', 'cv2', 'tkinter.test', 'unittest', 'pytest'],
+    excludes=['matplotlib', 'PIL', 'cv2', 'tkinter.test', 'pytest'],
     noarchive=False,
     optimize=0,
 )
@@ -49,7 +53,4 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=['D:\\Workspace\\SoundBoardTool\\src\\web\\assets\\icon.ico'],
-    manifest='D:\\Workspace\\SoundBoardTool\\SoundboardPro.manifest',
-    uac_admin=True,
-    uac_uiaccess=False,
 )
