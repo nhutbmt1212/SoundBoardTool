@@ -14,6 +14,10 @@ Soundboard application với VB-Cable support cho Discord/streaming.
 - 🔊 Volume riêng cho từng sound
 - 🎙️ VB-Cable routing cho Discord/OBS
 - 🌐 Modern web UI
+- 🎬 YouTube/TikTok streaming support
+- 🎚️ Audio effects (reverb, echo, etc.)
+- 🔄 Loop functionality
+- ✂️ Trim support
 
 ## VB-Cable (Optional)
 
@@ -38,15 +42,24 @@ pip install -r requirements.txt
 python src/app.py
 ```
 
+## 📚 Architecture Documentation
+
+For developers working on this project, see:
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Quick architecture overview
+- **Workflows**: Use `/architecture` for quick reference
+- **Full docs**: See `.gemini/antigravity/brain/` for detailed documentation
+
 ## Structure
 
 ```
 ├── src/
 │   ├── app.py          # Entry point
 │   ├── core/
-│   │   ├── audio.py    # Audio engine
+│   │   ├── audio/      # Audio engine
 │   │   └── config.py   # Config
+│   ├── api/            # API endpoints
 │   └── web/            # Frontend
 ├── sounds/             # Sound files
 └── build_exe.py        # Build script
 ```
+

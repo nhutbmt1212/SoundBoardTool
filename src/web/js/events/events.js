@@ -193,11 +193,6 @@ const EventHandlers = {
                 return;
             }
 
-            // Smart polling: Skip if nothing is playing (idle state)
-            if (!AppState.currentPlayingSound && !UI.currentPlayingType) {
-                return;
-            }
-
             // Skip update completely if force stopped
             if (AppState.forceStopped) {
                 return;
