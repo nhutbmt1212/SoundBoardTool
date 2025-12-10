@@ -93,7 +93,9 @@ def build():
         '--hidden-import=scipy',
         '--hidden-import=scipy.io',
         '--hidden-import=scipy.io.wavfile',
+        '--hidden-import=scipy.io.wavfile',
         '--hidden-import=numpy',
+        '--hidden-import=pyrnnoise',
         # Hidden imports - Hotkeys (optional)
         '--hidden-import=keyboard',
         # Hidden imports - Process management
@@ -105,13 +107,14 @@ def build():
         '--collect-all=eel',
         '--collect-all=pygame',
         '--collect-all=sounddevice',
+        '--collect-all=sounddevice',
         '--collect-all=yt_dlp',
+        '--collect-all=pyrnnoise',
         # Exclude unnecessary
         '--exclude-module=matplotlib',
         '--exclude-module=PIL',
         '--exclude-module=cv2',
         '--exclude-module=tkinter.test',
-        '--exclude-module=unittest',
         '--exclude-module=pytest',
     ]
     

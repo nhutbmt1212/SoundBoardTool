@@ -79,13 +79,47 @@ async function loadSoundsWithRetry() {
 }
 
 /**
+ * Browser shortcuts that should be blocked
+ * Only block specific shortcuts, not all modifier combinations
+ * @const {Set<string>}
+ */
+const BLOCKED_BROWSER_SHORTCUTS = new Set([
+    'Ctrl+S',       // Save page
+    'Ctrl+Shift+S', // Save as
+    'Ctrl+P',       // Print
+    'Ctrl+R',       // Reload
+    'Ctrl+N',       // New window
+    'Ctrl+W',       // Close tab
+    'Ctrl+T',       // New tab
+    'Ctrl+H',       // History
+    'Ctrl+J',       // Downloads
+    'Ctrl+D',       // Bookmark
+    'Ctrl+U',       // View source
+    'Ctrl+G',       // Find next
+    'Ctrl+F',       // Find
+    'Ctrl+O',       // Open file
+    'Alt+Home',     // Home page
+    'Alt+Left',     // Back
+    'Alt+Right',    // Forward
+]);
+
+/**
  * Prevents default browser shortcuts and extension interference
- * Allows only DevTools (F12, Ctrl+Shift+I) and app-specific interactions
+ * Allows keybind recording, DevTools, and app-specific interactions
  */
 function preventBrowserShortcuts() {
     window.addEventListener('keydown', (e) => {
         // ALWAYS Allow F12 and Ctrl+Shift+I (DevTools)
         if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key.toUpperCase() === 'I')) {
+            return;
+        }
+
+        // ALWAYS Allow when recording keybinds - let keybind handler process it
+        // Check the flags on AppState AND look for any element with 'recording' class
+        const isRecordingAnyKeybind = AppState.isRecordingKeybind ||
+            AppState.isRecordingStopKeybind ||
+            document.querySelector('.recording');
+        if (isRecordingAnyKeybind) {
             return;
         }
 
@@ -104,22 +138,27 @@ function preventBrowserShortcuts() {
             // Allow standard editing shortcuts ONLY in Inputs
             if (isInput) {
                 const key = e.key.toLowerCase();
-                if (
-                    (e.ctrlKey && ['c', 'v', 'x', 'a', 'z', 'y'].includes(key)) // Copy, Paste, Cut, Select All, Undo, Redo
-                ) {
+                if (e.ctrlKey && ['c', 'v', 'x', 'a', 'z', 'y'].includes(key)) {
                     return; // Let it pass to the input
                 }
             }
 
-            // BLOCK EVERYTHING ELSE with modifiers (Ctrl+S, Ctrl+P, Ctrl+Shift+S, Alt+F4 capture?, etc)
-            // Note: OS level shortcuts like Alt+F4 or Win+D usually bypass browser JS anyway, but we try.
-            // Ctrl+Shift+S (User specific complaint) will be caught here.
-            e.preventDefault();
-            e.stopPropagation();
-            return;
+            // Build shortcut string to check against blocked list
+            let shortcut = '';
+            if (e.ctrlKey) shortcut += 'Ctrl+';
+            if (e.shiftKey) shortcut += 'Shift+';
+            if (e.altKey) shortcut += 'Alt+';
+            shortcut += e.key.length === 1 ? e.key.toUpperCase() : e.key;
+
+            // Only block specific browser shortcuts, allow others for app keybinds
+            if (BLOCKED_BROWSER_SHORTCUTS.has(shortcut)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
         }
 
-        // If no modifiers, let normal keys pass (typing, app hotkeys)
+        // If no modifiers or not a blocked shortcut, let it pass for app keybind processing
 
     }, true); // Use Capture phase to Intercept before bubbling
 }
