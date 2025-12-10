@@ -38,6 +38,27 @@ const EffectsEvents = {
         // Distortion
         this.setupEffectToggle('distortion', currentEffects);
         this.setupEffectParam('distortion-drive', 'distortion', 'drive');
+
+        // Sync saved effects to backend immediately so they're ready for playback
+        this.syncEffectsToBackend(currentEffects);
+    },
+
+    /**
+     * Sync effects configuration to backend without saving to disk
+     * @param {Object} effects - Effects configuration
+     */
+    async syncEffectsToBackend(effects) {
+        try {
+            if (this.currentItemType === 'sound') {
+                await eel.set_sound_effects(effects)();
+            } else if (this.currentItemType === 'youtube') {
+                await eel.set_youtube_effects(effects)();
+            } else if (this.currentItemType === 'tiktok') {
+                await eel.set_tiktok_effects(effects)();
+            }
+        } catch (error) {
+            console.error('Error syncing effects to backend:', error);
+        }
     },
 
     /**

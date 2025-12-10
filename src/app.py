@@ -114,6 +114,11 @@ def play_sound_global(name: str):
     audio.set_volume(vol)
     audio.set_pitch(pitch)
     audio.set_trim(trim_start, trim_end)
+    
+    # Apply effects
+    effects = settings.get('effects', {})
+    audio.set_sound_effects(effects)
+    
     audio.play(name)
 
 
@@ -131,6 +136,10 @@ def play_youtube_global(url: str):
     audio.set_youtube_volume(vol)
     audio.set_youtube_pitch(pitch)
     audio.set_youtube_trim(trim_start, trim_end)
+    
+    # Apply effects
+    effects = settings.get('effects', {})
+    audio.set_youtube_effects(effects)
     
     info = audio.get_youtube_info()
     
@@ -156,6 +165,10 @@ def play_tiktok_global(url: str):
     audio.set_tiktok_volume(vol)
     audio.set_tiktok_pitch(pitch)
     audio.set_tiktok_trim(trim_start, trim_end)
+    
+    # Apply effects
+    effects = settings.get('effects', {})
+    audio.set_tiktok_effects(effects)
     
     info = audio.get_tiktok_info()
     

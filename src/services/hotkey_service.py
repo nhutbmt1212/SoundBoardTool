@@ -24,7 +24,13 @@ class HotkeyService:
         self.tiktok_volumes = {}
         self.tiktok_scream_mode = {}
         self.tiktok_pitch_mode = {}
+        self.tiktok_pitch_mode = {}
         self.tiktok_loop_state = {}
+        
+        # Effects cache
+        self.sound_effects = {}
+        self.youtube_effects = {}
+        self.tiktok_effects = {}
     
     def initialize(self, sound_callback, youtube_callback, tiktok_callback, stop_callback):
         """Initialize hotkey service with callbacks"""
@@ -60,7 +66,13 @@ class HotkeyService:
         self.tiktok_volumes = settings.get('tiktokVolumes', {})
         self.tiktok_scream_mode = settings.get('tiktokScreamMode', {})
         self.tiktok_pitch_mode = settings.get('tiktokPitchMode', {})
+        self.tiktok_pitch_mode = settings.get('tiktokPitchMode', {})
         self.tiktok_loop_state = settings.get('tiktokLoopState', {})
+        
+        # Update effects
+        self.sound_effects = settings.get('soundEffects', {})
+        self.youtube_effects = settings.get('youtubeEffects', {})
+        self.tiktok_effects = settings.get('tiktokEffects', {})
         
         # Backward compatibility
         if isinstance(self.youtube_scream_mode, bool):
@@ -92,7 +104,9 @@ class HotkeyService:
             'volume': self.sound_volumes.get(name, 100),
             'scream': self.sound_scream_mode.get(name, False),
             'pitch': self.sound_pitch_mode.get(name, False),
-            'loop': self.sound_loop_state.get(name, False)
+            'pitch': self.sound_pitch_mode.get(name, False),
+            'loop': self.sound_loop_state.get(name, False),
+            'effects': self.sound_effects.get(name, {})
         }
     
     def get_youtube_settings(self, url: str):
@@ -101,7 +115,9 @@ class HotkeyService:
             'volume': self.youtube_volumes.get(url, 100),
             'scream': self.youtube_scream_mode.get(url, False),
             'pitch': self.youtube_pitch_mode.get(url, False),
-            'loop': self.youtube_loop_state.get(url, False)
+            'pitch': self.youtube_pitch_mode.get(url, False),
+            'loop': self.youtube_loop_state.get(url, False),
+            'effects': self.youtube_effects.get(url, {})
         }
     
     def get_tiktok_settings(self, url: str):
@@ -110,7 +126,9 @@ class HotkeyService:
             'volume': self.tiktok_volumes.get(url, 100),
             'scream': self.tiktok_scream_mode.get(url, False),
             'pitch': self.tiktok_pitch_mode.get(url, False),
-            'loop': self.tiktok_loop_state.get(url, False)
+            'pitch': self.tiktok_pitch_mode.get(url, False),
+            'loop': self.tiktok_loop_state.get(url, False),
+            'effects': self.tiktok_effects.get(url, {})
         }
     
     def cleanup(self):
