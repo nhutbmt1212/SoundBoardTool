@@ -23,6 +23,8 @@ class TikTokAPI(BaseStreamAPI):
         eel.expose(self.delete_tiktok_item)
         eel.expose(self.save_tiktok_as_sound)
         eel.expose(self.get_tiktok_duration)
+        eel.expose(self.set_tiktok_effects)
+        eel.expose(self.get_tiktok_effects)
     
     def _get_stream_object(self):
         """Get TikTok stream object from audio engine"""
@@ -82,3 +84,12 @@ class TikTokAPI(BaseStreamAPI):
     def get_tiktok_duration(self, url: str):
         """Get TikTok video duration in seconds"""
         return self._get_duration(url)
+    
+    def set_tiktok_effects(self, effects_config: dict):
+        """Set effects for TikTok playback"""
+        self.audio.set_tiktok_effects(effects_config)
+        return True
+    
+    def get_tiktok_effects(self):
+        """Get current TikTok effects"""
+        return self.audio.get_tiktok_effects()

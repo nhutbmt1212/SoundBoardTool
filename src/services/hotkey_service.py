@@ -41,6 +41,10 @@ class HotkeyService:
         """Update all hotkeys from settings"""
         settings = load_sound_settings()
         
+        # Defensive check
+        if settings is None:
+            settings = {'volumes': {}, 'keybinds': {}}
+        
         # Update caches
         self.sound_volumes = settings.get('volumes', {})
         self.sound_scream_mode = settings.get('screamMode', {})

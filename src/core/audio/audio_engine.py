@@ -257,6 +257,32 @@ class AudioEngine:
     def set_tiktok_trim(self, start: float, end: float):
         self.tiktok.set_trim(start, end)
     
+    # === Audio Effects ===
+    
+    def set_sound_effects(self, effects_config: dict):
+        """Set effects for sound playback"""
+        self.sound_player.set_effects(effects_config)
+    
+    def get_sound_effects(self) -> dict:
+        """Get current sound effects"""
+        return self.sound_player.get_effects()
+    
+    def set_youtube_effects(self, effects_config: dict):
+        """Set effects for YouTube playback"""
+        self.youtube.set_effects(effects_config)
+    
+    def get_youtube_effects(self) -> dict:
+        """Get current YouTube effects"""
+        return self.youtube.get_effects()
+    
+    def set_tiktok_effects(self, effects_config: dict):
+        """Set effects for TikTok playback"""
+        self.tiktok.set_effects(effects_config)
+    
+    def get_tiktok_effects(self) -> dict:
+        """Get current TikTok effects"""
+        return self.tiktok.get_effects()
+    
     # === Cleanup ===
     
     def cleanup(self):

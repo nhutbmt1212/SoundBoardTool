@@ -66,6 +66,11 @@ class BaseStream:
         self.cache_index_file = self.cache_dir / 'index.json'
         self._cache_index = self._load_cache_index()
         
+        # Audio effects
+        from .effects_processor import AudioEffectsProcessor
+        self.effects_processor = AudioEffectsProcessor()
+        self.effects_config = {}
+        
         # To be overridden by subclasses if needed
         self.ytdl_format = 'bestaudio/best'
 
@@ -313,6 +318,10 @@ class BaseStream:
                     audio *= self.volume
                     if self.volume > 1.0:
                          audio = np.clip(audio, AUDIO_CLIP_MIN, AUDIO_CLIP_MAX)
+                    
+                    # Apply audio effects
+                    if self.effects_config:
+                        audio = self.effects_processor.apply_effects(audio, self.effects_config)
                          
                     audio_out = np.ascontiguousarray(audio)
                     
@@ -412,6 +421,22 @@ class BaseStream:
     def set_trim(self, start: float, end: float):
         self.trim_start = max(0.0, start)
         self.trim_end = max(0.0, end)
+    
+    def set_effects(self, effects_config: dict):
+        """Set effects configuration
+        
+        Args:
+            effects_config: Dictionary of effect settings
+        """
+        self.effects_config = effects_config
+    
+    def get_effects(self) -> dict:
+        """Get current effects configuration
+        
+        Returns:
+            Dictionary of effect settings
+        """
+        return self.effects_config
         
     def get_duration(self, url: str) -> float:
         """Get duration of media in seconds"""

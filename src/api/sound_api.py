@@ -27,6 +27,8 @@ class SoundAPI:
         eel.expose(self.delete_sound)
         eel.expose(self.get_audio_duration)
         eel.expose(self.get_waveform_data)
+        eel.expose(self.set_sound_effects)
+        eel.expose(self.get_sound_effects)
     
     def get_sounds(self):
         """Get list of available sounds"""
@@ -128,3 +130,12 @@ class SoundAPI:
     def get_waveform_data(self, name: str, samples: int = 200):
         """Get waveform data for visualization"""
         return self.audio.get_waveform_data(name, samples)
+    
+    def set_sound_effects(self, effects_config: dict):
+        """Set effects for sound playback"""
+        self.audio.set_sound_effects(effects_config)
+        return True
+    
+    def get_sound_effects(self):
+        """Get current sound effects"""
+        return self.audio.get_sound_effects()

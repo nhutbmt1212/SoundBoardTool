@@ -56,6 +56,11 @@ class SoundPlayer:
         self._is_paused = False
         self._current_sound = None
         
+        # Audio effects
+        from .effects_processor import AudioEffectsProcessor
+        self.effects_processor = AudioEffectsProcessor()
+        self.effects_config = {}
+        
         self._init_pygame()
         self.load_sounds()
     
@@ -251,6 +256,10 @@ class SoundPlayer:
                     if self.volume > 1.0:
                         chunk = np.clip(chunk, -1.0, 1.0)
                     
+                    # Apply audio effects
+                    if self.effects_config:
+                        chunk = self.effects_processor.apply_effects(chunk, self.effects_config)
+                    
                     if chunk.ndim == 1:
                         chunk = chunk.reshape(-1, 1)
                     stream.write(chunk)
@@ -408,6 +417,22 @@ class SoundPlayer:
             logger.error(f"Error generating waveform for {name}: {e}")
             return []
     
+    def set_effects(self, effects_config: dict):
+        """Set effects configuration
+        
+        Args:
+            effects_config: Dictionary of effect settings
+        """
+        self.effects_config = effects_config
+    
+    def get_effects(self) -> dict:
+        """Get current effects configuration
+        
+        Returns:
+            Dictionary of effect settings
+        """
+        return self.effects_config
+    
     def cleanup(self):
         """Cleanup resources"""
         self.stop()
@@ -416,3 +441,4 @@ class SoundPlayer:
                 pygame.mixer.quit()
             except Exception as e:
                 logger.debug(f"Failed to quit pygame mixer: {e}")
+

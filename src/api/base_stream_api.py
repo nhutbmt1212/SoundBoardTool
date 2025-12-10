@@ -85,6 +85,9 @@ class BaseStreamAPI(ABC):
         items = []
         
         settings = load_sound_settings()
+        # Defensive check
+        if settings is None:
+            settings = {}
         keybinds = settings.get(self._get_keybinds_key(), {})
         
         for key, data in stream._cache_index.items():

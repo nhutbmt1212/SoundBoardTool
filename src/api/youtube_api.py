@@ -23,6 +23,8 @@ class YouTubeAPI(BaseStreamAPI):
         eel.expose(self.delete_youtube_item)
         eel.expose(self.save_youtube_as_sound)
         eel.expose(self.get_youtube_duration)
+        eel.expose(self.set_youtube_effects)
+        eel.expose(self.get_youtube_effects)
     
     def _get_stream_object(self):
         """Get YouTube stream object from audio engine"""
@@ -82,3 +84,12 @@ class YouTubeAPI(BaseStreamAPI):
     def get_youtube_duration(self, url: str):
         """Get YouTube video duration in seconds"""
         return self._get_duration(url)
+    
+    def set_youtube_effects(self, effects_config: dict):
+        """Set effects for YouTube playback"""
+        self.audio.set_youtube_effects(effects_config)
+        return True
+    
+    def get_youtube_effects(self):
+        """Get current YouTube effects"""
+        return self.audio.get_youtube_effects()
