@@ -99,25 +99,7 @@ class SoundAPI:
         try:
             # Decode base64
             data = base64.b64decode(base64_data)
-            
-            # Get extension
-            ext = Path(filename).suffix.lower()
-            if ext not in ['.wav', '.mp3', '.ogg', '.flac', '.m4a']:
-                return False
-            
-            # Save directly to sounds folder
-            name = Path(filename).stem
-            dest = Path(self.sounds_dir) / filename
-            
-            # Handle duplicate names
-            counter = 1
-            while dest.exists():
-                dest = Path(self.sounds_dir) / f"{name}_{counter}{ext}"
-                counter += 1
-            
-            dest.write_bytes(data)
-            self.audio.load_sounds()  # Reload sounds
-            return True
+            return self.audio.sound_player.add_sound_from_data(filename, data)
         except Exception as e:
             print(f"Error adding sound: {e}")
             return False
@@ -145,7 +127,6 @@ class SoundAPI:
 
     def set_sound_loop(self, enabled: bool):
         """Enable/disable loop for sound playback"""
-        print(f"[LOOP_DEBUG] SoundAPI.set_sound_loop called with: {enabled}")
         self.audio.set_sound_loop(enabled)
         return True
 

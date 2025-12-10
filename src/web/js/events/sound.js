@@ -129,16 +129,21 @@ const SoundEvents = {
         if (!AppState.selectedSound) return;
         document.getElementById('volume-value').textContent = value;
 
-        // Update state
+        // Update state immediately for UI responsiveness
         AppState.setVolume(AppState.selectedSound, value);
 
-        // Calculate effective volume (including scream mode)
-        let vol = parseInt(value) / 100;
-        const isScream = AppState.isScreamMode(AppState.selectedSound);
-        if (isScream) vol = Math.min(vol * 50.0, 50.0);
+        // Debounce API calls to prevent flooding
+        if (this._volumeDebounceTimer) clearTimeout(this._volumeDebounceTimer);
 
-        // Send to backend
-        await API.setSoundVolume(vol);
+        this._volumeDebounceTimer = setTimeout(async () => {
+            // Calculate effective volume (including scream mode)
+            let vol = parseInt(value) / 100;
+            const isScream = AppState.isScreamMode(AppState.selectedSound);
+            if (isScream) vol = Math.min(vol * 50.0, 50.0);
+
+            // Send to backend
+            await API.setSoundVolume(vol);
+        }, 50); // 50ms debounce
     },
 
     /**
@@ -146,6 +151,7 @@ const SoundEvents = {
      * @param {number} value - New volume value
      */
     async onVolumeSave(value) {
+        if (this._volumeDebounceTimer) clearTimeout(this._volumeDebounceTimer);
         this.saveSettings();
     },
 
@@ -207,8 +213,6 @@ const SoundEvents = {
         if (!AppState.selectedSound) return;
         const checkbox = document.getElementById('loop-checkbox');
         const isLoop = checkbox.checked;
-
-        console.log(`[LOOP_DEBUG] SoundEvents.toggleLoop: Toggling loop to ${isLoop} for ${AppState.selectedSound}`);
 
         AppState.setSoundLoop(AppState.selectedSound, isLoop);
         await this.saveSettings();

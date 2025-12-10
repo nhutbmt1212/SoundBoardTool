@@ -262,9 +262,7 @@ const UI = {
         infoEl.className = 'tiktok-info error';
     },
 
-    // Enable TikTok play button
-    enableTikTokPlayBtn() {
-    },
+
 
     // Select TikTok card visually
     selectTikTokCard(url) {
@@ -293,9 +291,7 @@ const UI = {
         CardRenderer.addLoadingCard('tiktok', url);
     },
 
-    updateTikTokProgress(url, percent) {
-        CardRenderer.updateProgress('tiktok', url, percent);
-    },
+
 
     removeLoadingTikTokCard(url) {
         CardRenderer.removeLoadingCard('tiktok', url);

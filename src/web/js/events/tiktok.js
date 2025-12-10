@@ -36,7 +36,7 @@ const TikTokEvents = {
             UI.setTikTokError(result.error || 'Failed to play');
         }
 
-        UI.enableTikTokPlayBtn();
+
     },
 
     /**
