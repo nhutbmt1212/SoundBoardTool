@@ -23,6 +23,10 @@ class TikTokAPI(BaseStreamAPI):
         eel.expose(self.delete_tiktok_item)
         eel.expose(self.save_tiktok_as_sound)
         eel.expose(self.get_tiktok_duration)
+        eel.expose(self.set_tiktok_effects)
+        eel.expose(self.get_tiktok_effects)
+        eel.expose(self.set_tiktok_loop)
+        eel.expose(self.get_tiktok_loop)
     
     def _get_stream_object(self):
         """Get TikTok stream object from audio engine"""
@@ -35,9 +39,9 @@ class TikTokAPI(BaseStreamAPI):
     # Public API methods - delegate to base class
     
     def play_tiktok(self, url: str, volume: float = 1.0, pitch: float = 1.0, 
-                    start_time: float = 0, end_time: float = 0):
+                    start_time: float = 0, end_time: float = 0, loop: bool = False):
         """Play TikTok audio by URL with specific settings"""
-        return self._play(url, volume, pitch, start_time, end_time)
+        return self._play(url, volume, pitch, start_time, end_time, loop)
     
     def stop_tiktok(self):
         """Stop TikTok streaming"""
@@ -82,3 +86,20 @@ class TikTokAPI(BaseStreamAPI):
     def get_tiktok_duration(self, url: str):
         """Get TikTok video duration in seconds"""
         return self._get_duration(url)
+    
+    def set_tiktok_effects(self, effects_config: dict):
+        """Set effects for TikTok playback"""
+        self.audio.set_tiktok_effects(effects_config)
+        return True
+    
+    def get_tiktok_effects(self):
+        """Get current TikTok effects"""
+        return self.audio.get_tiktok_effects()
+
+    def set_tiktok_loop(self, enabled: bool):
+        """Enable/disable loop for TikTok playback"""
+        return self._set_loop(enabled)
+
+    def get_tiktok_loop(self):
+        """Get TikTok loop state"""
+        return self._get_loop()

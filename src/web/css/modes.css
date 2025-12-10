@@ -122,6 +122,71 @@
     opacity: 0.8;
 }
 
+/* Loop Toggle Specific Styles */
+.loop-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    padding: 8px 0;
+}
+
+.loop-toggle input {
+    display: none;
+}
+
+.loop-slider {
+    width: 48px;
+    height: 26px;
+    background: var(--bg-card-hover);
+    border-radius: var(--radius-full);
+    position: relative;
+    transition: var(--transition-fast);
+}
+
+.loop-slider::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: var(--transition-smooth);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.loop-toggle input:checked+.loop-slider {
+    background: linear-gradient(135deg, #00C9FF 0%, #92FE9D 100%);
+}
+
+.loop-toggle input:checked+.loop-slider::after {
+    left: 25px;
+    background: white;
+}
+
+.loop-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+    transition: var(--transition-fast);
+}
+
+.loop-toggle input:checked~.loop-label {
+    color: #00C9FF;
+    font-weight: 600;
+}
+
+.loop-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    margin-left: 60px;
+    opacity: 0.8;
+}
+
 /* Range Slider for Audio Trimming */
 .range-slider-wrapper {
     width: 100%;

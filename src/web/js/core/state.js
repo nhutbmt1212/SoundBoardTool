@@ -70,6 +70,15 @@ const AppState = {
     /** @type {Object<string, string>} Custom TikTok display names */
     tiktokNames: {},
 
+    /** @type {Object<string, boolean>} Sound loop states */
+    soundLoopState: {},
+
+    /** @type {Object<string, boolean>} YouTube loop states */
+    youtubeLoopState: {},
+
+    /** @type {Object<string, boolean>} TikTok loop states */
+    tiktokLoopState: {},
+
     /** @type {string} Global stop all keybind */
     stopAllKeybind: '',
 
@@ -513,6 +522,141 @@ const AppState = {
         this.tiktokVolumes[url] = parseInt(value);
     },
 
+    // ==================== Audio Effects ====================
+
+    /** @type {Object<string, Object>} Sound effects configurations */
+    soundEffects: {},
+
+    /** @type {Object<string, Object>} YouTube effects configurations */
+    youtubeEffects: {},
+
+    /** @type {Object<string, Object>} TikTok effects configurations */
+    tiktokEffects: {},
+
+    /**
+     * Get default effects configuration
+     * @returns {Object} Default effects config
+     */
+    getDefaultEffects() {
+        return {
+            reverb: { enabled: false, roomSize: 0.5, damping: 0.5 },
+            echo: { enabled: false, delay: 250, feedback: 0.3 },
+            bassBoost: { enabled: false, gain: 6, frequency: 100 },
+            highpass: { enabled: false, cutoff: 80 },
+            distortion: { enabled: false, drive: 0.5 }
+        };
+    },
+
+    /**
+     * Gets effects configuration for a sound
+     * @param {string} name - Sound name
+     * @returns {Object} Effects configuration
+     */
+    getSoundEffects(name) {
+        return this.soundEffects[name] || this.getDefaultEffects();
+    },
+
+    /**
+     * Sets effects configuration for a sound
+     * @param {string} name - Sound name
+     * @param {Object} effects - Effects configuration
+     */
+    setSoundEffects(name, effects) {
+        this.soundEffects[name] = effects;
+    },
+
+    /**
+     * Gets effects configuration for a YouTube item
+     * @param {string} url - YouTube URL
+     * @returns {Object} Effects configuration
+     */
+    getYoutubeEffects(url) {
+        return this.youtubeEffects[url] || this.getDefaultEffects();
+    },
+
+    /**
+     * Sets effects configuration for a YouTube item
+     * @param {string} url - YouTube URL
+     * @param {Object} effects - Effects configuration
+     */
+    setYoutubeEffects(url, effects) {
+        this.youtubeEffects[url] = effects;
+    },
+
+    /**
+     * Gets effects configuration for a TikTok item
+     * @param {string} url - TikTok URL
+     * @returns {Object} Effects configuration
+     */
+    getTikTokEffects(url) {
+        return this.tiktokEffects[url] || this.getDefaultEffects();
+    },
+
+    /**
+     * Sets effects configuration for a TikTok item
+     * @param {string} url - TikTok URL
+     * @param {Object} effects - Effects configuration
+     */
+    setTikTokEffects(url, effects) {
+        this.tiktokEffects[url] = effects;
+    },
+
+    // ==================== Loop State Methods ====================
+
+    /**
+     * Checks if loop is enabled for a sound
+     * @param {string} name - Sound name
+     * @returns {boolean} True if loop enabled
+     */
+    isSoundLoop(name) {
+        return this.soundLoopState[name] || false;
+    },
+
+    /**
+     * Sets loop state for a sound
+     * @param {string} name - Sound name
+     * @param {boolean} enabled - True to enable loop
+     */
+    setSoundLoop(name, enabled) {
+        this.soundLoopState[name] = enabled;
+    },
+
+    /**
+     * Checks if loop is enabled for a YouTube item
+     * @param {string} url - YouTube URL
+     * @returns {boolean} True if loop enabled
+     */
+    isYoutubeLoop(url) {
+        return this.youtubeLoopState[url] || false;
+    },
+
+    /**
+     * Sets loop state for a YouTube item
+     * @param {string} url - YouTube URL
+     * @param {boolean} enabled - True to enable loop
+     */
+    setYoutubeLoop(url, enabled) {
+        this.youtubeLoopState[url] = enabled;
+    },
+
+    /**
+     * Checks if loop is enabled for a TikTok item
+     * @param {string} url - TikTok URL
+     * @returns {boolean} True if loop enabled
+     */
+    isTikTokLoop(url) {
+        return this.tiktokLoopState[url] || false;
+    },
+
+    /**
+     * Sets loop state for a TikTok item
+     * @param {string} url - TikTok URL
+     * @param {boolean} enabled - True to enable loop
+     */
+    setTikTokLoop(url, enabled) {
+        this.tiktokLoopState[url] = enabled;
+    },
+
     // ==================== Persistence ====================
 
     /**
@@ -520,6 +664,11 @@ const AppState = {
      * @param {Object} settings - Settings object from backend
      */
     loadFromSettings(settings) {
+        // Defensive check for null/undefined settings
+        if (!settings) {
+            settings = {};
+        }
+
         this.soundVolumes = settings.volumes || {};
         this.soundKeybinds = settings.keybinds || {};
         this.youtubeKeybinds = settings.youtubeKeybinds || {};
@@ -535,6 +684,16 @@ const AppState = {
         this.youtubeVolumes = settings.youtubeVolumes || {};
         this.tiktokVolumes = settings.tiktokVolumes || {};
         this.stopAllKeybind = settings.stopAllKeybind || '';
+
+        // Load loop states
+        this.soundLoopState = settings.soundLoopState || {};
+        this.youtubeLoopState = settings.youtubeLoopState || {};
+        this.tiktokLoopState = settings.tiktokLoopState || {};
+
+        // Load effects configurations
+        this.soundEffects = settings.soundEffects || {};
+        this.youtubeEffects = settings.youtubeEffects || {};
+        this.tiktokEffects = settings.tiktokEffects || {};
 
         // Backwards compatibility check - if boolean, reset to empty object
         this.youtubeScreamMode = (typeof settings.youtubeScreamMode === 'object')
@@ -572,7 +731,15 @@ const AppState = {
             tiktokNames: this.tiktokNames,
             tiktokTrimSettings: this.tiktokTrimSettings,
             youtubeVolumes: this.youtubeVolumes,
-            tiktokVolumes: this.tiktokVolumes
+            tiktokVolumes: this.tiktokVolumes,
+            // Loop states
+            soundLoopState: this.soundLoopState,
+            youtubeLoopState: this.youtubeLoopState,
+            tiktokLoopState: this.tiktokLoopState,
+            // Effects configurations
+            soundEffects: this.soundEffects,
+            youtubeEffects: this.youtubeEffects,
+            tiktokEffects: this.tiktokEffects
         };
     }
 };

@@ -8,6 +8,7 @@ import sys
 import time
 import logging
 from pathlib import Path
+from ..logging.debug_logger import log_loop_action # Import debug logger
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -54,6 +55,7 @@ class BaseStream:
         self.trim_end = 0.0
         self.playing = False
         self.paused = False
+        self.loop_enabled = False  # Loop infinity flag
         self.current_url = None
         self.current_title = None
         
@@ -65,6 +67,11 @@ class BaseStream:
         self.cache_dir = Path(cache_dir_path)
         self.cache_index_file = self.cache_dir / 'index.json'
         self._cache_index = self._load_cache_index()
+        
+        # Audio effects
+        from .effects_processor import AudioEffectsProcessor
+        self.effects_processor = AudioEffectsProcessor()
+        self.effects_config = {}
         
         # To be overridden by subclasses if needed
         self.ytdl_format = 'bestaudio/best'
@@ -179,7 +186,7 @@ class BaseStream:
             return cached_file, title
         return self._download_and_cache(url, progress_callback)
     
-    def play(self, url: str, progress_callback=None) -> dict:
+    def play(self, url: str, progress_callback=None, loop: bool = False) -> dict:
         """Stream audio to VB-Cable (with persistent cache)"""
         if not YTDLP_AVAILABLE:
             return {'success': False, 'error': 'yt-dlp not installed'}
@@ -187,7 +194,11 @@ class BaseStream:
         if not SD_AVAILABLE or not self.vb_manager.is_connected():
             return {'success': False, 'error': 'VB-Cable not available'}
         
-        self.stop()
+        # Stop any current playback and wait for thread to fully exit
+        self._stop_and_wait()
+        
+        # Set loop state AFTER stopping
+        self.set_loop(loop)
         
         try:
             cached_file, title = self._get_cached_file(url)
@@ -203,6 +214,8 @@ class BaseStream:
             self.current_url = url
             self.current_title = title
             self.paused = False
+            
+            # Clear stop event RIGHT BEFORE starting thread (after old thread is gone)
             self._stop_event.clear()
             
             self._thread = threading.Thread(
@@ -220,122 +233,177 @@ class BaseStream:
 
     def _stream_loop(self, audio_source: str):
         """Background thread to stream audio via ffmpeg"""
-        try:
-            ffmpeg_exe = FFMPEG_PATH or 'ffmpeg'
-            samplerate = self.vb_manager.get_samplerate()
-            channels = self.vb_manager.get_channels()
-            blocksize = STREAM_BLOCKSIZE
-            bytes_per_sample = 2 * channels
-            
-            is_local_file = os.path.exists(audio_source)
-            
-            # Build FFmpeg command
-            filter_complex = []
-            if abs(self.pitch - 1.0) > 0.01:
-                new_rate = int(samplerate * self.pitch)
-                filter_complex.append(f"asetrate={new_rate}")
-                
-            cmd = [ffmpeg_exe]
-            
-            if not is_local_file:
-                cmd.extend([
-                    '-reconnect', '1',
-                    '-reconnect_streamed', '1',
-                    '-reconnect_delay_max', '5'
-                ])
-            
-            if self.trim_start > 0:
-                cmd.extend(['-ss', str(self.trim_start)])
-                
-            cmd.extend(['-i', audio_source])
-            
-            if self.trim_end > 0:
-                duration = self.trim_end - self.trim_start
-                cmd.extend(['-t', str(duration)])
-            
-            if filter_complex:
-                cmd.extend(['-af', ','.join(filter_complex)])
-                
-            cmd.extend([
-                '-f', 's16le',
-                '-acodec', 'pcm_s16le',
-                '-ar', str(samplerate),
-                '-ac', str(channels),
-                '-'
-            ])
-            
-            startupinfo = None
-            if os.name == 'nt':
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            
-            self._process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                bufsize=8192,
-                startupinfo=startupinfo
-            )
-            
-            time.sleep(FFMPEG_STARTUP_DELAY)
-            
-            if self._process.poll() is not None:
-                return
-            
-            # Open streams
-            vb_stream = sd.OutputStream(
-                device=self.vb_manager.device_id,
-                samplerate=samplerate,
-                channels=channels,
-                dtype='float32',
-                blocksize=blocksize,
-                latency='high',
-                clip_off=True
-            )
-            vb_stream.start()
-            
-            speaker_stream = self._open_speaker_stream(samplerate, channels, blocksize)
-            
+        log_loop_action("BaseStream._stream_loop", f"Loop Start | Stream Playback | Source={audio_source} | LoopEnabled={self.loop_enabled}")
+        iteration = 0
+        # Outer loop for infinite repeat
+        while not self._stop_event.is_set():
+            iteration += 1
+            log_loop_action("BaseStream._stream_loop", f"Iteration {iteration} | Starting playback | LoopEnabled={self.loop_enabled} | StopEvent={self._stop_event.is_set()}")
             try:
-                while not self._stop_event.is_set():
-                    if self.paused:
-                        time.sleep(0.1)
-                        continue
+                ffmpeg_exe = FFMPEG_PATH or 'ffmpeg'
+                samplerate = self.vb_manager.get_samplerate()
+                channels = self.vb_manager.get_channels()
+                blocksize = STREAM_BLOCKSIZE
+                bytes_per_sample = 2 * channels
+                
+                is_local_file = os.path.exists(audio_source)
+                
+                # Build FFmpeg command
+                filter_complex = []
+                if abs(self.pitch - 1.0) > 0.01:
+                    new_rate = int(samplerate * self.pitch)
+                    filter_complex.append(f"asetrate={new_rate}")
+                    
+                cmd = [ffmpeg_exe]
+                
+                if not is_local_file:
+                    cmd.extend([
+                        '-reconnect', '1',
+                        '-reconnect_streamed', '1',
+                        '-reconnect_delay_max', '5'
+                    ])
+                
+                if self.trim_start > 0:
+                    cmd.extend(['-ss', str(self.trim_start)])
+                    
+                cmd.extend(['-i', audio_source])
+                
+                if self.trim_end > 0:
+                    duration = self.trim_end - self.trim_start
+                    cmd.extend(['-t', str(duration)])
+                
+                if filter_complex:
+                    cmd.extend(['-af', ','.join(filter_complex)])
+                    
+                cmd.extend([
+                    '-f', 's16le',
+                    '-acodec', 'pcm_s16le',
+                    '-ar', str(samplerate),
+                    '-ac', str(channels),
+                    '-'
+                ])
+                
+                startupinfo = None
+                if os.name == 'nt':
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                
+                # Use DEVNULL for stderr to prevent deadlock (stderr buffer filling up)
+                self._process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,  # Discard stderr to prevent buffer deadlock
+                    bufsize=8192,
+                    startupinfo=startupinfo
+                )
+                
+                time.sleep(FFMPEG_STARTUP_DELAY)
+                
+                if self._process.poll() is not None:
+                    log_loop_action("BaseStream._stream_loop", f"Iteration {iteration} | FFmpeg process exited early")
+                    break
+                
+                # Open streams
+                vb_stream = sd.OutputStream(
+                    device=self.vb_manager.device_id,
+                    samplerate=samplerate,
+                    channels=channels,
+                    dtype='float32',
+                    blocksize=blocksize,
+                    latency='high',
+                    clip_off=True
+                )
+                vb_stream.start()
+                
+                speaker_stream = self._open_speaker_stream(samplerate, channels, blocksize)
+                
+                log_loop_action("BaseStream._stream_loop", f"Iteration {iteration} | Entering audio read loop")
+                exit_reason = "unknown"
+                read_count = 0
+                try:
+                    while not self._stop_event.is_set():
+                        if self.paused:
+                            time.sleep(0.1)
+                            continue
 
-                    raw_data = self._process.stdout.read(blocksize * bytes_per_sample)
-                    if not raw_data:
-                        break
+                        # Check if FFmpeg process is still alive
+                        if self._process.poll() is not None:
+                            exit_reason = f"ffmpeg_exited (returncode={self._process.returncode})"
+                            log_loop_action("BaseStream._stream_loop", f"Iteration {iteration} | FFmpeg process exited during playback")
+                            break
+
+                        read_count += 1
+                        if read_count <= 3 or read_count % 50 == 0:
+                            log_loop_action("BaseStream._stream_loop", f"Iteration {iteration} | Reading chunk {read_count}")
+                            print(f"[STREAM] Chunk {read_count}", flush=True)
+                        
+                        raw_data = self._process.stdout.read(blocksize * bytes_per_sample)
+                        if not raw_data:
+                            exit_reason = "end_of_stream"
+                            log_loop_action("BaseStream._stream_loop", f"Iteration {iteration} | End of stream after {read_count} chunks")
+                            break  # End of stream
+                        
+                        audio = np.frombuffer(raw_data, dtype=np.int16).astype(np.float32) / 32768.0
+                        audio = audio.reshape(-1, channels)
+                        
+                        # Apply volume and clipping if needed
+                        audio *= self.volume
+                        if self.volume > 1.0:
+                             audio = np.clip(audio, AUDIO_CLIP_MIN, AUDIO_CLIP_MAX)
+                        
+                        # Apply audio effects
+                        if self.effects_config:
+                            audio = self.effects_processor.apply_effects(audio, self.effects_config)
+                             
+                        audio_out = np.ascontiguousarray(audio)
+                        
+                        vb_stream.write(audio_out)
+                        
+                        if speaker_stream:
+                            try:
+                                speaker_stream.write(audio_out)
+                            except Exception:
+                                pass
                     
-                    audio = np.frombuffer(raw_data, dtype=np.int16).astype(np.float32) / 32768.0
-                    audio = audio.reshape(-1, channels)
-                    
-                    # Apply volume and clipping if needed
-                    audio *= self.volume
-                    if self.volume > 1.0:
-                         audio = np.clip(audio, AUDIO_CLIP_MIN, AUDIO_CLIP_MAX)
-                         
-                    audio_out = np.ascontiguousarray(audio)
-                    
-                    vb_stream.write(audio_out)
-                    
+                    # Log why we exited the inner loop
+                    if self._stop_event.is_set():
+                        exit_reason = "stop_event"
+                        log_loop_action("BaseStream._stream_loop", f"Iteration {iteration} | Inner loop exit: stop_event was set")
+                except Exception as inner_e:
+                    exit_reason = f"exception: {inner_e}"
+                    log_loop_action("BaseStream._stream_loop", f"Iteration {iteration} | Inner loop exception: {inner_e}")
+                finally:
+                    log_loop_action("BaseStream._stream_loop", f"Iteration {iteration} | Exiting audio read loop | Reason: {exit_reason}")
+                    vb_stream.stop()
+                    vb_stream.close()
                     if speaker_stream:
-                        try:
-                            speaker_stream.write(audio_out)
-                        except Exception:
-                            pass
-            finally:
-                vb_stream.stop()
-                vb_stream.close()
-                if speaker_stream:
-                    speaker_stream.stop()
-                    speaker_stream.close()
+                        speaker_stream.stop()
+                        speaker_stream.close()
+                
+                # Clean up process after one playthrough
+                self._cleanup_process()
+                
+                log_loop_action("BaseStream._stream_loop", f"Iteration {iteration} | Playback finished | Checking loop | LoopEnabled={self.loop_enabled} | StopEvent={self._stop_event.is_set()}")
+                
+                # If loop is disabled or stop was requested, exit
+                if not self.loop_enabled or self._stop_event.is_set():
+                    log_loop_action("BaseStream._stream_loop", f"Iteration {iteration} | Loop Exit | LoopEnabled={self.loop_enabled} | StopEvent={self._stop_event.is_set()}")
+                    break
                     
-        except Exception as e:
-            if not self._stop_event.is_set():
-                logger.error(f"Stream loop error: {e}")
-        finally:
-            self._cleanup_process()
-            self.playing = False
+                # Small delay before restarting
+                log_loop_action("BaseStream._stream_loop", f"Iteration {iteration} | Loop Restarting in 0.1s")
+                time.sleep(0.1)
+                    
+            except Exception as e:
+                log_loop_action("BaseStream._stream_loop", f"Iteration {iteration} | Error: {e}")
+                if not self._stop_event.is_set():
+                    logger.error(f"Stream loop error: {e}")
+                break
+        
+        log_loop_action("BaseStream._stream_loop", f"Exiting _stream_loop | Total iterations: {iteration}")
+        # Final cleanup
+        self._cleanup_process()
+        self.playing = False
 
     def _open_speaker_stream(self, samplerate, channels, blocksize):
         """Open speaker stream for monitoring"""
@@ -368,6 +436,20 @@ class BaseStream:
                 except Exception:
                     pass
             self._process = None
+
+    def _stop_and_wait(self):
+        """Stop streaming and wait for thread to fully exit (for clean restart)"""
+        self._stop_event.set()
+        self._cleanup_process()
+        if self._thread and self._thread.is_alive():
+            try:
+                self._thread.join(timeout=THREAD_JOIN_TIMEOUT)
+            except Exception as e:
+                logger.debug(f"Thread join timeout: {e}")
+        self._thread = None
+        self.playing = False
+        self.paused = False
+        # Don't clear current_url/title here - will be set by play()
 
     def stop(self):
         """Stop streaming"""
@@ -412,6 +494,31 @@ class BaseStream:
     def set_trim(self, start: float, end: float):
         self.trim_start = max(0.0, start)
         self.trim_end = max(0.0, end)
+    
+    def set_loop(self, enabled: bool):
+        """Enable or disable loop infinity"""
+        log_loop_action("BaseStream.set_loop", f"Enabled={enabled}")
+        self.loop_enabled = enabled
+    
+    def get_loop(self) -> bool:
+        """Get current loop state"""
+        return self.loop_enabled
+    
+    def set_effects(self, effects_config: dict):
+        """Set effects configuration
+        
+        Args:
+            effects_config: Dictionary of effect settings
+        """
+        self.effects_config = effects_config
+    
+    def get_effects(self) -> dict:
+        """Get current effects configuration
+        
+        Returns:
+            Dictionary of effect settings
+        """
+        return self.effects_config
         
     def get_duration(self, url: str) -> float:
         """Get duration of media in seconds"""

@@ -54,6 +54,14 @@ const PanelRenderer = {
             isActive: isPitch,
             onChangeHandler: 'EventHandlers.togglePitchMode'
         })}
+
+            ${UIHelpers.buildLoopToggle({
+            checkboxId: 'loop-checkbox',
+            isActive: AppState.isSoundLoop(name),
+            onChangeHandler: 'EventHandlers.toggleLoop'
+        })}
+            
+            ${EffectsHelpers.renderEffectsSection(AppState.getSoundEffects(name))}
             
             <div class="panel-actions">
                 <button class="btn-panel btn-play" onclick="EventHandlers.playSound('${Utils.escapeAttr(name)}')">${icon('play', 14)} Play</button>
@@ -70,6 +78,8 @@ const PanelRenderer = {
             if (window.RangeSlider) {
                 new RangeSlider('waveform-container', name);
             }
+            // Setup effects event listeners
+            EffectsEvents.setupEffectsListeners('sound', name, AppState.getSoundEffects(name));
         }, 100);
     },
 
@@ -122,6 +132,15 @@ const PanelRenderer = {
             onChangeHandler: 'EventHandlers.toggleYoutubePitchMode',
             url: item.url
         })}
+
+            ${UIHelpers.buildLoopToggle({
+            checkboxId: 'yt-loop-checkbox',
+            isActive: AppState.isYoutubeLoop(item.url),
+            onChangeHandler: 'EventHandlers.toggleYoutubeLoop',
+            url: item.url
+        })}
+            
+            ${EffectsHelpers.renderEffectsSection(AppState.getYoutubeEffects(item.url))}
             
             <div class="panel-actions">
                 <button class="btn-panel btn-play" onclick="playYoutubeItem('${Utils.escapeAttr(item.url)}')">${icon('play', 14)} Play</button>
@@ -146,6 +165,8 @@ const PanelRenderer = {
             if (window.YouTubeRangeSlider) {
                 new YouTubeRangeSlider('youtube-waveform-container', item.url);
             }
+            // Setup effects event listeners
+            EffectsEvents.setupEffectsListeners('youtube', item.url, AppState.getYoutubeEffects(item.url));
         }, 100);
     },
 
@@ -198,6 +219,15 @@ const PanelRenderer = {
             onChangeHandler: 'TikTokEvents.togglePitchMode',
             url: item.url
         })}
+
+            ${UIHelpers.buildLoopToggle({
+            checkboxId: 'tt-loop-checkbox',
+            isActive: AppState.isTikTokLoop(item.url),
+            onChangeHandler: 'TikTokEvents.toggleLoop',
+            url: item.url
+        })}
+            
+            ${EffectsHelpers.renderEffectsSection(AppState.getTikTokEffects(item.url))}
             
             <div class="panel-actions">
                 <button class="btn-panel btn-play" onclick="TikTokEvents.playItem('${Utils.escapeAttr(item.url)}')">${icon('play', 14)} Play</button>
@@ -222,6 +252,8 @@ const PanelRenderer = {
             if (window.TikTokRangeSlider) {
                 new TikTokRangeSlider('tiktok-waveform-container', item.url);
             }
+            // Setup effects event listeners
+            EffectsEvents.setupEffectsListeners('tiktok', item.url, AppState.getTikTokEffects(item.url));
         }, 100);
     },
 

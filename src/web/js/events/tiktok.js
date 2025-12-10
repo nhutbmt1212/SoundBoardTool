@@ -22,7 +22,8 @@ const TikTokEvents = {
 
         UI.setTikTokLoading();
 
-        const result = await API.playTikTok(url);
+        const isLoop = AppState.isTikTokLoop(url);
+        const result = await API.playTikTok(url, 1.0, 1.0, 0, 0, isLoop);
 
         if (result.success) {
             UI.updateTikTokUI(true, result.title);
@@ -159,11 +160,12 @@ const TikTokEvents = {
             const isScream = AppState.isTikTokScreamMode(url);
             const isPitch = AppState.isTikTokPitchMode(url);
             const trimSettings = AppState.getTikTokTrimSettings(url);
+            const isLoop = AppState.isTikTokLoop(url);
 
             if (isScream) volume = Math.min(volume * 50.0, 50.0);
             const pitch = isPitch ? 1.5 : 1.0;
 
-            const result = await API.playTikTok(url, volume, pitch, trimSettings?.start || 0, trimSettings?.end || 0);
+            const result = await API.playTikTok(url, volume, pitch, trimSettings?.start || 0, trimSettings?.end || 0, isLoop);
             if (result.success) {
                 this.refreshItems();
             }
@@ -301,6 +303,31 @@ const TikTokEvents = {
         // Update label
         const label = checkbox.parentElement.querySelector('.pitch-label');
         if (label) label.textContent = isPitch ? 'ON - HIGH PITCH!' : 'OFF';
+    },
+
+    /**
+     * Toggles loop mode for a TikTok item
+     * @param {string} url - TikTok video URL
+     */
+    async toggleLoop(url) {
+        if (!url) {
+            if (AppState.selectedTikTokItem) url = AppState.selectedTikTokItem.url;
+            else return;
+        }
+
+        const checkbox = document.getElementById('tt-loop-checkbox');
+        const isLoop = checkbox.checked;
+
+        console.log(`[LOOP_DEBUG] TikTokEvents.toggleLoop: Toggling loop to ${isLoop} for ${url}`);
+
+        AppState.setTikTokLoop(url, isLoop);
+        SoundEvents.saveSettings();
+
+        await API.setTikTokLoop(isLoop);
+
+        // Update label
+        const label = checkbox.parentElement.querySelector('.pitch-label');
+        if (label) label.textContent = isLoop ? 'ON - INFINITY!' : 'OFF';
     },
 
     // ==================== Keybind Management ====================

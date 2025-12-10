@@ -1,8 +1,8 @@
-"""Sound Player - Core audio playback functionality"""
 import threading
 import time
 import logging
 from pathlib import Path
+from ..logging.debug_logger import log_loop_action  # Import debug logger
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -46,6 +46,7 @@ class SoundPlayer:
         self.pitch = 1.0
         self.trim_start = 0.0
         self.trim_end = 0.0
+        self.loop_enabled = False  # Loop infinity flag
         
         self._stop_flag = threading.Event()
         self._pause_event = threading.Event()
@@ -55,6 +56,11 @@ class SoundPlayer:
         self._is_playing = False
         self._is_paused = False
         self._current_sound = None
+        
+        # Audio effects
+        from .effects_processor import AudioEffectsProcessor
+        self.effects_processor = AudioEffectsProcessor()
+        self.effects_config = {}
         
         self._init_pygame()
         self.load_sounds()
@@ -99,6 +105,15 @@ class SoundPlayer:
         self.trim_start = max(0.0, start)
         self.trim_end = max(0.0, end)
     
+    def set_loop(self, enabled: bool):
+        """Enable or disable loop infinity"""
+        log_loop_action("SoundPlayer.set_loop", f"Enabled={enabled}")
+        self.loop_enabled = enabled
+    
+    def get_loop(self) -> bool:
+        """Get current loop state"""
+        return self.loop_enabled
+    
     def play(self, name: str) -> bool:
         """Play sound by name"""
         if name not in self.sounds:
@@ -110,6 +125,8 @@ class SoundPlayer:
         self._current_sound = name
         self._is_paused = False
         
+        log_loop_action("SoundPlayer.play", f"Name={name}, LoopEnabled={self.loop_enabled}")
+
         # Play to both speaker and VB-Cable using sounddevice (supports trim)
         if SD_AVAILABLE and pygame and pygame.mixer.get_init():
             self._thread_id += 1
@@ -251,6 +268,10 @@ class SoundPlayer:
                     if self.volume > 1.0:
                         chunk = np.clip(chunk, -1.0, 1.0)
                     
+                    # Apply audio effects
+                    if self.effects_config:
+                        chunk = self.effects_processor.apply_effects(chunk, self.effects_config)
+                    
                     if chunk.ndim == 1:
                         chunk = chunk.reshape(-1, 1)
                     stream.write(chunk)
@@ -272,10 +293,20 @@ class SoundPlayer:
         if audio is None:
             return
 
-        # Process audio with trim, volume, and pitch
-        audio = self._process_audio(audio, freq, target_samplerate=freq) 
-        
-        self._stream_audio_to_device(audio, freq, None, tid)
+        while tid == self._thread_id and not self._stop_flag.is_set():
+            log_loop_action("SoundPlayer._play_speaker", f"Loop Start | Local Playback | Name={name} | LoopEnabled={self.loop_enabled}")
+            # Process audio with trim, volume, and pitch
+            processed_audio = self._process_audio(audio, freq, target_samplerate=freq) 
+            self._stream_audio_to_device(processed_audio, freq, None, tid)
+            
+            # If loop is disabled or stop was requested, exit
+            if not self.loop_enabled or self._stop_flag.is_set() or tid != self._thread_id:
+                log_loop_action("SoundPlayer._play_speaker", f"Loop Exit | Name={name} | LoopEnabled={self.loop_enabled} | StopFlag={self._stop_flag.is_set()}")
+                break
+            
+            # Small delay before restarting
+            log_loop_action("SoundPlayer._play_speaker", f"Loop Restarting | Name={name}")
+            time.sleep(0.1)
 
     def _play_vb(self, path: str, tid: int, sound_name: str):
         """Play to VB-Cable in background thread"""
@@ -288,15 +319,27 @@ class SoundPlayer:
             
             self._is_playing = True
             try:
-                audio, freq = self._load_and_convert_audio(path)
-                if audio is None:
-                    return
+                # Outer loop for infinite repeat
+                while tid == self._thread_id and not self._stop_flag.is_set():
+                    log_loop_action("SoundPlayer._play_vb", f"Loop Start | VB Playback | Name={sound_name} | LoopEnabled={self.loop_enabled}")
+                    audio, freq = self._load_and_convert_audio(path)
+                    if audio is None:
+                        break
 
-                vb_samplerate = self.vb_manager.get_samplerate()
-                audio = self._process_audio(audio, freq, target_samplerate=vb_samplerate)
+                    vb_samplerate = self.vb_manager.get_samplerate()
+                    audio = self._process_audio(audio, freq, target_samplerate=vb_samplerate)
 
-                self._stream_audio_to_device(audio, vb_samplerate, self.vb_manager.device_id, tid)
+                    self._stream_audio_to_device(audio, vb_samplerate, self.vb_manager.device_id, tid)
                     
+                    # If loop is disabled or stop was requested, exit
+                    if not self.loop_enabled or self._stop_flag.is_set() or tid != self._thread_id:
+                        log_loop_action("SoundPlayer._play_vb", f"Loop Exit | Name={sound_name} | LoopEnabled={self.loop_enabled} | StopFlag={self._stop_flag.is_set()}")
+                        break
+                    
+                    # Small delay before restarting
+                    log_loop_action("SoundPlayer._play_vb", f"Loop Restarting | Name={sound_name}")
+                    time.sleep(0.1)
+                        
             finally:
                 if tid == self._thread_id:
                     self._is_playing = False
@@ -408,6 +451,22 @@ class SoundPlayer:
             logger.error(f"Error generating waveform for {name}: {e}")
             return []
     
+    def set_effects(self, effects_config: dict):
+        """Set effects configuration
+        
+        Args:
+            effects_config: Dictionary of effect settings
+        """
+        self.effects_config = effects_config
+    
+    def get_effects(self) -> dict:
+        """Get current effects configuration
+        
+        Returns:
+            Dictionary of effect settings
+        """
+        return self.effects_config
+    
     def cleanup(self):
         """Cleanup resources"""
         self.stop()
@@ -416,3 +475,4 @@ class SoundPlayer:
                 pygame.mixer.quit()
             except Exception as e:
                 logger.debug(f"Failed to quit pygame mixer: {e}")
+

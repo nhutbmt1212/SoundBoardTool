@@ -1,0 +1,207 @@
+/* Audio Effects Styling */
+
+.effect-control {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+}
+
+.effect-control:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.effect-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.effect-header span {
+    font-weight: 600;
+    font-size: 0.95em;
+    color: #ffffff;
+}
+
+.effect-params {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-left: 44px;
+    margin-top: 8px;
+}
+
+.effect-params label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85em;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 4px;
+}
+
+.effect-params label span {
+    font-weight: 500;
+    color: #667eea;
+    min-width: 40px;
+    text-align: right;
+}
+
+.effect-params input[type="range"] {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.15);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.effect-params input[type="range"]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+
+.effect-params input[type="range"]::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    border: none;
+}
+
+.effect-params input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    margin-top: -6px;
+}
+
+.effect-params input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.5);
+}
+
+.effect-params input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(1.05);
+}
+
+.effect-params input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    cursor: pointer;
+    border: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.effect-params input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.5);
+}
+
+.effect-params input[type="range"]::-moz-range-thumb:active {
+    transform: scale(1.05);
+}
+
+/* Toggle Switch Styling */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    transition: 0.3s;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+}
+
+.slider:before {
+    content: "";
+    height: 20px;
+    width: 20px;
+    margin-left: 3px;
+    background: rgba(255, 255, 255, 0.6);
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input:checked+.slider {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: 1px solid rgba(102, 126, 234, 0.5);
+}
+
+input:checked+.slider:before {
+    transform: translateX(22px);
+    background: white;
+}
+
+input:focus+.slider {
+    box-shadow: 0 0 4px rgba(102, 126, 234, 0.6);
+}
+
+/* Effects section in panel */
+.panel-section.effects-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 20px;
+    margin-top: 20px;
+}
+
+.panel-section.effects-section h3 {
+    font-size: 1.1em;
+    margin-bottom: 16px;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.panel-section.effects-section h3::before {
+    content: "🎛️";
+    font-size: 1.2em;
+}
+
+/* Disabled state */
+.effect-control.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.effect-params.hidden {
+    display: none;
+}

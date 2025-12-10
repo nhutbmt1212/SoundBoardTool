@@ -27,15 +27,20 @@ class SoundAPI:
         eel.expose(self.delete_sound)
         eel.expose(self.get_audio_duration)
         eel.expose(self.get_waveform_data)
+        eel.expose(self.set_sound_effects)
+        eel.expose(self.get_sound_effects)
+        eel.expose(self.set_sound_loop)
+        eel.expose(self.get_sound_loop)
     
     def get_sounds(self):
         """Get list of available sounds"""
         return self.audio.get_sounds()
     
-    def play_sound(self, name: str, volume: float = 1.0, pitch: float = 1.0, start_time: float = 0, end_time: float = 0):
+    def play_sound(self, name: str, volume: float = 1.0, pitch: float = 1.0, start_time: float = 0, end_time: float = 0, loop: bool = False):
         """Play sound with volume, pitch, and optional trim"""
         self.audio.set_volume(volume)
         self.audio.set_pitch(pitch)
+        self.audio.set_sound_loop(loop)
         self.audio.set_trim(start_time, end_time)
         return self.audio.play(name)
     
@@ -128,3 +133,22 @@ class SoundAPI:
     def get_waveform_data(self, name: str, samples: int = 200):
         """Get waveform data for visualization"""
         return self.audio.get_waveform_data(name, samples)
+    
+    def set_sound_effects(self, effects_config: dict):
+        """Set effects for sound playback"""
+        self.audio.set_sound_effects(effects_config)
+        return True
+    
+    def get_sound_effects(self):
+        """Get current sound effects"""
+        return self.audio.get_sound_effects()
+
+    def set_sound_loop(self, enabled: bool):
+        """Enable/disable loop for sound playback"""
+        print(f"[LOOP_DEBUG] SoundAPI.set_sound_loop called with: {enabled}")
+        self.audio.set_sound_loop(enabled)
+        return True
+
+    def get_sound_loop(self):
+        """Get sound loop state"""
+        return self.audio.get_sound_loop()

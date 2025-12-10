@@ -114,6 +114,11 @@ def play_sound_global(name: str):
     audio.set_volume(vol)
     audio.set_pitch(pitch)
     audio.set_trim(trim_start, trim_end)
+    
+    # Apply effects
+    effects = settings.get('effects', {})
+    audio.set_sound_effects(effects)
+    
     audio.play(name)
 
 
@@ -132,13 +137,18 @@ def play_youtube_global(url: str):
     audio.set_youtube_pitch(pitch)
     audio.set_youtube_trim(trim_start, trim_end)
     
+    # Apply effects
+    effects = settings.get('effects', {})
+    audio.set_youtube_effects(effects)
+    
     info = audio.get_youtube_info()
     
     # Toggle play/stop (not pause)
     if info.get('url') == url and info.get('playing'):
         audio.stop_youtube()
     else:
-        audio.play_youtube(url)
+        loop = settings.get('loop', False)
+        audio.play_youtube(url, loop=loop)
 
 
 def play_tiktok_global(url: str):
@@ -156,13 +166,18 @@ def play_tiktok_global(url: str):
     audio.set_tiktok_pitch(pitch)
     audio.set_tiktok_trim(trim_start, trim_end)
     
+    # Apply effects
+    effects = settings.get('effects', {})
+    audio.set_tiktok_effects(effects)
+    
     info = audio.get_tiktok_info()
     
     # Toggle play/stop (not pause)
     if info.get('url') == url and info.get('playing'):
         audio.stop_tiktok()
     else:
-        audio.play_tiktok(url)
+        loop = settings.get('loop', False)
+        audio.play_tiktok(url, loop=loop)
 
 
 def stop_all_global():
