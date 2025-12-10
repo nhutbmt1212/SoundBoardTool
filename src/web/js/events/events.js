@@ -2,7 +2,7 @@
 // This file delegates to specialized event modules
 
 // Constants
-const PLAYBACK_CHECK_INTERVAL_MS = 200; // Milliseconds between playback status checks
+const PLAYBACK_CHECK_INTERVAL_MS = 1000; // Milliseconds between playback status checks (optimized from 200ms)
 const PLAYING_INDICATOR_ICON_SIZE = 32; // Size of play/pause indicator icons
 
 /**
@@ -140,13 +140,10 @@ const EventHandlers = {
     async _updateStreamPlayback(type, getInfoFn, updateUIFn) {
         try {
             const info = await getInfoFn();
-            console.log(`[${type.toUpperCase()}] Info:`, JSON.stringify(info));
-
             const itemSelector = `.${type}-item`;
             const thumbSelector = type === 'youtube' ? '.youtube-thumbnail' : '.sound-thumbnail';
 
             if (info.playing) {
-                console.log(`[${type.toUpperCase()}] Calling updateUIFn(true, '${info.title}', ${info.paused})`);
                 updateUIFn(true, info.title, info.paused);
 
                 // Update grid indicators
@@ -160,7 +157,7 @@ const EventHandlers = {
                 this._clearAllCardIndicators(itemSelector);
             }
         } catch (e) {
-            console.error(`[${type.toUpperCase()}] Error:`, e);
+            console.error(`[${type.toUpperCase()}] Playback check error:`, e);
         }
     },
 
@@ -190,14 +187,19 @@ const EventHandlers = {
             clearInterval(AppState.playingCheckInterval);
         }
 
-        console.log('🚀 Starting playback check interval...');
-
         AppState.playingCheckInterval = setInterval(async () => {
-            console.log('⏰ Playback check tick...');
+            // Smart polling: Skip if tab is hidden (user not viewing)
+            if (document.hidden) {
+                return;
+            }
+
+            // Smart polling: Skip if nothing is playing (idle state)
+            if (!AppState.currentPlayingSound && !UI.currentPlayingType) {
+                return;
+            }
 
             // Skip update completely if force stopped
             if (AppState.forceStopped) {
-                console.log('⏭️ Skipped (force stopped)');
                 return;
             }
 
@@ -214,11 +216,9 @@ const EventHandlers = {
                 }
             }
 
-            console.log('🎬 Checking YouTube playback...');
             // Check YouTube playback
             await EventHandlers._updateStreamPlayback('youtube', API.getYoutubeInfo.bind(API), UI.updateYoutubeUI.bind(UI));
 
-            console.log('🎵 Checking TikTok playback...');
             // Check TikTok playback
             await EventHandlers._updateStreamPlayback('tiktok', API.getTikTokInfo.bind(API), UI.updateTikTokUI.bind(UI));
 

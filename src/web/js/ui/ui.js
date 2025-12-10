@@ -76,8 +76,6 @@ const UI = {
     currentPlayingType: null,
 
     updateNowPlaying(title, type, isPlaying, isPaused = false) {
-        console.log('🎵 updateNowPlaying called:', { title, type, isPlaying, isPaused });
-
         const iconContainer = document.getElementById('now-playing-icon');
         const titleEl = document.getElementById('now-playing-title');
         const statusIcon = document.getElementById('now-playing-status-icon');
@@ -85,7 +83,6 @@ const UI = {
 
         // Clear state: no title and not playing
         if (!title && !isPlaying) {
-            console.log('🧹 Clearing Now Playing (no title, not playing)');
             // Only clear if the current type matches the request type
             // This prevents 'youtube' stop event from clearing 'sound' play event logic if race condition
             if (this.currentPlayingType === type || this.currentPlayingType === null) {
@@ -96,16 +93,12 @@ const UI = {
                 statusIcon.innerHTML = '';
                 progressFill.style.width = '0%';
                 this.currentPlayingType = null;
-                console.log('✅ Cleared Now Playing');
-            } else {
-                console.log('⏭️ Skipped clear (type mismatch)');
             }
             return;
         }
 
         // If we have a title (even with isPlaying=false for loading states), show it
         if (title) {
-            console.log('📺 Displaying Now Playing:', title);
             // Active playing, paused, or loading state
             this.currentPlayingType = type;
 
@@ -145,7 +138,6 @@ const UI = {
                 iconContainer.classList.remove('playing');
                 progressFill.style.width = '0%';
             }
-            console.log('✅ Now Playing updated successfully');
         }
     },
 
@@ -189,7 +181,6 @@ const UI = {
 
     // Update YouTube UI
     updateYoutubeUI(playing, title = '', paused = false) {
-        console.log(`[YOUTUBE UI] playing=${playing}, title='${title}', paused=${paused}`);
         if (title) {
             this.updateNowPlaying(title, 'youtube', playing, paused);
         } else if (!playing && !title) {
@@ -252,7 +243,6 @@ const UI = {
 
     // Update TikTok UI
     updateTikTokUI(playing, title = '', paused = false) {
-        console.log(`[TIKTOK UI] playing=${playing}, title='${title}', paused=${paused}`);
         if (title) {
             this.updateNowPlaying(title, 'tiktok', playing, paused);
         } else if (!playing && !title) {
