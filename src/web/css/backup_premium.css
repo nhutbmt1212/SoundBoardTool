@@ -1,0 +1,345 @@
+/* Premium Backup Settings UI */
+
+.backup-settings-premium {
+    padding: 0;
+    max-width: 100%;
+}
+
+/* User Profile Card */
+.backup-user-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    border-radius: 16px;
+    margin-bottom: 16px;
+    animation: fadeIn 0.3s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+.backup-user-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+}
+
+.user-avatar {
+    flex-shrink: 0;
+    animation: scaleIn 0.4s ease-out;
+}
+
+.user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-name {
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-email {
+    font-size: 14px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.google-badge {
+    flex-shrink: 0;
+    padding: 8px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Status Card */
+.backup-status-card {
+    padding: 18px 20px;
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    margin-bottom: 16px;
+    animation: fadeIn 0.4s ease-out;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.status-icon {
+    flex-shrink: 0;
+}
+
+.status-content {
+    flex: 1;
+}
+
+.status-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.status-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Toggle Card */
+.backup-toggle-card {
+    padding: 18px 20px;
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    margin-bottom: 20px;
+    animation: fadeIn 0.5s ease-out;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-label input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-slider {
+    position: relative;
+    width: 48px;
+    height: 28px;
+    background: var(--bg-tertiary);
+    border-radius: 14px;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: white;
+    top: 3px;
+    left: 3px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-label input[type="checkbox"]:checked+.toggle-slider {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.toggle-label input[type="checkbox"]:checked+.toggle-slider::before {
+    transform: translateX(20px);
+}
+
+.toggle-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.toggle-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.toggle-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Premium Buttons */
+.btn-premium {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 28px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-premium::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.15);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.btn-premium:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.btn-premium:hover::before {
+    opacity: 1;
+}
+
+.btn-premium:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.btn-premium svg {
+    flex-shrink: 0;
+}
+
+/* Action Buttons */
+.backup-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+    animation: fadeIn 0.6s ease-out;
+}
+
+.btn-backup {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-restore {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.btn-logout {
+    width: 100%;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    animation: fadeIn 0.7s ease-out;
+}
+
+/* Login State */
+.backup-login-state {
+    text-align: center;
+    padding: 40px 32px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.login-icon {
+    margin-bottom: 32px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.backup-login-state h3 {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 16px 0;
+}
+
+.backup-login-state p {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0 0 36px 0;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.btn-login {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    min-width: 240px;
+    margin: 0 auto;
+    display: inline-flex;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* Loading state for buttons */
+.btn-premium.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.btn-premium.loading::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

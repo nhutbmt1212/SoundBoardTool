@@ -32,6 +32,14 @@ class SettingsAPI:
         # Update global hotkeys when settings change
         if self.hotkey_update_callback:
             self.hotkey_update_callback()
+        
+        # Trigger auto backup if enabled
+        try:
+            from .backup_api import trigger_auto_backup
+            trigger_auto_backup()
+        except Exception as e:
+            print(f"[SettingsAPI] Auto backup failed: {e}")
+        
         return True
     
     def is_vb_cable_connected(self):

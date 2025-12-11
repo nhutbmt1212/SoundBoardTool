@@ -162,3 +162,37 @@ function preventBrowserShortcuts() {
 
     }, true); // Use Capture phase to Intercept before bubbling
 }
+
+// ==================== OAuth Callbacks ====================
+
+/**
+ * Called by backend when OAuth login completes successfully
+ * @param {Object} result - Login result with email
+ */
+function on_login_complete(result) {
+    if (window.BackupEvents) {
+        window.BackupEvents.onLoginComplete(result);
+    }
+}
+
+/**
+ * Called by backend when OAuth login fails
+ * @param {Object} result - Error result
+ */
+function on_login_failed(result) {
+    if (window.BackupEvents) {
+        window.BackupEvents.onLoginFailed(result);
+    }
+}
+
+/**
+ * Called by backend when OAuth success page is shown
+ */
+function on_oauth_success() {
+    console.log('[App] OAuth success callback received');
+}
+
+// Expose callbacks to Eel
+window.on_login_complete = on_login_complete;
+window.on_login_failed = on_login_failed;
+window.on_oauth_success = on_oauth_success;

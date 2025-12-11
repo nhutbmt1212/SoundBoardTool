@@ -74,3 +74,6 @@ vbcable/
 
 # Lock file
 .soundboard.lock
+
+# Backup credentials (contains OAuth tokens)
+backup_config.json

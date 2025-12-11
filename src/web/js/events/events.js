@@ -320,6 +320,157 @@ window.playTikTokItem = (url) => EventHandlers.playTikTokItem(url);
 window.pauseTikTokItem = (url) => EventHandlers.pauseTikTokItem(url);
 window.deleteTikTokItem = (url) => EventHandlers.deleteTikTokItem(url);
 
+// ==================== Backup Settings ====================
+
+window.showBackupSettings = async () => {
+    await BackupEvents.init();
+
+    const status = BackupEvents.currentStatus;
+    const isLoggedIn = status && status.is_logged_in;
+    const userName = status && status.user_name;
+    const userEmail = status && status.user_email;
+    const lastBackup = status && status.last_backup_time
+        ? new Date(status.last_backup_time).toLocaleString('vi-VN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        })
+        : 'Chưa có';
+
+    UI.showModal({
+        title: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="vertical-align: middle; margin-right: 8px;">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z" fill="currentColor"/>
+                    <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 8c-1.65 0-3-1.35-3-3s1.35-3 3-3 3 1.35 3 3-1.35 3-3 3z" fill="currentColor"/>
+                </svg>Backup & Settings`,
+        body: `
+            <div class="backup-settings-premium">
+                ${isLoggedIn ? `
+                    <!-- User Profile Card -->
+                    <div class="backup-user-card">
+                        <div class="user-avatar">
+                            <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                                <circle cx="28" cy="28" r="28" fill="url(#avatar-gradient)"/>
+                                <path d="M28 28c3.87 0 7-3.13 7-7s-3.13-7-7-7-7 3.13-7 7 3.13 7 7 7zm0 3.5c-5.17 0-9.33 2.09-9.33 4.67V39h18.66v-2.83c0-2.58-4.16-4.67-9.33-4.67z" fill="white" opacity="0.95"/>
+                                <defs>
+                                    <linearGradient id="avatar-gradient" x1="0" y1="0" x2="56" y2="56">
+                                        <stop offset="0%" stop-color="#667eea"/>
+                                        <stop offset="100%" stop-color="#764ba2"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name">${userName || userEmail}</div>
+                            ${userName ? `<div class="user-email">${userEmail}</div>` : ''}
+                        </div>
+                        <div class="google-badge">
+                            <svg width="20" height="20" viewBox="0 0 48 48">
+                                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Backup Status -->
+                    <div class="backup-status-card">
+                        <div class="status-item">
+                            <div class="status-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="12" cy="12" r="10" stroke="#667eea" stroke-width="2"/>
+                                    <path d="M12 6v6l4 2" stroke="#667eea" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                            </div>
+                            <div class="status-content">
+                                <div class="status-label">Sao lưu lần cuối</div>
+                                <div class="status-value">${lastBackup}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Auto Backup Toggle -->
+                    <div class="backup-toggle-card">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="auto-backup-toggle" 
+                                ${status.auto_backup_enabled ? 'checked' : ''}
+                                onchange="BackupEvents.toggleAutoBackup(this.checked)">
+                            <span class="toggle-slider"></span>
+                            <div class="toggle-content">
+                                <span class="toggle-text">Tự động sao lưu</span>
+                                <span class="toggle-desc">Tự động lưu khi có thay đổi cài đặt</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="backup-actions">
+                        <button class="btn-premium btn-backup" onclick="BackupEvents.backup()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M19 12v7H5v-7M12 3v12m0 0l-4-4m4 4l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>Sao lưu ngay</span>
+                        </button>
+                        <button class="btn-premium btn-restore" onclick="BackupEvents.restore()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M5 12v7h14v-7M12 15V3m0 0L8 7m4-4l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>Khôi phục</span>
+                        </button>
+                    </div>
+
+                    <!-- Logout Button -->
+                    <button class="btn-premium btn-logout" onclick="BackupEvents.logout()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5m0 0l-5-5m5 5H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Đăng xuất</span>
+                    </button>
+                ` : `
+                    <!-- Login State -->
+                    <div class="backup-login-state">
+                        <div class="login-icon">
+                            <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                                <circle cx="40" cy="40" r="40" fill="url(#login-bg-gradient)" opacity="0.15"/>
+                                <g transform="translate(16, 16)">
+                                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                                </g>
+                                <defs>
+                                    <linearGradient id="login-bg-gradient" x1="0" y1="0" x2="80" y2="80">
+                                        <stop offset="0%" stop-color="#667eea"/>
+                                        <stop offset="100%" stop-color="#764ba2"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <h3>Kết nối Google Drive</h3>
+                        <p>Sao lưu an toàn cài đặt, âm thanh và cấu hình của bạn lên Google Drive. Truy cập mọi lúc, mọi nơi.</p>
+                        <button class="btn-premium btn-login" onclick="BackupEvents.showLoginModal()">
+                            <svg width="24" height="24" viewBox="0 0 48 48">
+                                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                            </svg>
+                            <span>Đăng nhập với Google</span>
+                        </button>
+                    </div>
+                `}
+            </div>
+        `,
+        showCancel: false,
+        showFooter: false,
+        onConfirm: () => {
+            UI.closeModal();
+        }
+    });
+};
+
 // ==================== Tab Switching ====================
 
 window.switchTab = (tabName) => {

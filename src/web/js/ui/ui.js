@@ -28,6 +28,9 @@ const UI = {
 
         // Mic
         setIcon('mic-icon', 'micOff', 16); // Default off
+
+        // Settings
+        setIcon('settings-icon', 'settings', 20);
     },
 
     // Update Stop All keybind UI
@@ -300,7 +303,7 @@ const UI = {
     // Modal
     closeModalCallback: null,
 
-    showModal({ title, body, onConfirm, onCancel, confirmText = 'Confirm', showCancel = true }) {
+    showModal({ title, body, onConfirm, onCancel, confirmText = 'Confirm', showCancel = true, showFooter = true }) {
         const overlay = document.getElementById('modal-overlay');
         const titleEl = document.getElementById('modal-title');
         const bodyEl = document.getElementById('modal-body');
@@ -310,12 +313,16 @@ const UI = {
 
         if (!overlay) return;
 
-        titleEl.textContent = title;
+        titleEl.innerHTML = title;
         bodyEl.innerHTML = body;
         confirmBtn.textContent = confirmText;
 
-        // Reset footer
-        footer.style.display = 'flex';
+        // Show/hide footer
+        if (showFooter) {
+            footer.style.display = 'flex';
+        } else {
+            footer.style.display = 'none';
+        }
 
         // Clean previous listeners for confirm
         const newConfirmBtn = confirmBtn.cloneNode(true);

@@ -41,6 +41,7 @@ from core.config_paths import (
     get_vbcable_installer_path
 )
 from api import SoundAPI, YouTubeAPI, SettingsAPI, TikTokAPI
+from api import backup_api  # Import to expose backup endpoints
 from services import HotkeyService
 
 # Migrate old configs to AppData
@@ -401,7 +402,7 @@ def main():
     eel_options = {
         'size': (1100, 750),
         'close_callback': on_close,
-        'port': 0,
+        'port': 8000,  # App runs on 8000, OAuth callback uses 8080
         'cmdline_args': ['--disable-extensions']
     }
     

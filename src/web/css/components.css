@@ -779,8 +779,9 @@ button {
     background: var(--bg-card);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
-    width: 400px;
+    width: 560px;
     max-width: 90%;
+    max-height: 80vh;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
     transform: translateY(20px);
     transition: transform var(--transition-normal);
@@ -833,6 +834,8 @@ button {
     color: var(--text-muted);
     font-size: 14px;
     line-height: 1.5;
+    overflow-y: auto;
+    flex: 1;
 }
 
 .modal-footer {

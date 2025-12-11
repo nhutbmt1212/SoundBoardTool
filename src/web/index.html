@@ -23,6 +23,8 @@
     <link rel="stylesheet" href="css/features.css">
     <link rel="stylesheet" href="css/tabs.css">
     <link rel="stylesheet" href="css/effects.css">
+    <link rel="stylesheet" href="css/backup.css">
+    <link rel="stylesheet" href="css/backup_premium.css">
 </head>
 
 <body>
@@ -143,6 +145,11 @@
                     title="Click to set keybind">
                     <span id="stop-keybind-text">Add keybind</span>
                 </div>
+
+                <!-- Backup/Settings Button -->
+                <button class="btn-settings" onclick="showBackupSettings()" title="Backup & Settings">
+                    <span class="settings-icon" id="settings-icon"></span>
+                </button>
             </div>
         </div>
 
@@ -178,6 +185,7 @@
     <!-- Core modules -->
     <script src="js/core/utils.js"></script>
     <script src="js/core/api.js"></script>
+    <script src="js/core/backup-api.js"></script>
     <script src="js/core/state.js"></script>
     <script src="js/core/notifications.js"></script>
     <script src="js/core/progress.js"></script>
@@ -201,6 +209,7 @@
     <script src="js/events/tiktok.js"></script>
     <script src="js/events/keybind.js"></script>
     <script src="js/events/effects-events.js"></script>
+    <script src="js/events/backup.js"></script>
     <script src="js/events/ui.js"></script>
     <script src="js/events/events.js"></script>
 
