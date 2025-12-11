@@ -1,10 +1,10 @@
 /* Backup & Settings Styles */
 
 .btn-settings {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 12px 16px;
+    background: rgba(102, 126, 234, 0.1);
+    color: var(--text-primary);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    padding: 12px;
     border-radius: 12px;
     cursor: pointer;
     font-size: 16px;
@@ -12,17 +12,21 @@
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-left: auto;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
 }
 
 .btn-settings:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
 }
 
 .btn-settings .settings-icon {
-    font-size: 20px;
+    font-size: 22px;
 }
 
 /* Backup Settings Modal */

@@ -101,9 +101,9 @@ const BackupEvents = {
                             <p class="status-subtext">Please complete the authorization in your browser</p>
                         </div>
                         <div class="login-info">
-                            <p>✓ Secure OAuth 2.0 authentication</p>
-                            <p>✓ Your credentials are stored locally</p>
-                            <p>✓ Browser will open automatically</p>
+                            <p>Secure OAuth 2.0 authentication</p>
+                            <p>Your credentials are stored locally</p>
+                            <p>Browser will open automatically</p>
                         </div>
                     </div>
                 `,

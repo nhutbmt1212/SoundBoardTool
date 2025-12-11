@@ -34,12 +34,17 @@
             <!-- Header with gradient -->
             <div class="header-gradient"></div>
 
-            <!-- Title -->
+            <!-- Title ---->
             <div class="title-section">
                 <h1>
                     <img src="assets/logo_transparent.png" alt="Dalit" style="height: 48px; margin-right: 12px;">
                     Dalit
                 </h1>
+
+                <!-- Settings Button -->
+                <button class="btn-settings" onclick="showBackupSettings()" title="Backup & Settings">
+                    <span class="settings-icon" id="settings-icon"></span>
+                </button>
             </div>
 
             <!-- Tabs -->
@@ -145,11 +150,6 @@
                     title="Click to set keybind">
                     <span id="stop-keybind-text">Add keybind</span>
                 </div>
-
-                <!-- Backup/Settings Button -->
-                <button class="btn-settings" onclick="showBackupSettings()" title="Backup & Settings">
-                    <span class="settings-icon" id="settings-icon"></span>
-                </button>
             </div>
         </div>
 
