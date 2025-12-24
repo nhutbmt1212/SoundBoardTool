@@ -8,3 +8,4 @@ keyboard
 pywin32
 psutil
 yt-dlp
+edge-tts

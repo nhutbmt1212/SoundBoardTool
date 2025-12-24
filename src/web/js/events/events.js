@@ -482,10 +482,12 @@ window.switchTab = (tabName) => {
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
     document.getElementById(`content-${tabName}`).classList.add('active');
 
-    // Refresh items when switching to YouTube tab
+    // Refresh items when switching tabs
     if (tabName === 'youtube') {
         EventHandlers.refreshYoutubeItems();
     } else if (tabName === 'tiktok') {
         EventHandlers.refreshTikTokItems();
+    } else if (tabName === 'tts') {
+        TTSEvents.init();
     }
 };

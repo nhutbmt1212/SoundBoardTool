@@ -41,6 +41,7 @@ from core.config_paths import (
     get_vbcable_installer_path
 )
 from api import SoundAPI, YouTubeAPI, SettingsAPI, TikTokAPI
+from api.tts_api import TTSAPI
 from api import backup_api  # Import to expose backup endpoints
 from services import HotkeyService
 
@@ -386,6 +387,7 @@ def main():
     youtube_api = YouTubeAPI(audio, sounds_dir)
     tiktok_api = TikTokAPI(audio, sounds_dir)
     settings_api = SettingsAPI(audio, update_global_hotkeys)
+    tts_api = TTSAPI(audio)
     
     # Initialize hotkeys
     hotkey_service.initialize(play_sound_global, play_youtube_global, play_tiktok_global, stop_all_global)

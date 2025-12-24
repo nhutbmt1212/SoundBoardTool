@@ -604,6 +604,47 @@ const API = {
             false,
             'getTikTokLoop'
         );
+    },
+
+    // ==================== TTS (Text-to-Speech) ====================
+
+    /**
+     * Generate speech from text and play
+     * @param {string} text - Text to convert to speech
+     * @param {string} voice - Edge TTS voice name
+     * @param {number} volume - Volume level (0.0 to 1.0)
+     * @returns {Promise<Object>} Result object with success status
+     */
+    async generateAndPlayTTS(text, voice, volume) {
+        return this._handleApiCall(
+            () => eel.generate_and_play_tts(text, voice, volume)(),
+            { success: false, error: 'Failed to generate speech' },
+            `generateAndPlayTTS`
+        );
+    },
+
+    /**
+     * Get available TTS voices
+     * @returns {Promise<Object>} Voice ID to display name mapping
+     */
+    async getTTSVoices() {
+        return this._handleApiCall(
+            () => eel.get_tts_voices()(),
+            {},
+            'getTTSVoices'
+        );
+    },
+
+    /**
+     * Stop TTS playback
+     * @returns {Promise<void>}
+     */
+    async stopTTS() {
+        return this._handleApiCall(
+            () => eel.stop_tts()(),
+            undefined,
+            'stopTTS'
+        );
     }
 };
 

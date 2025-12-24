@@ -182,6 +182,121 @@ class SoundPlayer:
         
         return True
 
+    def play_file(self, file_path: str, on_complete: callable = None) -> bool:
+        """Play audio from file path directly (for TTS and temp files)
+        
+        Args:
+            file_path: Absolute path to audio file
+            on_complete: Optional callback called when playback ends (for cleanup)
+            
+        Returns:
+            bool: True if playback started successfully
+        """
+        if not file_path or not Path(file_path).exists():
+            return False
+        
+        self._stop_flag.clear()
+        self._pause_event.set()
+        self._current_sound = 'TTS'
+        self._is_paused = False
+        
+        if SD_AVAILABLE and pygame and pygame.mixer.get_init():
+            self._thread_id += 1
+            
+            # Play to speaker in background
+            threading.Thread(
+                target=self._play_file_internal,
+                args=(file_path, self._thread_id, on_complete),
+                daemon=True
+            ).start()
+            
+            # Route to VB-Cable if connected
+            if self.vb_manager.is_connected():
+                threading.Thread(
+                    target=self._play_file_vb,
+                    args=(file_path, self._thread_id),
+                    daemon=True
+                ).start()
+        elif pygame and pygame.mixer.get_init():
+            try:
+                pygame.mixer.stop()
+                snd = pygame.mixer.Sound(file_path)
+                snd.set_volume(min(self.volume, 1.0))
+                snd.play()
+                if on_complete:
+                    threading.Thread(target=self._wait_and_callback, args=(on_complete,), daemon=True).start()
+            except Exception as e:
+                logger.error(f"Audio playback error: {e}")
+                return False
+        
+        return True
+
+    def _play_file_internal(self, file_path: str, tid: int, on_complete: callable = None):
+        """Internal method to play file to speaker"""
+        if not SD_AVAILABLE or not pygame or not pygame.mixer.get_init():
+            return
+        
+        if tid != self._thread_id:
+            return
+        
+        audio, freq = AudioUtils.load_and_convert_audio(file_path)
+        if audio is None:
+            if on_complete:
+                on_complete()
+            return
+        
+        processed_audio = AudioUtils.process_audio(
+            audio, freq,
+            trim_start=0,
+            trim_end=0,
+            pitch=self.pitch,
+            target_samplerate=freq
+        )
+        
+        self._stream_audio_to_device(processed_audio, freq, None, tid)
+        
+        # Call on_complete callback when done
+        if on_complete:
+            on_complete()
+
+    def _play_file_vb(self, file_path: str, tid: int):
+        """Play file to VB-Cable"""
+        if not SD_AVAILABLE or not pygame or not pygame.mixer.get_init():
+            return
+        
+        with self._vb_lock:
+            if tid != self._thread_id:
+                return
+            
+            self._is_playing = True
+            try:
+                audio, freq = AudioUtils.load_and_convert_audio(file_path)
+                if audio is None:
+                    return
+                
+                vb_samplerate = self.vb_manager.get_samplerate()
+                
+                processed_audio = AudioUtils.process_audio(
+                    audio, freq,
+                    trim_start=0,
+                    trim_end=0,
+                    pitch=self.pitch,
+                    target_samplerate=vb_samplerate
+                )
+                
+                self._stream_audio_to_device(processed_audio, vb_samplerate, self.vb_manager.device_id, tid)
+            finally:
+                if tid == self._thread_id:
+                    self._is_playing = False
+                    self._current_sound = None
+
+    def _wait_and_callback(self, on_complete: callable):
+        """Wait for pygame playback to end and call callback"""
+        while pygame.mixer.get_busy():
+            time.sleep(0.1)
+        if on_complete:
+            on_complete()
+
     def pause(self):
         """Pause current playback"""
         if self._is_playing and not self._is_paused:

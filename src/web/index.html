@@ -61,6 +61,10 @@
                     <span class="tab-icon" id="icon-tab-tiktok"></span>
                     <span class="tab-text">TikTok</span>
                 </button>
+                <button class="tab-btn" onclick="switchTab('tts')" id="tab-tts">
+                    <span class="tab-icon" id="icon-tab-tts"></span>
+                    <span class="tab-text">TTS</span>
+                </button>
             </div>
 
             <!-- Sounds Tab Content -->
@@ -107,6 +111,47 @@
                 <div id="tiktok-info" class="tiktok-info" style="display: none;"></div>
                 <div class="tiktok-grid" id="tiktok-grid">
                     <!-- TikTok items will be added here -->
+                </div>
+            </div>
+
+            <!-- TTS Tab Content -->
+            <div class="tab-content" id="content-tts">
+                <div class="tts-container">
+                    <div class="tts-input-section">
+                        <label for="tts-text" class="tts-label">Nhập văn bản</label>
+                        <textarea id="tts-text" class="tts-textarea"
+                            placeholder="Nhập văn bản cần chuyển thành giọng nói..." rows="5"></textarea>
+                    </div>
+
+                    <div class="tts-controls">
+                        <div class="tts-voice-select">
+                            <label for="tts-voice">Giọng đọc</label>
+                            <select id="tts-voice" class="tts-select">
+                                <option value="vi-VN-HoaiMyNeural">Hoài My (Nữ)</option>
+                                <option value="vi-VN-NamMinhNeural">Nam Minh (Nam)</option>
+                            </select>
+                        </div>
+
+                        <div class="tts-volume-control">
+                            <label for="tts-volume">Âm lượng: <span id="tts-volume-value">100%</span></label>
+                            <input type="range" id="tts-volume" class="tts-slider" min="0" max="100" value="100"
+                                oninput="TTSEvents.onVolumeChange(this.value)">
+                        </div>
+                    </div>
+
+                    <div class="tts-actions">
+                        <button class="btn-primary tts-generate-btn" id="tts-generate-btn"
+                            onclick="TTSEvents.generateAndPlay()">
+                            <span id="icon-tts-play"></span>
+                            Phát giọng nói
+                        </button>
+                        <button class="btn-secondary tts-stop-btn" onclick="TTSEvents.stop()">
+                            <span id="icon-tts-stop"></span>
+                            Dừng
+                        </button>
+                    </div>
+
+                    <div id="tts-status" class="tts-status" style="display: none;"></div>
                 </div>
             </div>
 
@@ -207,6 +252,7 @@
     <script src="js/events/sound.js"></script>
     <script src="js/events/youtube.js"></script>
     <script src="js/events/tiktok.js"></script>
+    <script src="js/events/tts.js"></script>
     <script src="js/events/keybind.js"></script>
     <script src="js/events/effects-events.js"></script>
     <script src="js/events/backup.js"></script>
