@@ -645,6 +645,30 @@ const API = {
             undefined,
             'stopTTS'
         );
+    },
+
+    /**
+     * Cancel TTS generation
+     * @returns {Promise<Object>}
+     */
+    async cancelTTS() {
+        return this._handleApiCall(
+            () => eel.cancel_tts()(),
+            { success: false },
+            'cancelTTS'
+        );
+    },
+
+    /**
+     * Check if TTS is currently generating
+     * @returns {Promise<boolean>}
+     */
+    async isTTSGenerating() {
+        return this._handleApiCall(
+            () => eel.is_tts_generating()(),
+            false,
+            'isTTSGenerating'
+        );
     }
 };
 

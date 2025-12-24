@@ -4,6 +4,7 @@ import asyncio
 import tempfile
 import os
 import threading
+import hashlib
 import edge_tts
 
 
@@ -16,116 +17,163 @@ class TTSAPI:
         'vi-VN-NamMinhNeural': 'Nam Minh (Nam)'
     }
     
+    # Cache directory for TTS files
+    CACHE_DIR = os.path.join(tempfile.gettempdir(), 'dalit_tts_cache')
+    
     def __init__(self, audio_engine):
         self.audio = audio_engine
-        self.temp_file = None
+        self.cached_file = None
+        self.cached_hash = None
         self._lock = threading.Lock()
+        self._cancel_flag = threading.Event()
+        self._is_generating = False
+        self._ensure_cache_dir()
         self._register_endpoints()
+    
+    def _ensure_cache_dir(self):
+        """Ensure cache directory exists"""
+        if not os.path.exists(self.CACHE_DIR):
+            os.makedirs(self.CACHE_DIR)
     
     def _register_endpoints(self):
         """Register all TTS endpoints with Eel"""
         eel.expose(self.generate_and_play_tts)
         eel.expose(self.get_tts_voices)
         eel.expose(self.stop_tts)
+        eel.expose(self.cancel_tts)
+        eel.expose(self.is_tts_generating)
     
-    def _cleanup_temp_file(self):
-        """Clean up the temporary TTS audio file"""
+    def _get_cache_hash(self, text: str, voice: str) -> str:
+        """Generate hash from text and voice for caching"""
+        content = f"{text}:{voice}"
+        return hashlib.md5(content.encode('utf-8')).hexdigest()
+    
+    def _cleanup_old_cache(self, new_hash: str):
+        """Delete old cache file if hash changed"""
         with self._lock:
-            if self.temp_file and os.path.exists(self.temp_file):
-                try:
-                    os.remove(self.temp_file)
-                    print(f"[TTS] Cleaned up temp file: {self.temp_file}")
-                except Exception as e:
-                    print(f"[TTS] Failed to cleanup temp file: {e}")
-                finally:
-                    self.temp_file = None
-    
-    async def _generate_audio_async(self, text: str, voice: str, output_path: str):
-        """Async method to generate TTS audio"""
-        communicate = edge_tts.Communicate(text, voice)
-        await communicate.save(output_path)
+            if self.cached_file and self.cached_hash != new_hash:
+                if os.path.exists(self.cached_file):
+                    try:
+                        os.remove(self.cached_file)
+                        print(f"[TTS] Removed old cache: {self.cached_file}")
+                    except Exception as e:
+                        print(f"[TTS] Failed to remove old cache: {e}")
+                self.cached_file = None
+                self.cached_hash = None
     
     def generate_and_play_tts(self, text: str, voice: str = 'vi-VN-HoaiMyNeural', volume: float = 1.0):
-        """Generate speech from text and play through VB-Cable
-        
-        Args:
-            text: Text to convert to speech
-            voice: Edge TTS voice name
-            volume: Playback volume (0.0 to 1.0)
-            
-        Returns:
-            dict: {'success': bool, 'error': str (optional)}
-        """
+        """Generate speech from text and play through VB-Cable"""
         try:
             if not text or not text.strip():
                 return {'success': False, 'error': 'Vui lòng nhập văn bản'}
             
-            # Cleanup previous temp file if exists
-            self._cleanup_temp_file()
+            # Reset cancel flag
+            self._cancel_flag.clear()
+            self._is_generating = True
             
-            # Create new temp file
-            with self._lock:
-                fd, self.temp_file = tempfile.mkstemp(suffix='.mp3', prefix='tts_')
-                os.close(fd)
+            text = text.strip()
+            current_hash = self._get_cache_hash(text, voice)
+            cache_file = os.path.join(self.CACHE_DIR, f"tts_{current_hash}.mp3")
             
-            print(f"[TTS] Generating speech for text: {text[:50]}...")
-            
-            # Run edge-tts in a separate thread with its own event loop
-            generation_error = [None]
-            
-            def run_tts():
-                try:
-                    import asyncio
-                    # Create new event loop for this thread
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
+            # Check if we can use cached file
+            if self.cached_hash == current_hash and self.cached_file and os.path.exists(self.cached_file):
+                print(f"[TTS] Using cached file: {self.cached_file}")
+            else:
+                # Clean up old cache if different
+                self._cleanup_old_cache(current_hash)
+                
+                print(f"[TTS] Generating speech for: {text[:50]}...")
+                
+                # Run edge-tts in a separate thread
+                generation_error = [None]
+                
+                def run_tts():
                     try:
-                        communicate = edge_tts.Communicate(text, voice)
-                        loop.run_until_complete(communicate.save(self.temp_file))
-                    finally:
-                        loop.close()
-                except Exception as e:
-                    generation_error[0] = str(e)
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        try:
+                            communicate = edge_tts.Communicate(text, voice)
+                            loop.run_until_complete(communicate.save(cache_file))
+                        finally:
+                            loop.close()
+                    except Exception as e:
+                        generation_error[0] = str(e)
+                
+                thread = threading.Thread(target=run_tts)
+                thread.start()
+                
+                # Wait with cancel check
+                while thread.is_alive():
+                    if self._cancel_flag.is_set():
+                        print("[TTS] Generation cancelled")
+                        self._is_generating = False
+                        return {'success': False, 'error': 'Đã hủy', 'cancelled': True}
+                    thread.join(timeout=0.1)
+                
+                if self._cancel_flag.is_set():
+                    self._is_generating = False
+                    # Clean up partial file
+                    if os.path.exists(cache_file):
+                        try:
+                            os.remove(cache_file)
+                        except:
+                            pass
+                    return {'success': False, 'error': 'Đã hủy', 'cancelled': True}
+                
+                if generation_error[0]:
+                    self._is_generating = False
+                    raise Exception(generation_error[0])
+                
+                if not os.path.exists(cache_file) or os.path.getsize(cache_file) == 0:
+                    self._is_generating = False
+                    raise Exception("Không thể tạo file âm thanh. Kiểm tra kết nối mạng.")
+                
+                # Update cache info
+                with self._lock:
+                    self.cached_file = cache_file
+                    self.cached_hash = current_hash
+                
+                print(f"[TTS] Audio generated: {cache_file}")
             
-            # Run in thread and wait
-            thread = threading.Thread(target=run_tts)
-            thread.start()
-            thread.join(timeout=30)  # 30 second timeout
+            self._is_generating = False
             
-            if generation_error[0]:
-                raise Exception(generation_error[0])
-            
-            # Check if file was created and has content
-            if not os.path.exists(self.temp_file) or os.path.getsize(self.temp_file) == 0:
-                raise Exception("Không thể tạo file âm thanh. Kiểm tra kết nối mạng.")
-            
-            print(f"[TTS] Audio generated: {self.temp_file}")
+            # Verify file exists before playing
+            if not self.cached_file or not os.path.exists(self.cached_file):
+                return {'success': False, 'error': 'File không tồn tại'}
             
             # Stop any current playback
             self.audio.stop()
             
-            # Set volume and play using sound player
-            self.audio.set_volume(volume)
+            # Set volume (support up to 200%)
+            self.audio.set_volume(min(volume, 2.0))
             
-            # Play the temp file directly through sound player
-            self.audio.sound_player.play_file(self.temp_file, on_complete=self._cleanup_temp_file)
+            # Play the cached file
+            self.audio.sound_player.play_file(self.cached_file)
             
             return {'success': True}
             
         except Exception as e:
+            self._is_generating = False
             print(f"[TTS] Error: {e}")
-            self._cleanup_temp_file()
             return {'success': False, 'error': str(e)}
     
     def get_tts_voices(self):
-        """Get available TTS voices
-        
-        Returns:
-            dict: Voice ID to display name mapping
-        """
+        """Get available TTS voices"""
         return self.VOICES
     
+    def cancel_tts(self):
+        """Cancel TTS generation"""
+        self._cancel_flag.set()
+        self._is_generating = False
+        print("[TTS] Cancel requested")
+        return {'success': True}
+    
+    def is_tts_generating(self):
+        """Check if TTS is currently generating"""
+        return self._is_generating
+    
     def stop_tts(self):
-        """Stop TTS playback and cleanup"""
+        """Stop TTS playback"""
+        self._cancel_flag.set()
+        self._is_generating = False
         self.audio.stop()
-        self._cleanup_temp_file()
