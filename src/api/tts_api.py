@@ -144,8 +144,9 @@ class TTSAPI:
             # Stop any current playback
             self.audio.stop()
             
-            # Set volume (support up to 200%)
-            self.audio.set_volume(min(volume, 2.0))
+            # Set volume with headroom (max 90% of requested to avoid clipping after processing)
+            safe_volume = min(volume * 0.9, 1.0)
+            self.audio.set_volume(safe_volume)
             
             # Play the cached file
             self.audio.sound_player.play_file(self.cached_file)

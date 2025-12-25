@@ -31,7 +31,7 @@ class SoundPlayer:
     """Handles sound file playback to speakers and VB-Cable"""
     
     # Constants
-    STREAM_CHUNK_SIZE = 2048
+    STREAM_CHUNK_SIZE = 4096
     DEFAULT_VOLUME = 0.7
     MAX_VOLUME = 50.0
     MIN_PITCH = 0.5
@@ -75,7 +75,8 @@ class SoundPlayer:
         """Initialize pygame mixer"""
         if pygame:
             try:
-                pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+                # Increased buffer from 512 to 2048 for better stability
+                pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=2048)
             except Exception as e:
                 logger.debug(f"Failed to initialize pygame mixer with custom settings: {e}")
                 try:
@@ -371,6 +372,9 @@ class SoundPlayer:
             if device_id is not None:
                 stream_kwargs['device'] = device_id
                 
+            # Use a slightly larger latency hint for better stability on Windows
+            stream_kwargs['latency'] = 'high' if device_id is not None else 'low'
+            
             with sd.OutputStream(**stream_kwargs) as stream:
                 for i in range(0, len(audio), self.STREAM_CHUNK_SIZE):
                     if self._stop_flag.is_set() or tid != self._thread_id:
@@ -389,8 +393,20 @@ class SoundPlayer:
                     
                     # Apply volume
                     chunk = chunk * self.volume
-                    if self.volume > 1.0:
-                        chunk = np.clip(chunk, -1.0, 1.0)
+
+                    # Continuous soft clipping to prevent distortion without chunk-boundary pops
+                    # Uses a hybrid approach: linear up to 0.8, then smooth arc to 1.0
+                    abs_chunk = np.abs(chunk)
+                    mask = abs_chunk > 0.8
+                    if np.any(mask):
+                        # Simple soft clipper that is transparent below 0.8
+                        # y = 0.8 + 0.2 * tanh((x - 0.8) / 0.2)
+                        # This ensures a smooth transition and continuous derivative
+                        chunk = np.where(
+                            mask,
+                            np.sign(chunk) * (0.8 + 0.19 * np.tanh((abs_chunk - 0.8) / 0.19)),
+                            chunk
+                        )
                     
                     # Apply effects
                     if self.effects_config:

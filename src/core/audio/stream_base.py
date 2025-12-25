@@ -346,10 +346,12 @@ class BaseStream:
                         audio = np.frombuffer(raw_data, dtype=np.int16).astype(np.float32) / 32768.0
                         audio = audio.reshape(-1, channels)
                         
-                        # Apply volume and clipping if needed
+                        # Apply volume with soft limiting to avoid distortion
                         audio *= self.volume
-                        if self.volume > 1.0:
-                             audio = np.clip(audio, AUDIO_CLIP_MIN, AUDIO_CLIP_MAX)
+                        max_val = np.max(np.abs(audio))
+                        if max_val > 0.95:
+                            # Soft limiting using tanh for smoother sound
+                            audio = np.tanh(audio * 0.8) * 0.95
                         
                         # Apply audio effects
                         if self.effects_config:

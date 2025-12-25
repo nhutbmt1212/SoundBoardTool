@@ -128,7 +128,7 @@ const TTSEvents = {
 
     /**
      * Handle volume slider change
-     * @param {number} value - Volume value (0-200)
+     * @param {number} value - Volume value (0-100)
      */
     onVolumeChange(value) {
         const volumeLabel = document.getElementById('tts-volume-value');
